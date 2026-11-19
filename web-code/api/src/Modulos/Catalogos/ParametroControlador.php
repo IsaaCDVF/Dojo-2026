@@ -73,6 +73,36 @@ final class ParametroControlador
 
         Respuesta::ok($resultado, 201);
         }
+    
+        /** GET /api/parametros/historial?clave=minutos_retardo */
+    public function historial(Peticion $req): void
+    {
+        $clave = $req->query['clave'] ?? '';
+        if ($clave === '') {
+            throw new ErrorApi('Falta la clave del parámetro', 422, ['faltan' => ['clave']]);
+        }
+        $p = Db::uno('SELECT id FROM parametros WHERE clave = ?', [$clave]);
+        if (!$p) {
+            throw new ErrorApi('Parámetro no encontrado', 404);
+        }
 
+        $sql = 'SELECT v.id, v.valor, v.vigente_desde, v.vigente_hasta,
+                    s.nombre AS sucursal, v.disciplina_id, v.grado_id,
+                    u.email AS modificado_por
+                FROM parametro_valores v
+                LEFT JOIN sucursales s ON s.id = v.sucursal_id      -- LEFT: los globales no tienen sucursal
+                JOIN usuarios u ON u.id = v.modificado_por
+                WHERE v.parametro_id = ?';
+        $params = [$p['id']];
+
+        // Un rol de sucursal solo ve los valores de su sucursal y los globales
+        if (($s = Permiso::sucursalDe($req)) !== null) {
+            $sql .= ' AND (v.sucursal_id = ? OR v.sucursal_id IS NULL)';
+            $params[] = $s;
+        }
+        $sql .= ' ORDER BY v.vigente_desde DESC, v.id DESC';
+
+        Respuesta::ok(['clave' => $clave, 'historial' => Db::todos($sql, $params)]);
+    }
         
 }
