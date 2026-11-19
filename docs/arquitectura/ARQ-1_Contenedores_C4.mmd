@@ -1,0 +1,34 @@
+flowchart LR
+  subgraph Usuarios
+    SA([Súper admin]):::actor
+    AS([Admin sucursal]):::actor
+    IN([Instructor]):::actor
+    RP([Alumno / Responsable]):::actor
+  end
+  subgraph Sistema["Sistema Dojo"]
+    PANEL["Panel administrativo<br/><i>web</i><br/>alumnos, cobros, horarios,<br/>exámenes, parámetros"]
+    PORTAL["Portal alumno / responsable<br/><i>web responsive</i><br/>pagos, facturas, horario,<br/>solicitud de examen"]
+    KIOSKO["Lector QR<br/><i>tablet en recepción</i><br/>registro de asistencia"]
+    API["API REST<br/>reglas de negocio<br/>autenticación por rol"]
+    WORKER["Procesos en segundo plano<br/>cola + tareas programadas<br/>avisos, elegibilidad, facturas"]
+    DB[("Base de datos<br/>MySQL · 3FN")]
+    FILES[("Archivos<br/>XML / PDF de facturas")]
+  end
+  subgraph Externos
+    PAS["Pasarela de pago<br/>cobro y suscripciones"]
+    PAC["PAC<br/>timbrado CFDI"]
+    MSG["Envío de mensajes<br/>email / WhatsApp"]
+  end
+  SA & AS & IN --> PANEL
+  RP --> PORTAL
+  RP -. muestra QR .-> KIOSKO
+  PANEL & PORTAL & KIOSKO -->|HTTPS / JSON| API
+  API --> DB
+  API -->|encola trabajos| WORKER
+  WORKER --> DB
+  WORKER --> FILES
+  API -->|crea cobro / suscripción| PAS
+  PAS -->|webhook: pago aprobado| API
+  WORKER -->|solicita timbrado| PAC
+  WORKER -->|envía| MSG
+  classDef actor fill:none,stroke-width:2px

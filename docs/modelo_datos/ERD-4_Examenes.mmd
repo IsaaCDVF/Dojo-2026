@@ -1,0 +1,55 @@
+erDiagram
+  sucursales ||--o{ examenes : programa
+  disciplinas ||--o{ examenes : de
+  examenes ||--o{ solicitudes_examen : recibe
+  alumnos ||--o{ solicitudes_examen : envia
+  grados ||--o{ solicitudes_examen : "grado objetivo"
+  instructores ||--o{ solicitudes_examen : resuelve
+  pago_detalles |o--o| solicitudes_examen : "paga (tras autorizar)"
+  solicitudes_examen ||--o| alumno_grados : "si aprueba"
+  solicitudes_examen ||--o{ examen_evaluaciones : "se evalúa en"
+  solicitudes_examen ||--o{ excepciones_examen : "excepción"
+  solicitudes_examen ||--o| cancelaciones_examen : "se cancela"
+  saldos_favor |o--o| cancelaciones_examen : "deja"
+  usuarios ||--o{ excepciones_examen : decide
+  examenes { int id PK
+    int sucursal_id FK
+    int disciplina_id FK
+    datetime fecha
+    string sede
+    enum estado "programado|realizado|cancelado"
+    int programado_por FK }
+  solicitudes_examen { int id PK
+    int alumno_id FK
+    int examen_id FK
+    int grado_objetivo_id FK
+    datetime fecha_envio
+    enum canal "portal|mostrador"
+    int registrada_por FK
+    bool cumplia_criterios
+    enum estado "enviada|fuera_de_plazo|por_autorizar|autorizada|no_autorizada|cancelada|aprobada|reprobada"
+    int instructor_id FK
+    datetime fecha_resolucion
+    string observaciones
+    int pago_detalle_id FK }
+  examen_evaluaciones { int id PK
+    int solicitud_id FK
+    enum tipo "practico|parcial|tesina|validacion"
+    tinyint numero
+    datetime fecha
+    decimal calificacion
+    enum resultado "pendiente|aprobado|reprobado"
+    int instructor_id FK }
+  excepciones_examen { int id PK
+    int solicitud_id FK
+    enum tipo "fuera_de_plazo|presentar_sin_pago"
+    enum decision "autorizada|rechazada"
+    string motivo
+    int decidido_por FK
+    datetime fecha }
+  cancelaciones_examen { int solicitud_id PK,FK
+    enum motivo "no_pago|no_se_presento|a_peticion|otro"
+    string detalle
+    int cancelado_por FK
+    datetime fecha
+    int saldo_favor_id FK }

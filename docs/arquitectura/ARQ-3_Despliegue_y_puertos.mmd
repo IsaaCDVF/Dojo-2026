@@ -1,0 +1,32 @@
+flowchart TB
+  subgraph Clientes["Clientes · navegador"]
+    direction LR
+    PW["Panel web<br/>computadora"]
+    TB["Tableta de asistencia<br/>lector QR"]
+    MV["App móvil<br/>celular"]
+  end
+  subgraph Servidor["Servidor en la nube · docker compose"]
+    direction TB
+    NG["<b>nginx</b> · nginx:1.27<br/>8080 en desarrollo · 443 HTTPS en producción<br/>/ = panel compilado · /api/* = API"]
+    API["<b>api</b> · PHP 8.3-FPM<br/>puerto interno 9000"]
+    CRON["<b>tareas</b> · PHP CLI + cron<br/>cargos, avisos, facturas (fase 4)"]
+    DB[("<b>db</b> · MySQL 8.4<br/>3306 interno · 3307 en desarrollo<br/>volumen dojo_datos")]
+    ALM[("api/almacen<br/>fotos · XML · PDF")]
+  end
+  subgraph Externos["Servicios externos · HTTPS 443"]
+    direction LR
+    PAS["Pasarela de pago"]
+    PAC["PAC · CFDI 4.0"]
+    MSG["Correo SMTP 587<br/>WhatsApp"]
+  end
+  Clientes -->|"HTTPS · JSON · Bearer token"| NG
+  NG -->|"FastCGI :9000"| API
+  API -->|"PDO :3306"| DB
+  CRON -->|"PDO :3306"| DB
+  API --- ALM
+  API -->|"cobro"| PAS
+  PAS -.->|"webhook /api/pagos/notificacion"| NG
+  CRON --> PAC
+  CRON --> MSG
+  classDef fut stroke-dasharray:5 4
+  class CRON,PAS,PAC,MSG fut
