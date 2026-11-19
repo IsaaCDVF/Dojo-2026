@@ -1,0 +1,31 @@
+flowchart TB
+  CAT["<b>Catalogos</b> · fase 1-2<br/>sucursales · disciplinas · grados · horarios<br/>parametros · precios · promociones"]
+  PER["<b>Personas</b> · fase 2<br/>personas · alumnos · responsables · instructores"]
+  INS["<b>Inscripciones</b> · fase 2<br/>inscripciones · cuenta inicial"]
+  ASI["<b>Asistencia</b> · fase 3<br/>asistencias · accesos_rechazados"]
+  PAG["<b>Pagos</b> · fase 4<br/>pagos · pago_detalles · suscripciones<br/>saldos_favor · pases_dia"]
+  EXA["<b>Examenes</b> · fase 5<br/>examenes · solicitudes · excepciones · alumno_grados"]
+  FAC["<b>Facturacion</b> · fase 6<br/>perfiles_fiscales · facturas"]
+  POR["<b>Portal</b> · fase 6<br/>insignias · accesorios · avatar_equipo"]
+  NOT["<b>Notificaciones</b> · fase 4-6<br/>plantillas · notificaciones"]
+  CAT --> PER --> INS
+  INS -->|"cuenta inicial"| PAG
+  INS -->|"¿está inscrito?"| ASI
+  PAG -->|"¿está al día?"| ASI
+  ASI -->|"% de asistencia"| EXA
+  PAG -->|"pago del examen"| EXA
+  PAG --> FAC
+  EXA -->|"grado obtenido"| POR
+  PAG -.->|"eventos"| NOT
+  EXA -.-> NOT
+  subgraph T["Transversal: lo usan todos los módulos (fase 1, listo)"]
+    direction LR
+    NU["<b>Nucleo</b><br/>Router · Db · Folios · Parametros"]
+    AU["<b>Auth</b><br/>usuarios · sesiones · usuario_roles"]
+    PE["<b>Permiso</b><br/>rol · nivel · alcance por sucursal"]
+    BI["<b>Bitacora</b><br/>quién, qué, cuándo, valor anterior"]
+  end
+  classDef listo fill:#d8f8ee,stroke:#00785a,stroke-width:2px
+  classDef fut fill:#f4f6f9,stroke:#8a93a6
+  class NU,AU,PE,BI listo
+  class CAT,PER,INS,ASI,PAG,EXA,FAC,POR,NOT fut

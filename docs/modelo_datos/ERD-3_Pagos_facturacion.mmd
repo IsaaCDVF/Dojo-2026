@@ -1,0 +1,101 @@
+erDiagram
+  conceptos ||--o{ precios : "cuesta"
+  sucursales ||--o{ precios : "por sucursal"
+  responsables_pago ||--o{ suscripciones : contrata
+  alumnos ||--o{ suscripciones : cubre
+  conceptos ||--o{ suscripciones : de
+  responsables_pago ||--o{ pagos : realiza
+  pagos ||--|{ pago_detalles : contiene
+  alumnos ||--o{ pago_detalles : "a nombre de"
+  conceptos ||--o{ pago_detalles : cobra
+  promociones |o--o{ pago_detalles : aplica
+  promociones ||--o{ promocion_conceptos : descuenta
+  conceptos ||--o{ promocion_conceptos : en
+  alumnos ||--o{ alumno_convenios : "tiene derecho"
+  promociones ||--o{ alumno_convenios : convenio
+  responsables_pago ||--o{ perfiles_fiscales : tiene
+  pagos ||--o| facturas : genera
+  codigos_respuesta_pasarela |o--o{ pagos : "responde"
+  responsables_pago ||--o{ saldos_favor : "tiene a favor"
+  pago_detalles ||--o| saldos_favor : "origen"
+  pagos |o--o| saldos_favor : "se aplica en"
+  perfiles_fiscales ||--o{ facturas : "se emite a"
+  conceptos { int id PK
+    string nombre
+    enum tipo "mensualidad|inscripcion|examen|pase_dia|producto|recargo" }
+  precios { int id PK
+    int concepto_id FK
+    int sucursal_id FK
+    decimal monto
+    date vigente_desde
+    date vigente_hasta }
+  suscripciones { int id PK
+    int responsable_id FK
+    int alumno_id FK
+    int concepto_id FK
+    enum modo "automatico|manual"
+    enum frecuencia "mensual|quincenal"
+    string pasarela_suscripcion_id
+    enum estado "activa|pausada|cancelada"
+    tinyint dia_cargo }
+  pagos { int id PK
+    int responsable_id FK
+    int sucursal_id FK
+    string folio UK "recibo CENT-R26-000001"
+    datetime fecha
+    enum metodo "pasarela|efectivo|transferencia|saldo_favor"
+    string referencia_pasarela
+    string codigo_respuesta FK
+    enum estado "pendiente|aprobado|rechazado|reembolsado"
+    int registrado_por FK }
+  pago_detalles { int id PK
+    int pago_id FK
+    int alumno_id FK
+    int concepto_id FK
+    string periodo
+    decimal monto_cobrado
+    decimal descuento_aplicado
+    int promocion_id FK }
+  promociones { int id PK
+    string nombre
+    enum tipo "paquete|convenio|descuento"
+    string codigo UK
+    string institucion
+    int sucursal_id FK
+    date vigente_desde
+    date vigente_hasta
+    bool activa }
+  promocion_conceptos { int promocion_id PK,FK
+    int concepto_id PK,FK
+    enum tipo "porcentaje|monto"
+    decimal valor }
+  alumno_convenios { int alumno_id PK,FK
+    int promocion_id PK,FK
+    date vigente_desde
+    date vigente_hasta }
+  perfiles_fiscales { int id PK
+    int responsable_id FK
+    string rfc
+    string razon_social
+    string regimen_fiscal
+    string cp_fiscal
+    string uso_cfdi }
+  facturas { int id PK
+    int pago_id FK
+    int perfil_fiscal_id FK
+    string uuid_sat UK
+    enum estado "pendiente|timbrada|cancelada|error"
+    string ruta_xml
+    string ruta_pdf
+    datetime fecha_timbrado }
+  codigos_respuesta_pasarela { string codigo PK
+    string descripcion
+    string mensaje_usuario
+    bool permite_reintento }
+  saldos_favor { int id PK
+    int responsable_id FK
+    int alumno_id FK
+    int origen_pago_detalle_id FK
+    decimal monto
+    datetime fecha
+    int aplicado_en_pago_id FK }

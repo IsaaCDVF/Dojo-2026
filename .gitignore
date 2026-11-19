@@ -1,0 +1,20 @@
+# Secretos: nunca se suben
+.env
+web-code/api/.env
+
+# Datos de MySQL: viven en la compu, solo se sube la carpeta vacía
+database-data/*
+!database-data/.gitkeep
+
+# Dependencias y compilados
+node_modules/
+dist/
+vendor/
+
+# Archivos subidos (fotos, facturas)
+web-code/api/almacen/
+
+# Sistema y editor
+.DS_Store
+Thumbs.db
+.vscode/

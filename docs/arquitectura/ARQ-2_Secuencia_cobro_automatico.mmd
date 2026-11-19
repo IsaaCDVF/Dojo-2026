@@ -1,0 +1,18 @@
+sequenceDiagram
+  autonumber
+  participant W as Proceso programado
+  participant N as Envío de mensajes
+  participant P as Pasarela
+  participant A as API (Cobranza)
+  participant D as Base de datos
+  participant C as PAC
+  W->>D: Busca cargos a 5, 3 y 2 días
+  W->>N: Aviso al responsable de pago
+  P->>P: Día de cargo: cobra la suscripción
+  P->>A: Webhook "pago aprobado"
+  A->>D: Crea pago + detalles (monto_cobrado)
+  A->>D: Registra en bitácora
+  A-->>W: Encola factura y recibo
+  W->>C: Solicita timbrado CFDI
+  C-->>W: UUID + XML
+  W->>N: Envía recibo y factura
