@@ -26,3 +26,4 @@ $router->get('/api/parametros',               [ParametroControlador::class, 'vig
 
 $router->get('/api/bitacora',                 [BitacoraControlador::class, 'buscar'],      'bitacora.ver');
 $router->post('/api/parametros/valores',  [ParametroControlador::class, 'guardarValor'], 'parametros.editar');
+$router->get('/api/parametros/historial', [ParametroControlador::class, 'historial'], 'parametros.ver');
