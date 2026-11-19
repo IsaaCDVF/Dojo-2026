@@ -7,6 +7,10 @@ Tipos: **Agregado** (nuevo), **Cambiado** (cambia algo que ya existía), **Corre
 
 ## [Sin publicar]
 
+### Agregado
+- 2.2 Parámetros: guardar un valor con vigencia (cierra el anterior y abre uno nuevo en una transacción, con bitácora) y consultar su historial. Validación por tipo de dato. — Kevin
+- `pruebas/fase2.sh` con 15 pruebas de parámetros. — Kevin
+
 ## [0.1.0] · 2026-11-06 · Fase 1, primera entrega
 ### Agregado
 - Estructura del repositorio: `api/`, `web/`, `db/`, `docker/`, `docs/`, `pruebas/`. — Kevin

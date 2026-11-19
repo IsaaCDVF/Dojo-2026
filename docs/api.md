@@ -35,6 +35,8 @@ Si la persona tiene varios roles, debe llamar `POST /auth/rol` antes de usar el 
 | GET | /disciplinas/{id}/grados | horarios.ver | Grados en orden |
 | GET | /parametros | parametros.ver | Valor vigente de cada parámetro en la sucursal del rol |
 | GET | /bitacora | bitacora.ver | `?tabla=&registro_id=` últimos 200 cambios |
+| POST | /parametros/valores | parametros.editar | `{clave, valor, sucursal_id?, disciplina_id?, grado_id?}`: cierra el vigente de ese alcance y abre uno nuevo, con bitácora |
+| GET | /parametros/historial | parametros.ver | `?clave=`: todos los valores, del más nuevo al más viejo, con sucursal y quién lo cambió |
 
 ## Cómo agregar un endpoint
 1. Ruta en `api/src/rutas.php` con su permiso.
