@@ -10,11 +10,10 @@ services:
       TZ: America/Mexico_City
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     ports: ["3307:3306"]
-
     volumes:
-      -./database-data/mysql:/var/lib/mysql
-      -./database-code:/dojo-db:ro
-      -./database-code/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
+      - ./database-data/mysql:/var/lib/mysql
+      - ./database-code:/dojo-db:ro
+      - ./database-code/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${DB_ROOT_PASS}"]
       interval: 5s

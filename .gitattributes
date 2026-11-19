@@ -1,0 +1,6 @@
+# Los archivos que se montan en contenedores Linux deben quedar siempre con saltos de línea LF
+*.sh            text eol=lf
+nginx.conf      text eol=lf
+Dockerfile      text eol=lf
+docker-compose.yml text eol=lf
+*.sql           text eol=lf

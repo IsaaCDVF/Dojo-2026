@@ -10,6 +10,11 @@ database-data/*
 node_modules/
 dist/
 vendor/
+# Páginas provisionales mientras no existan el panel ni la app compilados
+!web-code/panel/dist/
+!web-code/panel/dist/index.html
+!app-code/dist/
+!app-code/dist/index.html
 
 # Archivos subidos (fotos, facturas)
 web-code/api/almacen/
