@@ -1,0 +1,27 @@
+erDiagram
+  disciplinas ||--o{ grados : define
+  grados ||--o| insignias : "otorga"
+  grados |o--o{ accesorios : "desbloquea"
+  alumnos ||--o{ alumno_grados : "historial de"
+  grados ||--o{ alumno_grados : obtenido
+  alumnos ||--o{ avatar_equipo : "trae puesto"
+  accesorios ||--o{ avatar_equipo : "se usa en"
+  grados { int id PK
+    int disciplina_id FK
+    string nombre
+    int orden }
+  alumno_grados { int id PK
+    int alumno_id FK
+    int grado_id FK
+    date fecha_obtencion }
+  insignias { int id PK
+    int grado_id FK,UK
+    string nombre
+    string imagen }
+  accesorios { int id PK
+    string nombre
+    enum tipo "cabeza|torso|piernas|pies|mano|fondo"
+    string imagen
+    int grado_id FK }
+  avatar_equipo { int alumno_id PK,FK
+    int accesorio_id PK,FK }

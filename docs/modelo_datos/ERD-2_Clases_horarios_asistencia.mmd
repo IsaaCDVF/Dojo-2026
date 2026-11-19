@@ -1,0 +1,73 @@
+erDiagram
+  disciplinas ||--o{ sucursal_disciplinas : "se imparte en"
+  sucursales ||--o{ sucursal_disciplinas : ofrece
+  disciplinas ||--o{ grados : define
+  sucursales ||--o{ horarios : tiene
+  disciplinas ||--o{ horarios : de
+  instructores ||--o{ horarios : imparte
+  alumnos ||--o{ inscripciones : elige
+  grados |o--o{ horarios : "rango de grados"
+  horarios ||--o{ inscripciones : recibe
+  alumnos ||--o{ asistencias : registra
+  horarios ||--o{ asistencias : en
+  alumnos ||--o{ alumno_grados : "historial de"
+  grados ||--o{ alumno_grados : obtenido
+  personas ||--o{ pases_dia : compra
+  horarios ||--o{ pases_dia : "para la clase"
+  alumnos ||--o{ accesos_rechazados : intenta
+  horarios ||--o{ accesos_rechazados : "eligió"
+  disciplinas { int id PK
+    string nombre
+    bool activa }
+  sucursal_disciplinas { int sucursal_id PK,FK
+    int disciplina_id PK,FK }
+  grados { int id PK
+    int disciplina_id FK
+    string nombre
+    int orden
+    string color_cinta
+    bool activo }
+  horarios { int id PK
+    int sucursal_id FK
+    int disciplina_id FK
+    int instructor_id FK
+    tinyint dia_semana
+    time hora_inicio
+    time hora_fin
+    int cupo
+    string nivel "Infantil, Avanzados..."
+    int grado_desde_id FK
+    int grado_hasta_id FK
+    bool activo }
+  inscripciones { int id PK
+    int alumno_id FK
+    int horario_id FK
+    date fecha_inicio
+    date fecha_fin }
+  asistencias { int id PK
+    int alumno_id FK
+    int horario_id FK
+    int sucursal_id FK
+    datetime fecha_hora
+    enum metodo "qr|manual"
+    int registrado_por FK
+    bool validada_instructor }
+  alumno_grados { int id PK
+    int alumno_id FK
+    int grado_id FK
+    date fecha_obtencion
+    enum origen "ubicacion|examen|migracion"
+    int solicitud_examen_id FK
+    int evaluado_por FK }
+  pases_dia { int id PK
+    int persona_id FK
+    int sucursal_id FK
+    int horario_id FK
+    date fecha
+    int pago_detalle_id FK }
+  accesos_rechazados { int id PK
+    int alumno_id FK
+    int horario_id FK
+    int sucursal_id FK
+    datetime fecha_hora
+    enum motivo "no_inscrito|adeudo|visita_rechazada|alumno_baja" }

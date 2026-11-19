@@ -1,0 +1,33 @@
+sequenceDiagram
+  autonumber
+  participant C as Panel web
+  participant N as Nginx :8080
+  participant I as index.php
+  participant R as Router
+  participant A as Autenticacion
+  participant P as Permiso
+  participant K as SucursalControlador
+  participant B as Bitacora
+  participant D as MySQL :3306
+  C->>N: PUT /api/sucursales/3 · Bearer token · {"nombre":"Sur"}
+  N->>I: FastCGI :9000
+  I->>R: despachar(Peticion)
+  R->>A: verificar(token)
+  A->>D: sesiones por SHA-256 del token
+  alt sin sesión o más de N minutos sin uso
+    A-->>C: 401 Inicia sesión / La sesión expiró
+  end
+  A->>D: actualiza ultima_actividad y lee rol activo
+  R->>P: exigir("sucursales.gestionar")
+  alt el rol no tiene el permiso
+    P-->>C: 403 No tienes permiso
+  end
+  R->>K: editar(req)
+  K->>D: lee valores anteriores
+  rect rgb(240,246,255)
+    note over K,D: una sola transacción
+    K->>D: UPDATE sucursales
+    K->>B: cambio(antes, después)
+    B->>D: INSERT bitacora (una fila por campo)
+  end
+  K-->>C: 200 {"ok":true,"datos":{"campos_cambiados":1}}
