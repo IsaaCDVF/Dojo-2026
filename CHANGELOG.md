@@ -10,6 +10,8 @@ Tipos: **Agregado** (nuevo), **Cambiado** (cambia algo que ya existía), **Corre
 ### Agregado
 - 2.2 Parámetros: guardar un valor con vigencia (cierra el anterior y abre uno nuevo en una transacción, con bitácora) y consultar su historial. Validación por tipo de dato. — Kevin
 - `pruebas/fase2.sh` con 15 pruebas de parámetros. — Kevin
+- 2.3 Tarifas: conceptos, precios con vigencia por sucursal, promociones (paquete, convenio, descuento) y cotización con código. Cálculo en centavos. — Kevin
+- `pruebas/tarifas.sh` con 42 pruebas de tarifas y promociones. — Kevin
 
 ## [0.1.0] · 2026-11-06 · Fase 1, primera entrega
 ### Agregado
