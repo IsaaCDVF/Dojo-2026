@@ -138,10 +138,10 @@ export function Kpi({ etiqueta, valor, detalle, tono = 'accion', icono: Icono })
 
 export function Pestanas({ opciones, valor, onCambio, className }) {
   return (
-    <div role="tablist" className={cx('inline-flex flex-wrap gap-1 p-1 rounded-full bg-inset border border-line', className)}>
+    <div role="tablist" className={cx('inline-flex max-w-full overflow-x-auto [scrollbar-width:none] gap-1 p-1 rounded-full bg-inset border border-line', className)}>
       {opciones.map((o) => (
         <button key={o.valor} role="tab" aria-selected={valor === o.valor} onClick={() => onCambio(o.valor)}
-          className={cx('px-3.5 h-8 rounded-full text-[13px] font-semibold transition-colors cursor-pointer',
+          className={cx('shrink-0 whitespace-nowrap px-3.5 h-8 rounded-full text-[13px] font-semibold transition-colors cursor-pointer',
             valor === o.valor ? 'bg-action text-on-action' : 'text-muted hover:text-text')}>
           {o.etiqueta}{o.cuenta !== undefined && <span className="ml-1.5 opacity-70">{o.cuenta}</span>}
         </button>

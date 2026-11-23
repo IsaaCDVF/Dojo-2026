@@ -73,7 +73,8 @@ export const api = {
 export const formato = {
   dinero: (v) => v === null || v === undefined || v === '' ? '—'
     : Number(v).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' }),
-  fecha: (v) => v ? new Date(String(v).replace(' ', 'T')).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
+  // "2026-11-28" sola se leería como medianoche UTC (un día antes en México): se le agrega la hora local
+  fecha: (v) => v ? new Date(/^\d{4}-\d{2}-\d{2}$/.test(v) ? v + 'T00:00' : String(v).replace(' ', 'T')).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
   fechaHora: (v) => v ? new Date(String(v).replace(' ', 'T')).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—',
 };
 

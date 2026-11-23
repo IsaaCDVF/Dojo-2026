@@ -36,3 +36,8 @@ INSERT INTO horarios (sucursal_id, disciplina_id, instructor_id, dia_semana, hor
     UNION ALL SELECT 1,'18:00:00','19:00:00','Intermedios',5,8
     UNION ALL SELECT 3,'19:00:00','20:30:00','Avanzados y negras',9,13) x
   WHERE s.clave='CENT' AND d.nombre='Taekwondo';
+
+-- Precios base de examen, pase y recargo (la mensualidad y la inscripción las da de alta el administrador en Tarifas)
+INSERT INTO precios (concepto_id, sucursal_id, monto, vigente_desde)
+  SELECT id, NULL, x.monto, '2026-01-01' FROM conceptos c
+  JOIN (SELECT 'examen' tipo, 450 monto UNION ALL SELECT 'pase_dia', 150 UNION ALL SELECT 'recargo', 100) x ON x.tipo = c.tipo;

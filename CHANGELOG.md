@@ -8,6 +8,11 @@ Tipos: **Agregado** (nuevo), **Cambiado** (cambia algo que ya existía), **Corre
 ## [Sin publicar]
 
 ### Agregado
+- Fase 4 · Caja en mostrador (`Modulos/Pagos`): estado de cuenta por responsable calculado al momento (inscripción, mensualidades con fecha fija de cobro, recargo por pago tardío y exámenes autorizados), cotización, cobro en efectivo o transferencia con recibo y folio, saldo a favor, corte del día por método y cancelación con motivo. — Kevin
+- Fase 5 · Exámenes (`Modulos/Examenes`): fechas por sucursal con fecha límite calculada, solicitud desde mostrador o portal con criterios de validación blanda (meses en el grado y asistencia), excepción de plazo y de pago, autorización del instructor con observaciones obligatorias al rechazar, resultado que sube de grado y cancelación que deja el pago como saldo a favor. — Kevin
+- Panel: pantallas Caja (cobro, ticket, recibo imprimible, corte del día) y Exámenes (fechas, solicitudes, autorizar, excepciones, resultados y registro en mostrador). — Kevin
+- `pruebas/caja.sh` (54) y `pruebas/examenes.sh` (65). — Kevin
+- Panel: pantalla Mi perfil (correo, rol activo y sucursal) y README del panel. — Kevin
 - Panel web en React + Tailwind (`web-code/panel`): inicio de sesión, elegir rol, menú por permisos, modo oscuro y claro, avisos y confirmaciones. Pantallas: Inicio, Alumnos, Ficha del alumno con credencial QR, Inscripción en 4 pasos, Horarios, Precios y promociones (con simulador), Parámetros con historial, Bitácora y Configuración (sucursales, disciplinas y grados). — Kevin
 - 2.1 Horarios: alta con validación de choque de instructor, rango de grados y cupo; desactivar. — Kevin
 - 2.4 Personas: alta de alumno con CURP, foto y matrícula; responsable nuevo, existente (hermanos) o él mismo; búsqueda; baja y suspensión. — Kevin
@@ -18,6 +23,17 @@ Tipos: **Agregado** (nuevo), **Cambiado** (cambia algo que ya existía), **Corre
 - `pruebas/fase2.sh` con 15 pruebas de parámetros. — Kevin
 - 2.3 Tarifas: conceptos, precios con vigencia por sucursal, promociones (paquete, convenio, descuento) y cotización con código. Cálculo en centavos. — Kevin
 - `pruebas/tarifas.sh` con 42 pruebas de tarifas y promociones. — Kevin
+
+### Cambiado
+- Un permiso de ruta puede ser "a,b,c": basta con tener cualquiera (`Permiso::exigir`). — Kevin
+- Los roles de alcance propio (alumno, responsable) solo ven sus alumnos, su estado de cuenta y sus recibos (`Permiso::alumnosPropios`, `exigirAlumno`, `exigirResponsable`). — Kevin
+
+### Corregido
+- Semillas: las fechas de vigencia iniciales eran `NOW()` en la zona del contenedor (UTC) y quedaban "en el futuro" frente a la API (hora de México); ahora son una fecha fija. — Kevin
+- Panel: las fechas sin hora (`2026-11-28`) se mostraban un día antes. — Kevin
+
+### Base de datos
+- Semilla demo: precios base de examen (450), pase de un día (150) y recargo (100). Solo aplica al crear la base desde cero. — Kevin
 
 ## [0.1.0] · 2026-11-06 · Fase 1, primera entrega
 ### Agregado

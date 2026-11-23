@@ -12,7 +12,7 @@ function Credencial({ a }) {
   const [qr, setQr] = useState('');
   useEffect(() => { QRCode.toDataURL(a.codigo_qr, { margin: 1, width: 280, color: { dark: '#011c42', light: '#ffffff' } }).then(setQr); }, [a.codigo_qr]);
   return (
-    <div className="rounded-[14px] overflow-hidden border border-line" id="credencial">
+    <div className="imprimible rounded-[14px] overflow-hidden border border-line" id="credencial">
       <div className="px-4 py-3 text-white flex items-center justify-between" style={{ background: 'linear-gradient(120deg,#011c42,#0a2852 60%,#006aff)' }}>
         <span className="font-semibold">Dojo <span className="text-[#f2a900]">OS</span></span>
         <span className="font-mono text-[11px] tracking-wider opacity-80">CREDENCIAL</span>
@@ -161,6 +161,7 @@ export default function Ficha() {
                 <div className="text-muted">{r.parentesco}{Number(r.alumnos_a_cargo) > 1 && ` · paga por ${r.alumnos_a_cargo} alumnos`}</div>
                 {r.telefono && <div className="flex items-center gap-2 mt-2"><Phone className="size-3.5 text-muted" /><span className="font-mono">{r.telefono}</span></div>}
                 {r.email && <div className="flex items-center gap-2 mt-1"><Mail className="size-3.5 text-muted" />{r.email}</div>}
+                {tiene('pagos.cobrar') && <Link to={`/caja?responsable=${r.id}`} className="inline-block mt-2 text-[13px] font-semibold text-link">Estado de cuenta y cobro →</Link>}
               </div>
             ))}
           </Tarjeta>

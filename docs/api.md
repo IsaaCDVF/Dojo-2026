@@ -72,3 +72,26 @@ Si la persona tiene varios roles, debe llamar `POST /auth/rol` antes de usar el 
 | GET | /responsables | responsables.gestionar | `?buscar=` (mín. 2 letras) con cuántos alumnos paga |
 | POST | /inscripciones | inscripciones.crear | `{alumno_id, horario_id, grado_id?, forzar?}`; 409 con `detalle.avisos` si la clase está llena o el grado no entra (se puede forzar y queda en bitácora) |
 | PUT | /inscripciones/{id}/terminar | inscripciones.crear | El alumno deja la clase (fecha_fin = hoy) |
+
+## Endpoints · Fase 4 Caja y fase 5 Exámenes
+
+Los adeudos no se guardan: se calculan con inscripciones, grados y pagos. Cada adeudo trae una `clave` (`insc:{alumno}`, `mens:{alumno}:{AAAA-MM}`, `rec:{alumno}:{AAAA-MM}`, `exa:{solicitud}`) y la caja cobra por clave; el servidor vuelve a calcular el precio y la promoción.
+
+| Método | Ruta | Permiso | Qué hace |
+|---|---|---|---|
+| GET | /caja/estado-cuenta/{responsable} | pagos.ver | Alumnos a cargo, adeudos (`estado`: vencida, pendiente, por_vencer), saldo a favor y últimos 10 pagos |
+| POST | /caja/cotizar | pagos.cobrar | Mismo cuerpo que /caja/cobros; calcula sin guardar |
+| POST | /caja/cobros | pagos.cobrar | `{responsable_id, metodo: efectivo\|transferencia, referencia?, codigo?, usar_saldo?, claves[], productos?[{concepto_id, cantidad, alumno_id?}]}` → `{id, folio, total, saldo_usado, a_pagar}`. 422 si una mensualidad vencida va sin su recargo; 409 si una clave ya no está pendiente |
+| GET | /caja/pagos/{id} | pagos.ver | Recibo con líneas, descuento, saldo usado y quién cobró |
+| PUT | /caja/pagos/{id}/cancelar | pagos.cancelar | `{motivo}` el pago queda reembolsado y lo cobrado vuelve a quedar pendiente |
+| GET | /caja/corte | caja.corte | `?fecha=&sucursal_id=` pagos del día y totales por método |
+| GET | /examenes | examenes.programar, validar o solicitar | `?estado=&sucursal_id=` fechas con fecha límite y conteo de solicitudes |
+| POST | /examenes | examenes.programar | `{sucursal_id?, disciplina_id, fecha: "AAAA-MM-DD HH:MM", sede?}` |
+| GET | /examenes/{id} | examenes.programar, validar o solicitar | La fecha con sus solicitudes (un alumno o responsable solo ve las suyas) |
+| PUT | /examenes/{id}/estado | examenes.programar | `{estado: realizado\|cancelado}`; no se marca realizado con autorizados sin resultado |
+| GET | /examenes/{id}/criterios | examenes.solicitar o validar | `?alumno_id=` grado actual y siguiente, meses y asistencia contra los parámetros, si está en plazo |
+| POST | /examenes/{id}/solicitudes | examenes.solicitar | `{alumno_id}` → `por_autorizar` o `fuera_de_plazo`, con `avisos` si no cumple criterios |
+| PUT | /solicitudes-examen/{id}/excepcion | examenes.excepcion | `{tipo: fuera_de_plazo\|presentar_sin_pago, decision: autorizada\|rechazada, motivo}` |
+| PUT | /solicitudes-examen/{id}/validar | examenes.validar | `{decision: autorizada\|no_autorizada, observaciones}` (obligatorias al no autorizar) |
+| PUT | /solicitudes-examen/{id}/resultado | examenes.resultados | `{resultado: aprobada\|reprobada}`; exige pago o excepción; al aprobar agrega el grado con origen examen |
+| PUT | /solicitudes-examen/{id}/cancelar | examenes.programar o solicitar | `{motivo: no_pago\|no_se_presento\|a_peticion\|otro, detalle?}`; si ya pagó, genera saldo a favor |

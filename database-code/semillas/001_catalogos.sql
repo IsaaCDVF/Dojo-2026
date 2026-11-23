@@ -84,7 +84,7 @@ INSERT INTO usuario_roles (usuario_id, rol_id, sucursal_id) SELECT u.id, r.id, N
 
 -- Valores globales iniciales (se confirman con el cliente)
 INSERT INTO parametro_valores (parametro_id, valor, vigente_desde, modificado_por)
-  SELECT p.id, v.valor, NOW(), (SELECT id FROM usuarios WHERE email='admin@dojoos.mx') FROM parametros p JOIN (
+  SELECT p.id, v.valor, '2026-01-01 00:00:00', (SELECT id FROM usuarios WHERE email='admin@dojoos.mx') FROM parametros p JOIN (
     SELECT 'minutos_retardo' clave, '30' valor
     UNION ALL SELECT 'retardos_por_falta' clave, '3' valor
     UNION ALL SELECT 'asistencia_minima_examen' clave, '80' valor
