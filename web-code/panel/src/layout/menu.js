@@ -1,9 +1,10 @@
-import { BadgeDollarSign, CalendarDays, ClipboardList, Home, Medal, Settings, SlidersHorizontal, Tags, UserPlus, Users, Wallet } from 'lucide-react';
+import { BadgeDollarSign, CalendarDays, ClipboardList, Home, Medal, Settings, SlidersHorizontal, Tags, UserPlus, UserRound, Users, Wallet } from 'lucide-react';
 
 // Menú lateral: cada opción aparece solo si el rol activo tiene alguno de sus permisos.
 // listo: false = la pantalla todavía no está terminada (se muestra con la etiqueta "Pronto").
 export const MENU = [
   { a: '/', t: 'Inicio', icono: Home, permisos: [], listo: true },
+  { a: '/mi-perfil', t: 'Mi perfil', icono: UserRound, permisos: [], listo: true },
   { a: '/alumnos', t: 'Alumnos', icono: Users, permisos: ['alumnos.ver'], listo: true },
   { a: '/inscripcion', t: 'Inscripción', icono: UserPlus, permisos: ['inscripciones.crear'], listo: true },
   { a: '/caja', t: 'Caja', icono: Wallet, permisos: ['pagos.cobrar'], listo: false },
