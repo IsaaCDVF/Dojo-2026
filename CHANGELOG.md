@@ -12,6 +12,7 @@ Tipos: **Agregado** (nuevo), **Cambiado** (cambia algo que ya existía), **Corre
 - Fase 5 · Exámenes (`Modulos/Examenes`): fechas por sucursal con fecha límite calculada, solicitud desde mostrador o portal con criterios de validación blanda (meses en el grado y asistencia), excepción de plazo y de pago, autorización del instructor con observaciones obligatorias al rechazar, resultado que sube de grado y cancelación que deja el pago como saldo a favor. — Kevin
 - Panel: pantallas Caja (cobro, ticket, recibo imprimible, corte del día) y Exámenes (fechas, solicitudes, autorizar, excepciones, resultados y registro en mostrador). — Kevin
 - `pruebas/caja.sh` (54) y `pruebas/examenes.sh` (65). — Kevin
+- Panel: pantalla Mi perfil (correo, rol activo y sucursal) y README del panel. — Kevin
 - Panel web en React + Tailwind (`web-code/panel`): inicio de sesión, elegir rol, menú por permisos, modo oscuro y claro, avisos y confirmaciones. Pantallas: Inicio, Alumnos, Ficha del alumno con credencial QR, Inscripción en 4 pasos, Horarios, Precios y promociones (con simulador), Parámetros con historial, Bitácora y Configuración (sucursales, disciplinas y grados). — Kevin
 - 2.1 Horarios: alta con validación de choque de instructor, rango de grados y cupo; desactivar. — Kevin
 - 2.4 Personas: alta de alumno con CURP, foto y matrícula; responsable nuevo, existente (hermanos) o él mismo; búsqueda; baja y suspensión. — Kevin
