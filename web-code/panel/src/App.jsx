@@ -16,6 +16,7 @@ import Horarios from './paginas/Horarios';
 import Alumnos from './paginas/Alumnos';
 import Ficha from './paginas/Ficha';
 import Inscripcion from './paginas/Inscripcion';
+import MiPerfil from './paginas/MiPerfil';
 
 /** Solo deja pasar si hay sesión y rol elegido */
 function Protegida({ children }) {
@@ -42,6 +43,7 @@ export default function App() {
       <Route path="/elegir-rol" element={yo ? <ElegirRol /> : <Navigate to="/login" replace />} />
       <Route element={<Protegida><Panel /></Protegida>}>
         <Route index element={<Inicio />} />
+        <Route path="mi-perfil" element={<MiPerfil />} />
         <Route path="alumnos" element={<Alumnos />} />
         <Route path="alumnos/:id" element={<Ficha />} />
         <Route path="inscripcion" element={<Inscripcion />} />
