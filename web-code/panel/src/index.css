@@ -1,0 +1,74 @@
+@import "tailwindcss";
+@import "@fontsource-variable/dm-sans";
+@import "@fontsource-variable/inter";
+@import "@fontsource/dm-mono/400.css";
+@import "@fontsource/dm-mono/500.css";
+
+/* Tokens Dojo OS (docs/DESIGN_DojoOS.md). Oscuro por defecto; claro con data-theme="light". */
+:root, [data-theme="dark"] {
+  --canvas: #011c42; --surface: #0a2852; --inset: #10335f; --sidebar: #00132e;
+  --line: rgba(255,255,255,.10); --line-strong: rgba(255,255,255,.18);
+  --text: #ffffff; --muted: #a9b3c9; --soft: #c9d3f5;
+  --action: #34e8bb; --on-action: #003326; --link: #34e8bb;
+  --gold: #f2a900;
+  --ok: #4ade80; --ok-bg: rgba(34,197,94,.16);
+  --warn: #fbbf24; --warn-bg: rgba(245,158,11,.16);
+  --danger: #f87171; --danger-bg: rgba(239,68,68,.16);
+  --overlay: rgba(0,10,28,.66);
+  color-scheme: dark;
+}
+[data-theme="light"] {
+  --canvas: #f4f6f9; --surface: #ffffff; --inset: #eef1f5; --sidebar: #011c42;
+  --line: #e2e6ec; --line-strong: #cfd5de;
+  --text: #0b1b33; --muted: #5b6478; --soft: #1b3a6b;
+  --action: #34e8bb; --on-action: #003326; --link: #007a5c;
+  --ok: #15803d; --ok-bg: #dcfce7; --warn: #b45309; --warn-bg: #fef3c7; --danger: #b91c1c; --danger-bg: #fee2e2;
+  --overlay: rgba(1,28,66,.45);
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-inset: var(--inset);
+  --color-sidebar: var(--sidebar);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-soft: var(--soft);
+  --color-action: var(--action);
+  --color-on-action: var(--on-action);
+  --color-link: var(--link);
+  --color-gold: var(--gold);
+  --color-ok: var(--ok);
+  --color-ok-bg: var(--ok-bg);
+  --color-warn: var(--warn);
+  --color-warn-bg: var(--warn-bg);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --font-sans: 'DM Sans Variable', system-ui, sans-serif;
+  --font-display: 'Inter Variable', system-ui, sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, monospace;
+  --radius-card: 10px;
+}
+
+html, body, #root { height: 100%; }
+body { background: var(--canvas); color: var(--text); font-family: var(--font-sans); letter-spacing: -0.01em; -webkit-font-smoothing: antialiased; }
+h1, h2 { font-family: var(--font-display); font-weight: 300; letter-spacing: -0.025em; }
+::selection { background: color-mix(in srgb, var(--action) 35%, transparent); }
+:focus-visible { outline: 2px solid var(--action); outline-offset: 2px; }
+
+/* Etiqueta en mayúsculas con letra mono: matrículas, folios, encabezados de tabla */
+.etiqueta { font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; font-size: 11px; color: var(--muted); }
+
+@keyframes entrar { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes aparecer { from { opacity: 0; } to { opacity: 1; } }
+@keyframes girar { to { transform: rotate(360deg); } }
+@keyframes sacudir { 10%,90% { transform: translateX(-1px); } 20%,80% { transform: translateX(2px); } 30%,50%,70% { transform: translateX(-4px); } 40%,60% { transform: translateX(4px); } }
+.anim-entrar { animation: entrar .22s ease-out both; }
+.anim-aparecer { animation: aparecer .18s ease-out both; }
+.anim-sacudir { animation: sacudir .42s both; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}

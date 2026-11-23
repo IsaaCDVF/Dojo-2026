@@ -52,3 +52,23 @@ Si la persona tiene varios roles, debe llamar `POST /auth/rol` antes de usar el 
 2. Si el permiso es nuevo: agregarlo en una migración nueva (`INSERT INTO permisos` y `rol_permisos`).
 3. Controlador en `api/src/Modulos/<Modulo>/`; copiar el patrón de `SucursalControlador` (transacción + bitácora).
 4. Prueba en `pruebas/`, fila en esta tabla y entrada en `CHANGELOG.md`.
+
+## Endpoints · 2.1 Horarios, 2.4 Personas, 2.5 Inscripción
+
+| Método | Ruta | Permiso | Qué hace |
+|---|---|---|---|
+| PUT | /disciplinas/{id} | disciplinas.gestionar | `{nombre?, activa?}` renombrar o dar de baja lógica |
+| POST | /disciplinas/{id}/grados | grados.gestionar | `{nombre, color_cinta?}` agrega un grado al final del orden |
+| GET | /horarios | horarios.ver | `?sucursal_id=&disciplina_id=&dia=` clases con instructor, rango de grados e inscritos |
+| GET | /horarios/{id} | horarios.ver | La clase con la lista de alumnos inscritos y su grado |
+| POST | /horarios | horarios.gestionar | `{sucursal_id, disciplina_id, instructor_id, dia_semana 1-7, hora_inicio, hora_fin, nivel?, grado_desde_id?, grado_hasta_id?, cupo?}`; 409 si el instructor ya tiene clase a esa hora |
+| PUT | /horarios/{id}/desactivar | horarios.gestionar | `{forzar?}` 409 si tiene inscritos y no se manda forzar |
+| GET | /instructores | horarios.ver | `?sucursal_id=` instructores con rol en esa sucursal |
+| GET | /alumnos | alumnos.ver | `?buscar=&estado=` por nombre, matrícula, CURP o teléfono (máx. 100) |
+| GET | /alumnos/{id} | alumnos.ver | Ficha: contactos, responsables, inscripciones y grados |
+| GET | /alumnos/{id}/foto | alumnos.ver | La foto (imagen, no JSON) |
+| POST | /alumnos | alumnos.crear | `{nombre, apellido_paterno, apellido_materno?, fecha_nacimiento, sexo?, curp, foto (data URL), telefono?, email?, sucursal_id?, responsable: {id, parentesco} \| {el_mismo: true} \| {nombre, apellido_paterno, telefono, email?, parentesco}}` → matrícula |
+| PUT | /alumnos/{id}/estado | alumnos.baja | `{estado: activo\|suspendido\|baja}`; la baja termina sus inscripciones |
+| GET | /responsables | responsables.gestionar | `?buscar=` (mín. 2 letras) con cuántos alumnos paga |
+| POST | /inscripciones | inscripciones.crear | `{alumno_id, horario_id, grado_id?, forzar?}`; 409 con `detalle.avisos` si la clase está llena o el grado no entra (se puede forzar y queda en bitácora) |
+| PUT | /inscripciones/{id}/terminar | inscripciones.crear | El alumno deja la clase (fecha_fin = hoy) |
