@@ -37,4 +37,4 @@ src/
 - Colores y tipografía salen de las variables de `src/index.css` (tokens de `docs/DESIGN_DojoOS.md`); no se escriben colores sueltos.
 - Modo oscuro por defecto; el botón de sol/luna cambia a claro y se recuerda en el navegador.
 - Un botón o menú se muestra solo si el rol tiene el permiso, pero **la API vuelve a validar**: ocultar no es seguridad.
-- Para una pantalla nueva: archivo en `paginas/`, ruta en `App.jsx` y opción en `layout/menu.js` con sus permisos.
+- Para una pantalla nueva: archivo en `paginas/`, ruta en `jsx` y opción en `layout/menu.js` con sus permisos.
