@@ -8,6 +8,12 @@ Tipos: **Agregado** (nuevo), **Cambiado** (cambia algo que ya existía), **Corre
 ## [Sin publicar]
 
 ### Agregado
+- Panel web en React + Tailwind (`web-code/panel`): inicio de sesión, elegir rol, menú por permisos, modo oscuro y claro, avisos y confirmaciones. Pantallas: Inicio, Alumnos, Ficha del alumno con credencial QR, Inscripción en 4 pasos, Horarios, Precios y promociones (con simulador), Parámetros con historial, Bitácora y Configuración (sucursales, disciplinas y grados). — Kevin
+- 2.1 Horarios: alta con validación de choque de instructor, rango de grados y cupo; desactivar. — Kevin
+- 2.4 Personas: alta de alumno con CURP, foto y matrícula; responsable nuevo, existente (hermanos) o él mismo; búsqueda; baja y suspensión. — Kevin
+- 2.5 Inscripción: alumno + clase + grado de ubicación; avisa si la clase está llena o el grado no entra y permite autorizar la excepción. — Kevin
+- Disciplinas: renombrar, baja lógica y alta de grados. — Kevin
+- `pruebas/alumnos.sh` con 50 pruebas. — Kevin
 - 2.2 Parámetros: guardar un valor con vigencia (cierra el anterior y abre uno nuevo en una transacción, con bitácora) y consultar su historial. Validación por tipo de dato. — Kevin
 - `pruebas/fase2.sh` con 15 pruebas de parámetros. — Kevin
 - 2.3 Tarifas: conceptos, precios con vigencia por sucursal, promociones (paquete, convenio, descuento) y cotización con código. Cálculo en centavos. — Kevin
