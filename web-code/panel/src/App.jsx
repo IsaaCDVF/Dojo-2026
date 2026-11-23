@@ -17,6 +17,8 @@ import Alumnos from './paginas/Alumnos';
 import Ficha from './paginas/Ficha';
 import Inscripcion from './paginas/Inscripcion';
 import MiPerfil from './paginas/MiPerfil';
+import Caja from './paginas/Caja';
+import Examenes, { ExamenDetalle } from './paginas/Examenes';
 
 /** Solo deja pasar si hay sesión y rol elegido */
 function Protegida({ children }) {
@@ -47,9 +49,10 @@ export default function App() {
         <Route path="alumnos" element={<Alumnos />} />
         <Route path="alumnos/:id" element={<Ficha />} />
         <Route path="inscripcion" element={<Inscripcion />} />
-        <Route path="caja" element={<Pronto titulo="Caja" descripcion="Cobro por responsable, recargos y corte de caja." />} />
+        <Route path="caja" element={<Caja />} />
         <Route path="horarios" element={<Horarios />} />
-        <Route path="examenes" element={<Pronto titulo="Exámenes" descripcion="Fechas, solicitudes, excepciones y resultados." />} />
+        <Route path="examenes" element={<Examenes />} />
+        <Route path="examenes/:id" element={<ExamenDetalle />} />
         <Route path="tarifas" element={<Tarifas />} />
         <Route path="parametros" element={<Parametros />} />
         <Route path="bitacora" element={<Bitacora />} />

@@ -9,6 +9,8 @@ use Dojo\Modulos\Bitacora\BitacoraControlador;
 use Dojo\Modulos\Horarios\HorarioControlador;
 use Dojo\Modulos\Personas\AlumnoControlador;
 use Dojo\Modulos\Inscripciones\InscripcionControlador;
+use Dojo\Modulos\Pagos\CajaControlador;
+use Dojo\Modulos\Examenes\ExamenControlador;
 
 /** @var Dojo\Nucleo\Router $router */
 $router->get('/api/salud',                       [SaludControlador::class, 'ver'],             null);
@@ -62,5 +64,25 @@ $router->get('/api/responsables',                [AlumnoControlador::class, 'res
 // 2.5 Inscripción
 $router->post('/api/inscripciones',              [InscripcionControlador::class, 'crear'],     'inscripciones.crear');
 $router->put('/api/inscripciones/{id}/terminar', [InscripcionControlador::class, 'terminar'],  'inscripciones.crear');
+
+// Fase 4 · Caja
+$router->get('/api/caja/estado-cuenta/{id}',     [CajaControlador::class, 'estadoCuenta'],     'pagos.ver');
+$router->post('/api/caja/cotizar',               [CajaControlador::class, 'cotizar'],          'pagos.cobrar');
+$router->post('/api/caja/cobros',                [CajaControlador::class, 'cobrar'],           'pagos.cobrar');
+$router->get('/api/caja/pagos/{id}',             [CajaControlador::class, 'recibo'],           'pagos.ver');
+$router->put('/api/caja/pagos/{id}/cancelar',    [CajaControlador::class, 'cancelar'],         'pagos.cancelar');
+$router->get('/api/caja/corte',                  [CajaControlador::class, 'corte'],            'caja.corte');
+
+// Fase 5 · Exámenes
+$router->get('/api/examenes',                    [ExamenControlador::class, 'listar'],         'examenes.programar,examenes.validar,examenes.solicitar');
+$router->post('/api/examenes',                   [ExamenControlador::class, 'programar'],      'examenes.programar');
+$router->get('/api/examenes/{id}',               [ExamenControlador::class, 'ver'],            'examenes.programar,examenes.validar,examenes.solicitar');
+$router->put('/api/examenes/{id}/estado',        [ExamenControlador::class, 'cambiarEstado'],  'examenes.programar');
+$router->get('/api/examenes/{id}/criterios',     [ExamenControlador::class, 'criterios'],      'examenes.solicitar,examenes.validar');
+$router->post('/api/examenes/{id}/solicitudes',  [ExamenControlador::class, 'solicitar'],      'examenes.solicitar');
+$router->put('/api/solicitudes-examen/{id}/excepcion', [ExamenControlador::class, 'excepcion'], 'examenes.excepcion');
+$router->put('/api/solicitudes-examen/{id}/validar',   [ExamenControlador::class, 'validar'],   'examenes.validar');
+$router->put('/api/solicitudes-examen/{id}/resultado', [ExamenControlador::class, 'resultado'], 'examenes.resultados');
+$router->put('/api/solicitudes-examen/{id}/cancelar',  [ExamenControlador::class, 'cancelar'],  'examenes.programar,examenes.solicitar');
 
 $router->get('/api/bitacora',                    [BitacoraControlador::class, 'buscar'],       'bitacora.ver');
