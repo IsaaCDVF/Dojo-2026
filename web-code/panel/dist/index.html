@@ -1,12 +1,18 @@
 <!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Dojo OS</title>
-</head>
-<body>
-  <h1>Dojo OS</h1>
-  <p>El panel web todavía está en construcción. La API está disponible en <a href="/api/salud">/api/salud</a>.</p>
-</body>
+<html lang="es" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Dojo OS</title>
+    <script>
+      // Aplica el tema guardado antes de pintar, para que no parpadee
+      try { var t = localStorage.getItem('dojo-tema'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+    </script>
+    <script type="module" crossorigin src="/assets/index-BvKSSuYv.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-HDuIOqPW.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
 </html>
