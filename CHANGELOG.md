@@ -8,6 +8,9 @@ Tipos: **Agregado** (nuevo), **Cambiado** (cambia algo que ya existía), **Corre
 ## [Sin publicar]
 
 ### Agregado
+- Fase 3 · Asistencia (`Modulos/Asistencia`): clases del día, registro con el QR de la credencial (inscripción, visitas a otra sucursal con límite al mes, pago vencido niega la entrada y dentro de la tolerancia entra con aviso, retardo), registro manual con excepción en bitácora, lista de la clase, validar y quitar registros, historial del alumno y nueva credencial. Los rechazos quedan en `accesos_rechazados`. — Kevin
+- Panel: modo tableta (`/tableta`) que lee el QR con la cámara del celular o con un lector USB, y pantalla Asistencia para el instructor; asistencia de 90 días y "Nueva credencial" en la ficha. `npm run celular` levanta el panel con https para usar la cámara. — Kevin
+- `pruebas/asistencia.sh` (73). — Kevin
 - Fase 4 · Caja en mostrador (`Modulos/Pagos`): estado de cuenta por responsable calculado al momento (inscripción, mensualidades con fecha fija de cobro, recargo por pago tardío y exámenes autorizados), cotización, cobro en efectivo o transferencia con recibo y folio, saldo a favor, corte del día por método y cancelación con motivo. — Kevin
 - Fase 5 · Exámenes (`Modulos/Examenes`): fechas por sucursal con fecha límite calculada, solicitud desde mostrador o portal con criterios de validación blanda (meses en el grado y asistencia), excepción de plazo y de pago, autorización del instructor con observaciones obligatorias al rechazar, resultado que sube de grado y cancelación que deja el pago como saldo a favor. — Kevin
 - Panel: pantallas Caja (cobro, ticket, recibo imprimible, corte del día) y Exámenes (fechas, solicitudes, autorizar, excepciones, resultados y registro en mostrador). — Kevin
@@ -25,6 +28,8 @@ Tipos: **Agregado** (nuevo), **Cambiado** (cambia algo que ya existía), **Corre
 - `pruebas/tarifas.sh` con 42 pruebas de tarifas y promociones. — Kevin
 
 ### Cambiado
+- Criterio de examen: cada N retardos cuentan como una falta al calcular el porcentaje de asistencia. — Kevin
+- Alta de alumno acepta `fecha_alta` (solo con permiso `alumnos.importar`) para migrar alumnos que ya venían; de ahí sale su día de cobro. — Kevin
 - Un permiso de ruta puede ser "a,b,c": basta con tener cualquiera (`Permiso::exigir`). — Kevin
 - Los roles de alcance propio (alumno, responsable) solo ven sus alumnos, su estado de cuenta y sus recibos (`Permiso::alumnosPropios`, `exigirAlumno`, `exigirResponsable`). — Kevin
 
@@ -33,6 +38,7 @@ Tipos: **Agregado** (nuevo), **Cambiado** (cambia algo que ya existía), **Corre
 - Panel: las fechas sin hora (`2026-11-28`) se mostraban un día antes. — Kevin
 
 ### Base de datos
+- Semilla demo: usuario de la tableta de Centro (`tableta.centro@dojoos.mx`). Para una base que ya existe: `database-code/parches/2026-11-24_usuario_tableta.sql`. — Kevin
 - Semilla demo: precios base de examen (450), pase de un día (150) y recargo (100). Solo aplica al crear la base desde cero. — Kevin
 
 ## [0.1.0] · 2026-11-06 · Fase 1, primera entrega

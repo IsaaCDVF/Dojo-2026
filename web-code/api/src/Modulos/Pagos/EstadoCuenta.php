@@ -32,6 +32,23 @@ final class EstadoCuenta
              WHERE ar.responsable_id = ? AND ar.vigente_hasta IS NULL' . ($sucursal ? ' AND a.sucursal_id = ?' : '') . ' ORDER BY pe.nombre',
             $sucursal ? [$responsableId, $sucursal] : [$responsableId]);
 
+        $adeudos = self::adeudosDe($alumnos);
+        $saldos = Db::todos('SELECT id, monto, fecha, alumno_id FROM saldos_favor WHERE responsable_id = ? AND aplicado_en_pago_id IS NULL ORDER BY fecha', [$responsableId]);
+        $saldo = array_sum(array_map(fn($s) => Tarifas::aCentavos($s['monto']), $saldos));
+        return ['alumnos' => $alumnos, 'adeudos' => $adeudos, 'saldo_favor' => Tarifas::aPesos($saldo), 'saldos' => $saldos];
+    }
+
+    /** Adeudos de un solo alumno (lo usa la tableta para decidir si pasa) */
+    public static function deAlumno(int $alumnoId): array
+    {
+        $a = Db::uno('SELECT a.id, a.matricula, a.sucursal_id, a.estado, a.fecha_alta, pe.nombre, pe.apellido_paterno
+                      FROM alumnos a JOIN personas pe ON pe.id = a.persona_id WHERE a.id = ?', [$alumnoId]);
+        return $a ? self::adeudosDe([$a]) : [];
+    }
+
+    /** @param array $alumnos filas con id, sucursal_id, estado, fecha_alta, nombre, apellido_paterno */
+    private static function adeudosDe(array $alumnos): array
+    {
         $cMens = self::concepto('mensualidad'); $cInsc = self::concepto('inscripcion');
         $cRec = self::concepto('recargo'); $cExa = self::concepto('examen');
         $hoy = new \DateTimeImmutable('today');
@@ -76,9 +93,7 @@ final class EstadoCuenta
                 }
             }
         }
-        $saldos = Db::todos('SELECT id, monto, fecha, alumno_id FROM saldos_favor WHERE responsable_id = ? AND aplicado_en_pago_id IS NULL ORDER BY fecha', [$responsableId]);
-        $saldo = array_sum(array_map(fn($s) => Tarifas::aCentavos($s['monto']), $saldos));
-        return ['alumnos' => $alumnos, 'adeudos' => $adeudos, 'saldo_favor' => Tarifas::aPesos($saldo), 'saldos' => $saldos];
+        return $adeudos;
     }
 
     /** concepto|periodo ya pagados (pagos aprobados) de un alumno */

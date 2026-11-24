@@ -237,8 +237,14 @@ final class ExamenControlador
         $meses = $desde->diff(new \DateTimeImmutable('today'))->m + 12 * $desde->diff(new \DateTimeImmutable('today'))->y;
 
         // Asistencia: clases a las que asistió desde que obtuvo el grado / clases que tuvo (semanas × horarios inscritos)
-        $asist = (int) Db::uno('SELECT COUNT(*) n FROM asistencias s JOIN horarios h ON h.id = s.horario_id
-                                WHERE s.alumno_id = ? AND h.disciplina_id = ? AND s.fecha_hora >= ?', [$aid, $disc, $actual['fecha_obtencion']])['n'];
+        // Cada N retardos cuentan como una falta (parámetros minutos_retardo y retardos_por_falta)
+        $minRet = (int) (Parametros::valor('minutos_retardo', $suc, $disc) ?? 30);
+        $porFalta = max(1, (int) (Parametros::valor('retardos_por_falta', $suc, $disc) ?? 3));
+        $c = Db::uno('SELECT COUNT(*) n, COALESCE(SUM(TIMESTAMPDIFF(MINUTE, TIMESTAMP(DATE(s.fecha_hora), h.hora_inicio), s.fecha_hora) > ?), 0) r
+                      FROM asistencias s JOIN horarios h ON h.id = s.horario_id
+                      WHERE s.alumno_id = ? AND h.disciplina_id = ? AND s.fecha_hora >= ?', [$minRet, $aid, $disc, $actual['fecha_obtencion']]);
+        $retardos = (int) $c['r'];
+        $asist = max(0, (int) $c['n'] - intdiv($retardos, $porFalta));
         $esperadas = (int) Db::uno('SELECT COALESCE(SUM(GREATEST(1, FLOOR(DATEDIFF(LEAST(CURDATE(), COALESCE(i.fecha_fin, CURDATE())), GREATEST(i.fecha_inicio, ?)) / 7))), 0) n
                                     FROM inscripciones i JOIN horarios h ON h.id = i.horario_id WHERE i.alumno_id = ? AND h.disciplina_id = ?',
             [$actual['fecha_obtencion'], $aid, $disc])['n'];
@@ -248,6 +254,7 @@ final class ExamenControlador
             'grado_actual' => ['id' => (int) $actual['id'], 'nombre' => $actual['nombre'], 'desde' => $actual['fecha_obtencion']],
             'grado_objetivo' => ['id' => (int) $sig['id'], 'nombre' => $sig['nombre'], 'color_cinta' => $sig['color_cinta']],
             'meses_en_grado' => $meses, 'meses_requeridos' => $mesesReq, 'asistencia' => $pct, 'asistencia_requerida' => $pctReq,
+            'clases_asistidas' => (int) $c['n'], 'clases_esperadas' => $esperadas, 'retardos' => $retardos,
             'cumple_meses' => $meses >= $mesesReq, 'cumple_asistencia' => $pct >= $pctReq, 'cumple' => $meses >= $mesesReq && $pct >= $pctReq,
             'fecha_limite' => $limite, 'en_plazo' => date('Y-m-d') <= $limite,
         ];

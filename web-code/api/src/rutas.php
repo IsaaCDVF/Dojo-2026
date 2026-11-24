@@ -11,6 +11,7 @@ use Dojo\Modulos\Personas\AlumnoControlador;
 use Dojo\Modulos\Inscripciones\InscripcionControlador;
 use Dojo\Modulos\Pagos\CajaControlador;
 use Dojo\Modulos\Examenes\ExamenControlador;
+use Dojo\Modulos\Asistencia\AsistenciaControlador;
 
 /** @var Dojo\Nucleo\Router $router */
 $router->get('/api/salud',                       [SaludControlador::class, 'ver'],             null);
@@ -57,13 +58,23 @@ $router->get('/api/instructores',                [HorarioControlador::class, 'in
 $router->get('/api/alumnos',                     [AlumnoControlador::class, 'buscar'],         'alumnos.ver');
 $router->post('/api/alumnos',                    [AlumnoControlador::class, 'crear'],          'alumnos.crear');
 $router->get('/api/alumnos/{id}',                [AlumnoControlador::class, 'ver'],            'alumnos.ver');
-$router->get('/api/alumnos/{id}/foto',           [AlumnoControlador::class, 'foto'],           'alumnos.ver');
+$router->get('/api/alumnos/{id}/foto',           [AlumnoControlador::class, 'foto'],           'alumnos.ver,asistencia.registrar');
 $router->put('/api/alumnos/{id}/estado',         [AlumnoControlador::class, 'cambiarEstado'],  'alumnos.baja');
 $router->get('/api/responsables',                [AlumnoControlador::class, 'responsables'],   'responsables.gestionar');
 
 // 2.5 Inscripción
 $router->post('/api/inscripciones',              [InscripcionControlador::class, 'crear'],     'inscripciones.crear');
 $router->put('/api/inscripciones/{id}/terminar', [InscripcionControlador::class, 'terminar'],  'inscripciones.crear');
+
+// Fase 3 · Asistencia
+$router->get('/api/asistencias/clases',          [AsistenciaControlador::class, 'clases'],     'asistencia.registrar,asistencia.validar,asistencia.manual,asistencia.ver');
+$router->post('/api/asistencias/qr',             [AsistenciaControlador::class, 'qr'],         'asistencia.registrar');
+$router->post('/api/asistencias',                [AsistenciaControlador::class, 'manual'],     'asistencia.manual');
+$router->get('/api/asistencias/clase/{id}',      [AsistenciaControlador::class, 'lista'],      'asistencia.validar,asistencia.manual,asistencia.ver');
+$router->put('/api/asistencias/clase/{id}/validar', [AsistenciaControlador::class, 'validar'], 'asistencia.validar');
+$router->delete('/api/asistencias/{id}',         [AsistenciaControlador::class, 'quitar'],     'asistencia.validar');
+$router->get('/api/alumnos/{id}/asistencia',     [AsistenciaControlador::class, 'historial'],  'asistencia.ver,asistencia.validar,alumnos.ver');
+$router->put('/api/alumnos/{id}/qr',             [AsistenciaControlador::class, 'regenerarQr'],'alumnos.editar');
 
 // Fase 4 · Caja
 $router->get('/api/caja/estado-cuenta/{id}',     [CajaControlador::class, 'estadoCuenta'],     'pagos.ver');

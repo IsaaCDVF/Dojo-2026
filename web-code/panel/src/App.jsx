@@ -19,6 +19,14 @@ import Inscripcion from './paginas/Inscripcion';
 import MiPerfil from './paginas/MiPerfil';
 import Caja from './paginas/Caja';
 import Examenes, { ExamenDetalle } from './paginas/Examenes';
+import Asistencia from './paginas/Asistencia';
+import Tableta from './paginas/Tableta';
+
+/** La cuenta de la tableta (o del celular que hace de tableta) va directo a leer credenciales */
+function InicioSegunRol() {
+  const { rol } = useSesion();
+  return rol?.nombre === 'tableta' ? <Navigate to="/tableta" replace /> : <Inicio />;
+}
 
 /** Solo deja pasar si hay sesión y rol elegido */
 function Protegida({ children }) {
@@ -43,14 +51,16 @@ export default function App() {
     <Routes>
       <Route path="/login" element={yo && !cargando ? <Navigate to="/" replace /> : <Login />} />
       <Route path="/elegir-rol" element={yo ? <ElegirRol /> : <Navigate to="/login" replace />} />
+      <Route path="/tableta" element={<Protegida><Tableta /></Protegida>} />
       <Route element={<Protegida><Panel /></Protegida>}>
-        <Route index element={<Inicio />} />
+        <Route index element={<InicioSegunRol />} />
         <Route path="mi-perfil" element={<MiPerfil />} />
         <Route path="alumnos" element={<Alumnos />} />
         <Route path="alumnos/:id" element={<Ficha />} />
         <Route path="inscripcion" element={<Inscripcion />} />
         <Route path="caja" element={<Caja />} />
         <Route path="horarios" element={<Horarios />} />
+        <Route path="asistencia" element={<Asistencia />} />
         <Route path="examenes" element={<Examenes />} />
         <Route path="examenes/:id" element={<ExamenDetalle />} />
         <Route path="tarifas" element={<Tarifas />} />
