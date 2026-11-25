@@ -91,23 +91,38 @@ final class ExamenControlador
         if ($e['estado'] !== 'programado') throw new ErrorApi('Ese examen ya no recibe solicitudes', 409);
         $aid = (int) $req->requeridos('alumno_id')['alumno_id'];
         Permiso::exigirAlumno($req, $aid);
+        $canal = in_array($req->ctx['rol']['nombre'] ?? '', ['alumno', 'responsable'], true) ? 'portal' : 'mostrador';
+        Respuesta::ok($this->registrar($req, $e, $aid, $canal), 201);
+    }
+
+    /** La app del alumno (sin rol de personal) solicita examen; quien llama ya validó que el alumno es suyo */
+    public function solicitarDesdeApp(Peticion $req, int $examenId, int $alumnoId): array
+    {
+        $e = Db::uno('SELECT e.id, e.sucursal_id, s.nombre AS sucursal, e.disciplina_id, d.nombre AS disciplina, e.fecha, e.sede, e.estado
+                      FROM examenes e JOIN sucursales s ON s.id = e.sucursal_id JOIN disciplinas d ON d.id = e.disciplina_id WHERE e.id = ?', [$examenId]);
+        if (!$e) throw new ErrorApi('Examen no encontrado', 404);
+        if ($e['estado'] !== 'programado') throw new ErrorApi('Ese examen ya no recibe solicitudes', 409);
+        return $this->registrar($req, $e, $alumnoId, 'portal');
+    }
+
+    private function registrar(Peticion $req, array $e, int $aid, string $canal): array
+    {
         $ev = $this->evaluar($e, $aid);
         if (Db::uno('SELECT 1 FROM solicitudes_examen WHERE alumno_id = ? AND examen_id = ? AND estado NOT IN ("cancelada","no_autorizada")', [$aid, $e['id']])) {
             throw new ErrorApi('El alumno ya tiene una solicitud para este examen', 409);
         }
         $estado = $ev['en_plazo'] ? 'por_autorizar' : 'fuera_de_plazo';
-        $canal = in_array($req->ctx['rol']['nombre'] ?? '', ['alumno', 'responsable'], true) ? 'portal' : 'mostrador';
         $id = Db::transaccion(function () use ($req, $e, $aid, $ev, $estado, $canal) {
             $id = Db::insertar('INSERT INTO solicitudes_examen (alumno_id, examen_id, grado_objetivo_id, fecha_envio, canal, registrada_por, cumplia_criterios, estado)
                                 VALUES (?, ?, ?, NOW(), ?, ?, ?, ?)',
                 [$aid, $e['id'], $ev['grado_objetivo']['id'], $canal, $canal === 'mostrador' ? $req->ctx['usuario_id'] : null, (int) $ev['cumple'], $estado]);
-            Bitacora::alta($req, 'solicitudes_examen', $id, ['alumno_id' => $aid, 'grado' => $ev['grado_objetivo']['nombre'], 'estado' => $estado, 'cumplia' => (int) $ev['cumple']], (int) $e['sucursal_id']);
+            Bitacora::alta($req, 'solicitudes_examen', $id, ['alumno_id' => $aid, 'grado' => $ev['grado_objetivo']['nombre'], 'estado' => $estado, 'cumplia' => (int) $ev['cumple'], 'canal' => $canal], (int) $e['sucursal_id']);
             return $id;
         });
         $avisos = [];
         if (!$ev['en_plazo']) $avisos[] = 'Llegó fuera de plazo: el administrador de la sucursal debe autorizar la excepción';
         if (!$ev['cumple']) $avisos[] = 'No cuenta con el periodo mínimo o la asistencia; verifica con administración';
-        Respuesta::ok(['id' => $id, 'estado' => $estado, 'cumplia_criterios' => $ev['cumple'], 'avisos' => $avisos], 201);
+        return ['id' => $id, 'estado' => $estado, 'cumplia_criterios' => $ev['cumple'], 'grado_objetivo' => $ev['grado_objetivo'], 'avisos' => $avisos];
     }
 
     /** PUT /api/solicitudes-examen/{id}/excepcion {tipo: fuera_de_plazo|presentar_sin_pago, decision: autorizada|rechazada, motivo} */
@@ -217,27 +232,36 @@ final class ExamenControlador
 
     /* ---------- reglas ---------- */
 
-    private function evaluar(array $e, int $aid): array
+    /** Criterios para el examen de una fecha: los del grado + si está en plazo */
+    public function evaluar(array $e, int $aid): array
     {
         $a = Db::uno('SELECT id, sucursal_id, estado FROM alumnos WHERE id = ?', [$aid]);
         if (!$a) throw new ErrorApi('Alumno no encontrado', 404);
         if ($a['estado'] !== 'activo') throw new ErrorApi('El alumno no está activo', 409);
         if ((int) $a['sucursal_id'] !== (int) $e['sucursal_id']) throw new ErrorApi('El alumno es de otra sucursal', 422);
-        $disc = (int) $e['disciplina_id'];
-        $actual = Db::uno('SELECT g.id, g.nombre, g.orden, ag.fecha_obtencion FROM alumno_grados ag JOIN grados g ON g.id = ag.grado_id
-                           WHERE ag.alumno_id = ? AND g.disciplina_id = ? ORDER BY ag.fecha_obtencion DESC, ag.id DESC LIMIT 1', [$aid, $disc]);
-        if (!$actual) throw new ErrorApi("El alumno no tiene grado en {$e['disciplina']}: inscríbelo primero", 422);
-        $sig = Db::uno('SELECT id, nombre, color_cinta FROM grados WHERE disciplina_id = ? AND orden > ? AND activo = 1 ORDER BY orden LIMIT 1', [$disc, $actual['orden']]);
-        if (!$sig) throw new ErrorApi('El alumno ya tiene el grado más alto', 422);
+        $c = self::rumbo($aid, (int) $e['disciplina_id'], (int) $e['sucursal_id']);
+        if (!$c['grado_actual']) throw new ErrorApi("El alumno no tiene grado en {$e['disciplina']}: inscríbelo primero", 422);
+        if (!$c['grado_objetivo']) throw new ErrorApi('El alumno ya tiene el grado más alto', 422);
+        $limite = $this->fechaLimite($e);
+        return $c + ['fecha_limite' => $limite, 'en_plazo' => date('Y-m-d') <= $limite];
+    }
 
-        $suc = (int) $e['sucursal_id'];
+    /**
+     * Rumbo al siguiente grado en una disciplina (RN-30): meses en el grado y % de asistencia contra los parámetros.
+     * Asistencia = clases a las que fue desde su último grado / clases que tuvo (semanas × horarios inscritos);
+     * cada N retardos cuentan como una falta. grado_actual o grado_objetivo pueden venir en null.
+     */
+    public static function rumbo(int $aid, int $disc, int $suc): array
+    {
+        $actual = Db::uno('SELECT g.id, g.nombre, g.orden, g.color_cinta, ag.fecha_obtencion FROM alumno_grados ag JOIN grados g ON g.id = ag.grado_id
+                           WHERE ag.alumno_id = ? AND g.disciplina_id = ? ORDER BY ag.fecha_obtencion DESC, ag.id DESC LIMIT 1', [$aid, $disc]);
+        if (!$actual) return ['grado_actual' => null, 'grado_objetivo' => null, 'cumple' => false];
+        $sig = Db::uno('SELECT id, nombre, color_cinta FROM grados WHERE disciplina_id = ? AND orden > ? AND activo = 1 ORDER BY orden LIMIT 1', [$disc, $actual['orden']]);
         $mesesReq = (int) (Parametros::valor('meses_minimos_grado', $suc, $disc, (int) $actual['id']) ?? 3);
         $pctReq = (int) (Parametros::valor('asistencia_minima_examen', $suc, $disc, (int) $actual['id']) ?? 80);
         $desde = new \DateTimeImmutable($actual['fecha_obtencion']);
-        $meses = $desde->diff(new \DateTimeImmutable('today'))->m + 12 * $desde->diff(new \DateTimeImmutable('today'))->y;
-
-        // Asistencia: clases a las que asistió desde que obtuvo el grado / clases que tuvo (semanas × horarios inscritos)
-        // Cada N retardos cuentan como una falta (parámetros minutos_retardo y retardos_por_falta)
+        $dif = $desde->diff(new \DateTimeImmutable('today'));
+        $meses = $dif->m + 12 * $dif->y;
         $minRet = (int) (Parametros::valor('minutos_retardo', $suc, $disc) ?? 30);
         $porFalta = max(1, (int) (Parametros::valor('retardos_por_falta', $suc, $disc) ?? 3));
         $c = Db::uno('SELECT COUNT(*) n, COALESCE(SUM(TIMESTAMPDIFF(MINUTE, TIMESTAMP(DATE(s.fecha_hora), h.hora_inicio), s.fecha_hora) > ?), 0) r
@@ -249,14 +273,12 @@ final class ExamenControlador
                                     FROM inscripciones i JOIN horarios h ON h.id = i.horario_id WHERE i.alumno_id = ? AND h.disciplina_id = ?',
             [$actual['fecha_obtencion'], $aid, $disc])['n'];
         $pct = $esperadas ? (int) round(min(100, $asist * 100 / $esperadas)) : 0;
-        $limite = $this->fechaLimite($e);
         return [
-            'grado_actual' => ['id' => (int) $actual['id'], 'nombre' => $actual['nombre'], 'desde' => $actual['fecha_obtencion']],
-            'grado_objetivo' => ['id' => (int) $sig['id'], 'nombre' => $sig['nombre'], 'color_cinta' => $sig['color_cinta']],
+            'grado_actual' => ['id' => (int) $actual['id'], 'nombre' => $actual['nombre'], 'color_cinta' => $actual['color_cinta'], 'desde' => $actual['fecha_obtencion']],
+            'grado_objetivo' => $sig ? ['id' => (int) $sig['id'], 'nombre' => $sig['nombre'], 'color_cinta' => $sig['color_cinta']] : null,
             'meses_en_grado' => $meses, 'meses_requeridos' => $mesesReq, 'asistencia' => $pct, 'asistencia_requerida' => $pctReq,
             'clases_asistidas' => (int) $c['n'], 'clases_esperadas' => $esperadas, 'retardos' => $retardos,
             'cumple_meses' => $meses >= $mesesReq, 'cumple_asistencia' => $pct >= $pctReq, 'cumple' => $meses >= $mesesReq && $pct >= $pctReq,
-            'fecha_limite' => $limite, 'en_plazo' => date('Y-m-d') <= $limite,
         ];
     }
 
@@ -267,7 +289,7 @@ final class ExamenControlador
         return $p === null ? '' : ' AND se.alumno_id IN (' . ($p ? implode(',', $p) : '0') . ')';
     }
 
-    private function fechaLimite(array $e): string
+    public function fechaLimite(array $e): string
     {
         $dias = (int) (Parametros::valor('dias_anticipacion_examen', (int) $e['sucursal_id'], (int) $e['disciplina_id']) ?? 5);
         return (new \DateTimeImmutable(substr($e['fecha'], 0, 10)))->modify("-$dias days")->format('Y-m-d');

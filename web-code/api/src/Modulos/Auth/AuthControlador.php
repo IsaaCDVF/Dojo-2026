@@ -10,7 +10,8 @@ final class AuthControlador
     public function login(Peticion $req): void
     {
         $d = $req->requeridos('email', 'password');
-        $u = Db::uno('SELECT id, password_hash, activo, intentos_fallidos, bloqueado_hasta FROM usuarios WHERE email = ?', [$d['email']]);
+        $id = self::buscarUsuario((string) $d['email']);
+        $u = $id ? Db::uno('SELECT id, password_hash, activo, intentos_fallidos, bloqueado_hasta FROM usuarios WHERE id = ?', [$id]) : null;
         if ($u && $u['bloqueado_hasta'] && strtotime($u['bloqueado_hasta']) > time()) {
             throw new ErrorApi('Cuenta bloqueada por intentos fallidos; intenta en unos minutos', 423);
         }
@@ -20,7 +21,7 @@ final class AuthControlador
                 Db::ejecutar('UPDATE usuarios SET intentos_fallidos = intentos_fallidos + 1,
                               bloqueado_hasta = IF(intentos_fallidos + 1 >= ?, NOW() + INTERVAL 15 MINUTE, NULL) WHERE id = ?', [$max, $u['id']]);
             }
-            throw new ErrorApi('Correo o contraseña incorrectos', 401); // mismo mensaje: no revela si el correo existe
+            throw new ErrorApi('Usuario o contraseña incorrectos', 401); // mismo mensaje: no revela si el usuario existe
         }
         Db::ejecutar('UPDATE usuarios SET intentos_fallidos = 0, bloqueado_hasta = NULL WHERE id = ?', [$u['id']]);
 
@@ -58,6 +59,27 @@ final class AuthControlador
     {
         Db::ejecutar('UPDATE sesiones SET revocada = NOW() WHERE id = ?', [$req->ctx['sesion_id']]);
         Respuesta::ok();
+    }
+
+    /**
+     * El personal entra con su correo. En la app el alumno entra con su matrícula (CENT-26-0013)
+     * y el responsable con su teléfono de 10 dígitos; los dos también pueden usar su correo si tienen.
+     */
+    public static function buscarUsuario(string $dato): ?int
+    {
+        $dato = trim($dato);
+        if ($dato === '') return null;
+        if (str_contains($dato, '@')) return (int) (Db::uno('SELECT id FROM usuarios WHERE email = ?', [strtolower($dato)])['id'] ?? 0) ?: null;
+        if (preg_match('/^[A-Za-z]{2,6}-\d{2}-\d{4}$/', $dato)) {
+            return (int) (Db::uno('SELECT u.id FROM alumnos a JOIN usuarios u ON u.persona_id = a.persona_id WHERE a.matricula = ?', [strtoupper($dato)])['id'] ?? 0) ?: null;
+        }
+        $tel = preg_replace('/\D/', '', $dato);
+        if (strlen($tel) === 12 && str_starts_with($tel, '52')) $tel = substr($tel, 2);
+        if (strlen($tel) !== 10) return null;
+        // Con teléfono entra el responsable de pago (el alumno puede tener el mismo teléfono que su mamá: él usa su matrícula)
+        $u = Db::uno('SELECT u.id FROM contactos c JOIN usuarios u ON u.persona_id = c.persona_id JOIN responsables_pago r ON r.persona_id = c.persona_id
+                      WHERE c.tipo IN ("telefono","whatsapp") AND c.valor = ? ORDER BY u.id LIMIT 1', [$tel]);
+        return $u ? (int) $u['id'] : null;
     }
 
     private function roles(int $usuarioId): array

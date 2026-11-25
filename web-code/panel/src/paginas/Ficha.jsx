@@ -7,6 +7,7 @@ import { useSesion } from '../auth/Sesion';
 import { Boton, Cargando, Chip, Cinta, ErrorCaja, FotoAlumno, Modal, Selector, Tarjeta, Vacio, useAvisos, useConfirmar, useDatos } from '../ui';
 import { inscribir } from './inscribir';
 import { MOTIVOS } from './Asistencia';
+import AccesoApp from './AccesoApp';
 
 // S-05 · Ficha del alumno
 function Credencial({ a }) {
@@ -172,6 +173,7 @@ export default function Ficha() {
               </div>
             ))}
           </Tarjeta>
+          {tiene('alumnos.ver') && <AccesoApp alumnoId={a.id} />}
           <Tarjeta titulo="Contacto del alumno">
             {!a.contactos.length ? <p className="text-sm text-muted">Sin datos de contacto propios.</p> : a.contactos.map((c) => (
               <div key={c.id} className="flex items-center gap-2 text-sm py-1">{c.tipo === 'email' ? <Mail className="size-3.5 text-muted" /> : <Phone className="size-3.5 text-muted" />}<span className={c.tipo !== 'email' ? 'font-mono' : ''}>{c.valor}</span></div>

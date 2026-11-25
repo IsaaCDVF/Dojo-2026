@@ -6,20 +6,24 @@ use Dojo\Nucleo\{Db, ErrorApi, Parametros, Peticion};
 
 /**
  * Valida el token "Authorization: Bearer ..." contra la tabla sesiones.
- * La sesión expira por inactividad según el parámetro minutos_inactividad_sesion.
+ * La sesión expira por inactividad: el personal según minutos_inactividad_sesion; la app (alumnos y responsables) según dias_sesion_app.
  */
 final class Autenticacion
 {
     public static function verificar(Peticion $req): void
     {
         if (!$req->token) throw new ErrorApi('Inicia sesión', 401);
-        $minutos = (int) (Parametros::valor('minutos_inactividad_sesion') ?? 30);
-        $s = Db::uno('SELECT s.id, s.usuario_id, s.usuario_rol_id, u.activo,
-                             s.ultima_actividad < NOW() - INTERVAL ? MINUTE AS expirada
+        $s = Db::uno('SELECT s.id, s.usuario_id, s.usuario_rol_id, u.activo, TIMESTAMPDIFF(MINUTE, s.ultima_actividad, NOW()) AS inactivo,
+                             (SELECT MIN(r.alcance = "propio") FROM usuario_roles ur JOIN roles r ON r.id = ur.rol_id
+                               WHERE ur.usuario_id = s.usuario_id AND ur.activo = 1) AS solo_app
                       FROM sesiones s JOIN usuarios u ON u.id = s.usuario_id
-                      WHERE s.token_hash = ? AND s.revocada IS NULL', [$minutos, hash('sha256', $req->token)]);
+                      WHERE s.token_hash = ? AND s.revocada IS NULL', [hash('sha256', $req->token)]);
         if (!$s || !$s['activo']) throw new ErrorApi('Sesión no válida', 401);
-        if ($s['expirada']) {
+        // Personal: minutos_inactividad_sesion. Alumnos y responsables (solo roles "propio", la app): dias_sesion_app.
+        $limite = (int) $s['solo_app']
+            ? 1440 * (int) (Parametros::valor('dias_sesion_app') ?? 30)
+            : (int) (Parametros::valor('minutos_inactividad_sesion') ?? 30);
+        if ((int) $s['inactivo'] > $limite) {
             Db::ejecutar('UPDATE sesiones SET revocada = NOW() WHERE id = ?', [$s['id']]);
             throw new ErrorApi('La sesión expiró por inactividad', 401);
         }

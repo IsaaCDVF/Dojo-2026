@@ -13,6 +13,8 @@ use Dojo\Modulos\Pagos\CajaControlador;
 use Dojo\Modulos\Examenes\ExamenControlador;
 use Dojo\Modulos\Asistencia\AsistenciaControlador;
 use Dojo\Modulos\Inicio\InicioControlador;
+use Dojo\Modulos\App\AccesoControlador;
+use Dojo\Modulos\App\AppControlador;
 use Dojo\Modulos\Personas\ImportacionControlador;
 
 /** @var Dojo\Nucleo\Router $router */
@@ -81,6 +83,20 @@ $router->put('/api/asistencias/clase/{id}/validar', [AsistenciaControlador::clas
 $router->delete('/api/asistencias/{id}',         [AsistenciaControlador::class, 'quitar'],     'asistencia.validar');
 $router->get('/api/alumnos/{id}/asistencia',     [AsistenciaControlador::class, 'historial'],  'asistencia.ver,asistencia.validar,alumnos.ver');
 $router->put('/api/alumnos/{id}/qr',             [AsistenciaControlador::class, 'regenerarQr'],'alumnos.editar');
+
+// Fase 6 · App del alumno y del responsable (sin permiso de personal: cada quien ve solo lo suyo)
+$router->get('/api/alumnos/{id}/app',            [AccesoControlador::class, 'estado'],        'alumnos.ver');
+$router->post('/api/alumnos/{id}/app',           [AccesoControlador::class, 'dar'],           'alumnos.editar,responsables.gestionar');
+$router->post('/api/app/activar',                [AccesoControlador::class, 'activar'],       null);
+$router->get('/api/app/yo',                      [AppControlador::class, 'yo'],               '');
+$router->get('/api/app/alumnos/{id}/inicio',     [AppControlador::class, 'inicio'],           '');
+$router->get('/api/app/alumnos/{id}/camino',     [AppControlador::class, 'camino'],           '');
+$router->get('/api/app/alumnos/{id}/avatar',     [AppControlador::class, 'avatar'],           '');
+$router->put('/api/app/alumnos/{id}/avatar',     [AppControlador::class, 'guardarAvatar'],    '');
+$router->get('/api/app/alumnos/{id}/examenes',   [AppControlador::class, 'examenes'],         '');
+$router->post('/api/app/alumnos/{id}/examenes/{examen}', [AppControlador::class, 'solicitar'], '');
+$router->get('/api/app/familia',                 [AppControlador::class, 'familia'],          '');
+$router->get('/api/app/pagos/{id}',              [AppControlador::class, 'recibo'],           '');
 
 // Fase 4 · Caja
 $router->get('/api/caja/estado-cuenta/{id}',     [CajaControlador::class, 'estadoCuenta'],     'pagos.ver');

@@ -121,3 +121,23 @@ El retardo no se guarda: se calcula con el parámetro `minutos_retardo` vigente 
 | GET | /inicio | (cualquier rol) | `?sucursal_id=` bloques según permisos: alumnos, caja, vencidos (lista de los 8 más atrasados), examenes, asistencia, clases |
 
 Columnas del CSV (encabezado obligatorio, el orden no importa): **nombre, apellido_paterno, fecha_nacimiento, curp**, apellido_materno, sexo, telefono, email, fecha_alta, disciplina, grado, responsable_nombre, responsable_apellido, responsable_telefono, responsable_parentesco y, para un rol global, sucursal (clave o nombre). Fechas `AAAA-MM-DD` o `DD/MM/AAAA`.
+
+## Endpoints · Fase 6 App del alumno y del responsable
+
+El acceso a la app lo da recepción (no hay registro abierto). El alumno entra con su **matrícula**; el responsable con su **teléfono** (10 dígitos). `POST /auth/login` acepta en `email` el correo, la matrícula o el teléfono. Para alumnos y responsables la sesión dura `dias_sesion_app` días (30 por omisión) en lugar de `minutos_inactividad_sesion`.
+
+| Método | Ruta | Permiso | Qué hace |
+|---|---|---|---|
+| GET | /alumnos/{id}/app | alumnos.ver | El alumno y sus responsables con `estado` (sin_acceso, codigo_enviado, activo), `usuario`, `codigo_vence`, `ultimo_acceso` |
+| POST | /alumnos/{id}/app | alumnos.editar o responsables.gestionar | `{para: alumno\|responsable, responsable_id?}` → 201 `{usuario, codigo, expira, telefono, mensaje}`. Crea el usuario y el rol si hace falta; código de 6 dígitos que vence en 72 h; el anterior deja de servir. Para un alumno sin teléfono, `telefono` es el de su responsable. 422 si el responsable no tiene teléfono; 409 si el teléfono ya es de otro responsable |
+| POST | /app/activar | (pública) | `{usuario, codigo, password}` → `{token}`. Contraseña de 8 o más; 5 intentos fallidos bloquean el código (423); cierra las demás sesiones |
+| GET | /app/yo | (sesión) | Persona, `alumno_id` (si entrena), `es_responsable` y la lista de alumnos que puede ver |
+| GET | /app/alumnos/{id}/inicio | (sesión) | Alumno con `codigo_qr`, grado, clases de hoy, próxima clase, rumbo al siguiente grado con el próximo examen, semana (asistio, retardo, falta, hoy, proxima, sin_clase), racha, estado de pago y avatar puesto |
+| GET | /app/alumnos/{id}/camino | (sesión) | Por disciplina: grados con estado (obtenido, actual, siguiente, bloqueado), fecha e insignia; rumbo y examen |
+| GET / PUT | /app/alumnos/{id}/avatar | (sesión) | Accesorios con `desbloqueado`, insignias con `obtenida` y equipo puesto. PUT `{equipo:[ids]}` uno por tipo y solo desbloqueados (422) |
+| GET | /app/alumnos/{id}/examenes | (sesión) | Precio, fechas programadas con criterios, fecha límite y su solicitud; historial |
+| POST | /app/alumnos/{id}/examenes/{examen} | (sesión) | Solicita el examen (canal portal) → 201 con `examen` e `instructor` |
+| GET | /app/familia | (sesión, responsable) | Alumnos con estado de pago, adeudos (sin los por vencer), total, vencido, saldo a favor, últimos pagos y próximo cargo; 403 si no es responsable |
+| GET | /app/pagos/{id} | (sesión, responsable) | Recibo de un pago propio; 404 si es de otra familia |
+
+En `/app/alumnos/{id}/…` el alumno solo se ve a sí mismo y el responsable a los alumnos por los que paga (403 "Ese alumno no está en tu cuenta").
