@@ -34,7 +34,7 @@ export default function Inicio() {
                     : 'Todavía no tienes clases asignadas.'}
               </p>
             </div>
-            <Avatar equipo={d.equipo} cinta={d.grado?.color_cinta} fondo={false} animado saludo="¡Osu!" className="w-40 h-40 shrink-0" />
+            <Avatar equipo={d.equipo} apariencia={d.apariencia} cinta={d.grado?.color_cinta} fondo={false} animado interactivo mirar="izquierda" className="w-40 h-40 shrink-0 -my-2" />
           </div>
         </Tarjeta>
 

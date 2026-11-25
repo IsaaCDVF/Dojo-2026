@@ -89,6 +89,21 @@ prueba "Dos bandas a la vez"               422 PUT  "/api/app/alumnos/$ANA/avata
 prueba "Banda roja, guantes y atardecer"   200 PUT  "/api/app/alumnos/$ANA/avatar" "$TA" "{\"equipo\":[$(id banda-roja),$(id guantes-rojos),$(id fondo-atardecer)]}"
 igual  "Lo trae puesto"                    "count(\$j['datos']['equipo'])" "3"
 
+echo "Apariencia del avatar"
+prueba "Apariencia de Ana"                 200 GET  "/api/app/alumnos/$ANA/avatar" "$TA"
+igual  "Ana tiene 12 o más: joven"         "['datos']['apariencia']['etapa']" "joven"
+igual  "Uniforme de Taekwondo"             "['datos']['apariencia']['disciplina']" "Taekwondo"
+prueba "Peinado que no existe"             422 PUT  "/api/app/alumnos/$ANA/avatar" "$TA" '{"apariencia":{"peinado":"afro-arcoiris"}}'
+prueba "Cabello rizado castaño, piel 4"    200 PUT  "/api/app/alumnos/$ANA/avatar" "$TA" '{"apariencia":{"peinado":"rizado","color_pelo":"castano","piel":"4"}}'
+igual  "Se guardó"                         "\$j['datos']['apariencia']['peinado'] . ',' . \$j['datos']['apariencia']['color_pelo'] . ',' . \$j['datos']['apariencia']['piel']" "rizado,castano,4"
+igual  "Sin mandar equipo, no se lo quita" "count(\$j['datos']['equipo'])" "3"
+prueba "Leo (10 años)"                     200 GET  "/api/app/alumnos/$LEO/inicio" "$TM"
+igual  "Es niño"                           "['datos']['apariencia']['etapa']" "nino"
+prueba "Un niño no lleva barba"            200 PUT  "/api/app/alumnos/$LEO/avatar" "$TM" '{"apariencia":{"vello":"barba"}}'
+igual  "Se queda sin vello"                "['datos']['apariencia']['vello']" "ninguno"
+prueba "En Mi familia sale su apariencia"  200 GET  /api/app/familia "$TM"
+igual  "Rizado en la familia"              "array_column(array_column(\$j['datos']['alumnos'], 'apariencia', 'id'), 'peinado')[0] ?? ''" "rizado"
+
 echo "Examen desde la app"
 prueba "Fecha de examen en 30 días"        201 POST /api/examenes "$ADM" "{\"sucursal_id\":1,\"disciplina_id\":1,\"fecha\":\"$(date -d '+30 days' +%Y-%m-%d) 10:00\",\"sede\":\"Gimnasio $R\"}"
 EX=$(campo "['datos']['id']")

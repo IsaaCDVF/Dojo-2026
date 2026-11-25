@@ -46,7 +46,7 @@ export default function Camino() {
           return (
             <li key={g.id} ref={esActual ? actualRef : null} className="relative flex items-center justify-center" style={{ transform: `translateX(${off}px)` }}>
               {esActual && <span className="absolute -top-9 rounded-xl bg-white text-canvas px-3 py-1 text-[13px] font-black shadow anim-rebote">Estás aquí</span>}
-              <Nodo g={g} examen={g.estado === 'siguiente' ? x.examen : null} avatar={esActual && <Avatar equipo={d.equipo} cinta={g.color_cinta} fondo={false} className="size-20" />} />
+              <Nodo g={g} examen={g.estado === 'siguiente' ? x.examen : null} avatar={esActual && <Avatar equipo={d.equipo} apariencia={d.apariencia} cinta={g.color_cinta} fondo={false} pose="victoria" className="size-24" />} />
             </li>
           );
         })}

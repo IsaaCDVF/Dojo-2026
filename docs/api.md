@@ -134,10 +134,12 @@ El acceso a la app lo da recepción (no hay registro abierto). El alumno entra c
 | GET | /app/yo | (sesión) | Persona, `alumno_id` (si entrena), `es_responsable` y la lista de alumnos que puede ver |
 | GET | /app/alumnos/{id}/inicio | (sesión) | Alumno con `codigo_qr`, grado, clases de hoy, próxima clase, rumbo al siguiente grado con el próximo examen, semana (asistio, retardo, falta, hoy, proxima, sin_clase), racha, estado de pago y avatar puesto |
 | GET | /app/alumnos/{id}/camino | (sesión) | Por disciplina: grados con estado (obtenido, actual, siguiente, bloqueado), fecha e insignia; rumbo y examen |
-| GET / PUT | /app/alumnos/{id}/avatar | (sesión) | Accesorios con `desbloqueado`, insignias con `obtenida` y equipo puesto. PUT `{equipo:[ids]}` uno por tipo y solo desbloqueados (422) |
+| GET / PUT | /app/alumnos/{id}/avatar | (sesión) | Accesorios con `desbloqueado`, insignias con `obtenida`, equipo puesto y `apariencia`. PUT `{equipo?:[ids], apariencia?:{piel, peinado, color_pelo, vello, complexion}}`: equipo uno por tipo y solo desbloqueados (422); si no se manda `equipo` no se toca. Valores fuera de la lista → 422 |
 | GET | /app/alumnos/{id}/examenes | (sesión) | Precio, fechas programadas con criterios, fecha límite y su solicitud; historial |
 | POST | /app/alumnos/{id}/examenes/{examen} | (sesión) | Solicita el examen (canal portal) → 201 con `examen` e `instructor` |
 | GET | /app/familia | (sesión, responsable) | Alumnos con estado de pago, adeudos (sin los por vencer), total, vencido, saldo a favor, últimos pagos y próximo cargo; 403 si no es responsable |
 | GET | /app/pagos/{id} | (sesión, responsable) | Recibo de un pago propio; 404 si es de otra familia |
+
+`apariencia` viene en inicio, camino, avatar, exámenes y en cada alumno de familia: `{piel 1-6, peinado (rapado, corto, despeinado, rizado, coleta, chongo, largo), color_pelo, vello (ninguno, bigote, candado, barba), complexion (delgada, media, robusta), etapa (nino < 12, joven < 18, adulto), disciplina}`. Un niño nunca lleva vello facial.
 
 En `/app/alumnos/{id}/…` el alumno solo se ve a sí mismo y el responsable a los alumnos por los que paga (403 "Ese alumno no está en tu cuenta").

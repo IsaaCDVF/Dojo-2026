@@ -21,7 +21,12 @@ Se "instala" desde el navegador del celular: menú ⋮ → *Agregar a pantalla d
 | `/app/familia` | responsable | Cuánto debe, si está vencido, saldo a favor y sus alumnos |
 | `/app/pagos` | responsable | Pendientes por alumno, historial y recibo |
 
-El avatar está dibujado en `src/Avatar.jsx`: cada accesorio de la tabla `accesorios` (columna `imagen`) es una clave que se dibuja ahí (`banda-roja`, `fondo-montana`…). Para cambiar los dibujos por ilustraciones se reemplazan esas piezas.
+## Avatar
+
+- `src/avatar/esqueleto.js`: proporciones por edad (niño, joven, adulto), poses y movimientos de cada disciplina. Una pose son ángulos de tronco, brazos y piernas; un movimiento es una lista de poses con su duración. Para agregar uno se define ahí y aparece como botón en Mi avatar.
+- `src/Avatar.jsx`: dibuja las piezas sobre el esqueleto (cabeza, cabello, vello, uniforme según la disciplina, cinta del grado, accesorios). Cada accesorio de la tabla `accesorios` (columna `imagen`) es una clave que se dibuja ahí (`banda-roja`, `dobok-negro`…).
+- `src/avatar/fondos.jsx`: los fondos.
+- Lo bloqueado se puede **probar**: el avatar se ve con esa pieza y un aviso de en qué grado se gana, pero no se guarda (la API lo rechaza).
 
 ## Desarrollo
 

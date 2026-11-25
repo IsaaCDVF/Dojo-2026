@@ -1,125 +1,333 @@
-import { useId } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { colorCinta } from './api';
+import { ETAPAS, COMPLEXION, POSES, articulaciones, disciplinaDe, mezclar, respirar } from './avatar/esqueleto';
+import { Fondo } from './avatar/fondos.jsx';
 
-// Avatar del alumno dibujado en SVG por piezas. Cada accesorio de la base (tabla accesorios, columna imagen)
-// es una clave que aquí se convierte en dibujo: banda-roja, dobok-negro, guantes-azules, fondo-montana...
-// La cinta no se elige: es la del grado actual. Adrián puede cambiar estas piezas por ilustraciones después.
+// Avatar del alumno dibujado en SVG por piezas sobre un esqueleto animado (src/avatar/esqueleto.js).
+// - apariencia: {piel, peinado, color_pelo, vello, complexion, etapa (nino|joven|adulto), disciplina} → viene de la API
+// - equipo: [{tipo, imagen}] accesorios puestos (banda-roja, dobok-negro, guantes-azules, protector-pie, fondo-…)
+// - cinta: color del grado ("Amarilla avanzada"). No se elige: es la de su grado.
+// - animado: respira; interactivo: al tocarlo hace el siguiente movimiento de su disciplina;
+//   accion: {id, n} hace ese movimiento cada vez que cambia n; demostracion: los hace solo cada pocos segundos.
+// Adrián puede cambiar los dibujos de cada pieza sin tocar el esqueleto.
 
-const BANDAS = { 'banda-blanca': '#f5f5f0', 'banda-roja': '#e23b3b', 'banda-azul': '#2f6fe4', 'banda-negra': '#1b1f2a', 'banda-dorada': '#f2b705' };
-const GUANTES = { 'guantes-rojos': '#e23b3b', 'guantes-azules': '#2f6fe4' };
-const DOBOK = {
-  'dobok-blanco': { tela: '#f7f7f4', sombra: '#d9dde4', cuello: '#e3e7ee' },
-  'dobok-cuello': { tela: '#f7f7f4', sombra: '#d9dde4', cuello: '#1b1f2a' },
-  'dobok-negro': { tela: '#232838', sombra: '#171b27', cuello: '#0f121b' },
+export const PIELES = { 1: '#f3d4b6', 2: '#e3b18b', 3: '#c98e63', 4: '#a8714a', 5: '#7d4f32', 6: '#563421' };
+export const PELOS = {
+  negro: '#1b1716', castano_oscuro: '#3b2519', castano: '#6b432a', rubio: '#c9a25e',
+  pelirrojo: '#a4471f', canoso: '#bdb9b3', azul: '#2f5fd0', rosa: '#cf5f9c',
 };
-const PIEL = '#f6c9a3'; const PIEL_SOMBRA = '#e8b18a'; const PELO = '#3a2418';
+const BANDAS = { 'banda-blanca': '#f1f1ec', 'banda-roja': '#d63434', 'banda-azul': '#2f6fe4', 'banda-negra': '#1b1f2a', 'banda-dorada': '#e8ac0c' };
+const GUANTES = { 'guantes-rojos': '#d63434', 'guantes-azules': '#2f6fe4' };
+const TELAS = {
+  'dobok-blanco': { tela: '#f2f2ee', cuello: '#f2f2ee' },
+  'dobok-cuello': { tela: '#f2f2ee', cuello: '#16181f' },
+  'dobok-negro': { tela: '#23283a', cuello: '#0f121b' },
+};
+const ESCALA = 1.1; // el cuerpo se dibuja un poco más grande que el lienzo base (crece desde el suelo)
+const BASE = { piel: '2', peinado: 'corto', color_pelo: 'negro', vello: 'ninguno', complexion: 'media', etapa: 'adulto', disciplina: 'Taekwondo' };
 
-function Fondo({ clave, id }) {
-  switch (clave) {
-    case 'fondo-atardecer':
+/** Oscurece (f < 1) o aclara (f > 1) un color #rrggbb */
+export function tono(hex, f) {
+  const n = parseInt(hex.slice(1), 16);
+  const c = [n >> 16, (n >> 8) & 255, n & 255].map((v) => Math.max(0, Math.min(255, Math.round(f > 1 ? v + (255 - v) * (f - 1) : v * f))));
+  return '#' + c.map((v) => v.toString(16).padStart(2, '0')).join('');
+}
+const linea = (a, b, w, color, extra) => <line x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} stroke={color} strokeWidth={w} strokeLinecap="round" {...extra} />;
+const pts = (...p) => p.map((x) => `${x[0].toFixed(1)},${x[1].toFixed(1)}`).join(' ');
+const mas = (p, v, k) => [p[0] + v[0] * k, p[1] + v[1] * k];
+
+/* ---------------- animación ---------------- */
+function useMovimientos({ base, disciplina, animado, interactivo, accion, demostracion }) {
+  const [, pintar] = useState(0);
+  const st = useRef({ cuadros: [], desde: POSES[base], inicio: 0, texto: null, siguiente: 0, ultimo: POSES[base] });
+  const vivo = animado || interactivo || demostracion || !!accion;
+  const reducido = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+  const jugar = useCallback((mov) => {
+    const s = st.current;
+    if (!mov) return;
+    s.desde = s.ultimo; s.inicio = performance.now();
+    s.cuadros = mov.cuadros.map(([p, ms]) => ({ pose: POSES[p], ms }));
+    s.texto = mov.texto || null;
+    pintar((x) => x + 1);
+  }, []);
+
+  useEffect(() => {
+    if (!vivo || reducido) return undefined;
+    let id; const ciclo = () => { pintar((x) => x + 1); id = requestAnimationFrame(ciclo); };
+    id = requestAnimationFrame(ciclo);
+    return () => cancelAnimationFrame(id);
+  }, [vivo, reducido]);
+
+  useEffect(() => { if (accion?.id) jugar(disciplina.movimientos.find((m) => m.id === accion.id)); }, [accion?.n]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!demostracion) return undefined;
+    let i = 0;
+    const t = setInterval(() => { jugar(disciplina.movimientos[i % disciplina.movimientos.length]); i += 1; }, 2600);
+    return () => clearInterval(t);
+  }, [demostracion, disciplina, jugar]);
+
+  // Pose de este momento
+  const s = st.current; const ahora = performance.now();
+  let pose = POSES[base]; let enMovimiento = false; let k = 0; let restante = ahora - s.inicio;
+  let anterior = s.desde;
+  for (const c of s.cuadros) {
+    if (restante < c.ms) { k = restante / c.ms; k = 1 - (1 - k) ** 3; pose = mezclar(anterior, c.pose, k); enMovimiento = true; break; }
+    restante -= c.ms; anterior = c.pose;
+  }
+  if (!enMovimiento) { if (s.cuadros.length) s.cuadros = []; pose = { ...POSES[base] }; }
+  if (vivo && !reducido && !enMovimiento) pose = respirar(pose, ahora / 1000, disciplina.uniforme === 'box');
+  s.ultimo = pose;
+  const tocar = interactivo ? () => {
+    s.siguiente = (s.siguiente + 1) % disciplina.movimientos.length;
+    jugar(disciplina.movimientos[s.siguiente === 0 ? disciplina.movimientos.length - 1 : s.siguiente - 1]);
+  } : undefined;
+  return { pose, enMovimiento, texto: enMovimiento ? (s.texto || (pose.grito ? disciplina.grito : null)) : null, tocar, ahora };
+}
+
+/* ---------------- dibujo ---------------- */
+export default function Avatar({
+  equipo = [], cinta, apariencia, className = 'size-40', fondo = true, animado = false, interactivo = false,
+  accion, demostracion = false, saludo, mirar = 'derecha', encuadre = 'cuerpo', pose: poseFija,
+}) {
+  const id = useId().replace(/:/g, '');
+  const ap = { ...BASE, ...(apariencia || {}) };
+  const disc = disciplinaDe(ap.disciplina);
+  const d0 = ETAPAS[ap.etapa] || ETAPAS.adulto;
+  const comp = COMPLEXION[ap.complexion] || 1;
+  const d = { ...d0, ancho: d0.ancho * comp, grosor: d0.grosor * (0.85 + comp * 0.15) };
+  const { pose, texto, tocar, ahora } = useMovimientos({ base: poseFija || disc.base, disciplina: disc, animado, interactivo, accion, demostracion });
+  const j = articulaciones(pose, d);
+  const pieza = (tipo) => equipo.find((e) => e.tipo === tipo)?.imagen;
+
+  const piel = PIELES[ap.piel] || PIELES[2];
+  const pielSombra = tono(piel, 0.86);
+  const pelo = PELOS[ap.color_pelo] || PELOS.negro;
+  const uniforme = disc.uniforme;
+  const tela = TELAS[pieza('torso')] || TELAS['dobok-blanco'];
+  const boxeo = uniforme === 'box';
+  const telaLejos = tono(tela.tela, 0.82);
+  const cintaColor = colorCinta(cinta || 'blanca');
+  const avanzada = (cinta || '').toLowerCase().includes('avanzada');
+  const guante = boxeo ? (GUANTES[pieza('mano')] || '#c9272d') : GUANTES[pieza('mano')];
+  const protector = pieza('pies') === 'protector-pie';
+  const banda = BANDAS[pieza('cabeza')];
+  const g = d.grosor;
+  const ondea = Math.sin(ahora / 260) * 2.2;
+
+  const short = boxeo ? (pieza('torso') === 'dobok-negro' ? '#1d2130' : '#b8262c') : null;
+  const camiseta = boxeo ? (pieza('torso') === 'dobok-negro' ? '#1d2130' : '#f2f2ee') : null;
+
+  // --- extremidades
+  const pierna = (p, lejos) => {
+    const pant = boxeo ? short : (lejos ? telaLejos : tela.tela);
+    const p1 = j.cadera; const p2 = p.rodilla; const p3 = p.tobillo;
+    const ancho = 14.5 * g * (0.9 + comp * 0.1);
+    const pieDir = [Math.sin(((p.angulo + 90) * Math.PI) / 180), Math.cos(((p.angulo + 90) * Math.PI) / 180)];
+    const punta = mas(p3, pieDir, d.pie);
+    const colorPie = boxeo ? (lejos ? '#14161d' : '#22252e') : protector ? (lejos ? '#a3262c' : '#c62f36') : (lejos ? pielSombra : piel);
+    return (
+      <g>
+        {boxeo ? (<>
+          {linea(p2, p3, ancho * 0.72, lejos ? pielSombra : piel)}
+          {linea(p1, mas(p1, [p2[0] - p1[0], p2[1] - p1[1]], 0.85), ancho * 1.12, pant)}
+        </>) : (<>
+          {linea(p1, p2, ancho, pant)}
+          {linea(p2, mas(p2, [p3[0] - p2[0], p3[1] - p2[1]], 0.86), ancho * 0.9, pant)}
+          {linea(mas(p2, [p3[0] - p2[0], p3[1] - p2[1]], 0.8), p3, ancho * 0.5, lejos ? pielSombra : piel)}
+        </>)}
+        {linea(p3, punta, 7 * g, colorPie)}
+        {protector && !boxeo && linea(mas(p3, pieDir, d.pie * 0.25), mas(p3, pieDir, d.pie * 0.7), 2 * g, '#ffffff', { opacity: 0.7 })}
+      </g>
+    );
+  };
+  const brazo = (b, lejos) => {
+    const manga = boxeo ? null : (lejos ? telaLejos : tela.tela);
+    const ancho = 11 * g * (0.9 + comp * 0.1);
+    const color = lejos ? pielSombra : piel;
+    const hasta = uniforme === 'gi' && !guante ? 0.72 : 0.92;
+    const radioMano = guante ? (boxeo ? 8.3 : 6.4) * g : 4.6 * g;
+    return (
+      <g>
+        {boxeo ? (<>{linea(j.hombro, b.codo, ancho * 0.92, color)}{linea(b.codo, b.mano, ancho * 0.8, color)}</>) : (<>
+          {linea(j.hombro, b.codo, ancho, manga)}
+          {linea(b.codo, b.mano, ancho * 0.62, color)}
+          {linea(b.codo, mas(b.codo, [b.mano[0] - b.codo[0], b.mano[1] - b.codo[1]], hasta), ancho * 0.92, manga)}
+        </>)}
+        {guante ? (<>
+          <circle cx={b.mano[0]} cy={b.mano[1]} r={radioMano} fill={lejos ? tono(guante, 0.8) : guante} />
+          <circle cx={b.mano[0] + radioMano * 0.25} cy={b.mano[1] - radioMano * 0.3} r={radioMano * 0.35} fill="#fff" opacity=".18" />
+          {linea(mas(b.mano, [b.codo[0] - b.mano[0], b.codo[1] - b.mano[1]], 0.3), mas(b.mano, [b.codo[0] - b.mano[0], b.codo[1] - b.mano[1]], 0.36), ancho * 0.95, '#f2f2ee')}
+        </>) : <circle cx={b.mano[0]} cy={b.mano[1]} r={radioMano} fill={color} />}
+      </g>
+    );
+  };
+
+  // --- tronco
+  const { cadera: H, hombro: S, cuello: N, arriba: u, frente: f } = j;
+  const W = d.ancho;
+  const chaqueta = [
+    mas(mas(H, u, -8 * g), f, 0.46 * W), mas(mas(H, u, d.tronco * 0.6), f, 0.52 * W), mas(mas(S, f, 0.36 * W), u, 3),
+    mas(N, f, 0.12 * W), mas(N, f, -0.2 * W), mas(S, f, -0.46 * W), mas(H, f, -0.48 * W), mas(mas(H, u, -8 * g), f, -0.5 * W),
+  ];
+  const sombraEspalda = [mas(S, f, -0.46 * W), mas(H, f, -0.48 * W), mas(mas(H, u, -8 * g), f, -0.5 * W), mas(mas(H, u, -8 * g), f, -0.22 * W), mas(S, f, -0.2 * W)];
+  const cinturaA = mas(mas(H, u, 2 * g), f, -0.5 * W); const cinturaB = mas(mas(H, u, 2 * g), f, 0.48 * W);
+  const nudo = mas(mas(H, u, 2 * g), f, 0.42 * W);
+  const colaCinta = (dx) => mas(mas(nudo, u, -13 * g), f, dx + ondea * 0.6);
+
+  // --- cabeza (coordenadas locales: mirando a la derecha, centro 0,0)
+  const r = d.cabeza;
+  const adulto = ap.etapa !== 'nino';
+  const kiai = !!pose.grito;
+  const cabeza = (
+    <g transform={`translate(${j.cabeza[0].toFixed(1)} ${j.cabeza[1].toFixed(1)}) rotate(${j.anguloCabeza.toFixed(1)})`}>
+      <PeloAtras estilo={ap.peinado} r={r} color={pelo} ondea={ondea} />
+      <ellipse cx="0" cy="0" rx={r * 0.95} ry={r * 1.02} fill={piel} />
+      {adulto
+        ? <path d={`M${-r * 0.4} ${r * 0.5} Q${r * 0.05} ${r * 1.12} ${r * 0.62} ${r * 1.02} Q${r * 0.95} ${r * 0.9} ${r * 0.96} ${r * 0.36} Z`} fill={piel} />
+        : <path d={`M${-r * 0.3} ${r * 0.6} Q${r * 0.2} ${r * 1.08} ${r * 0.7} ${r * 0.86} Q${r * 0.95} ${r * 0.6} ${r * 0.9} ${r * 0.3} Z`} fill={piel} />}
+      <ellipse cx={-r * 0.16} cy={r * 0.12} rx={r * 0.16} ry={r * 0.24} fill={pielSombra} />
+      {/* ojos y cejas: mirada al frente, con decisión */}
+      <ellipse cx={r * 0.43} cy={-r * 0.02} rx={r * 0.1} ry={kiai ? r * 0.09 : r * 0.13} fill="#1a1514" />
+      <circle cx={r * 0.46} cy={-r * 0.07} r={r * 0.035} fill="#fff" opacity=".8" />
+      <ellipse cx={r * 0.86} cy={-r * 0.03} rx={r * 0.06} ry={kiai ? r * 0.08 : r * 0.12} fill="#1a1514" />
+      <path d={`M${r * 0.24} ${-r * 0.3} L${r * 0.6} ${kiai ? -r * 0.18 : -r * 0.22}`} stroke={tono(pelo, 0.75)} strokeWidth={r * 0.12} strokeLinecap="round" />
+      <path d={`M${r * 0.78} ${kiai ? -r * 0.2 : -r * 0.24} L${r * 0.98} ${-r * 0.2}`} stroke={tono(pelo, 0.75)} strokeWidth={r * 0.1} strokeLinecap="round" />
+      <path d={`M${r * 0.9} ${-r * 0.02} L${r * 1.07} ${r * 0.3} L${r * 0.9} ${r * 0.36}`} fill={piel} stroke={pielSombra} strokeWidth={r * 0.06} strokeLinejoin="round" />
+      {kiai
+        ? <ellipse cx={r * 0.72} cy={r * 0.64} rx={r * 0.15} ry={r * 0.13} fill="#3b1414" />
+        : <path d={`M${r * 0.56} ${r * 0.62} L${r * 0.84} ${r * 0.6}`} stroke={tono(piel, 0.55)} strokeWidth={r * 0.07} strokeLinecap="round" />}
+      {adulto && <Vello tipo={ap.vello} r={r} color={pelo} />}
+      <PeloFrente estilo={ap.peinado} r={r} color={pelo} />
+      {banda && (<>
+        <path d={`M${-r * 0.96} ${-r * 0.34} Q0 ${-r * 0.56} ${r * 0.96} ${-r * 0.44}`} fill="none" stroke={banda} strokeWidth={r * 0.3} strokeLinecap="round" />
+        <path d={`M${-r * 0.92} ${-r * 0.36} Q${-r * 1.5} ${-r * 0.3 + ondea} ${-r * 2.05} ${-r * 0.02 + ondea * 1.4}`} fill="none" stroke={banda} strokeWidth={r * 0.2} strokeLinecap="round" />
+        <path d={`M${-r * 0.92} ${-r * 0.3} Q${-r * 1.35} ${r * 0.1 - ondea} ${-r * 1.8} ${r * 0.42 + ondea}`} fill="none" stroke={tono(banda, 0.85)} strokeWidth={r * 0.18} strokeLinecap="round" />
+      </>)}
+    </g>
+  );
+
+  // efecto de golpe
+  const fin = pose.impacto === 'bf' ? j.bf.mano : pose.impacto === 'bn' ? j.bn.mano : pose.impacto === 'pn' ? mas(j.pn.tobillo, [0, 0], 0) : null;
+  const espejo = mirar === 'izquierda';
+  let vista = '0 0 200 200';
+  if (encuadre === 'cabeza') {
+    const t = r * 4.6 * ESCALA; const hx = 100 + (j.cabeza[0] - 100) * ESCALA; const hy = 186 + (j.cabeza[1] - 186) * ESCALA; const cx = espejo ? 200 - hx : hx;
+    vista = `${(cx - t / 2).toFixed(1)} ${(hy - t / 2 + r * 0.3).toFixed(1)} ${t.toFixed(1)} ${t.toFixed(1)}`;
+  }
+  if (encuadre === 'figura') vista = '30 30 140 140';
+  const globo = texto || saludo;
+  const hxG = 100 + (j.cabeza[0] - 100) * ESCALA; const hyG = 186 + (j.cabeza[1] - 186) * ESCALA;
+  const gx = Math.min(136, Math.max(4, espejo ? 200 - hxG - 40 : hxG - 6));
+
+  return (
+    <svg viewBox={vista} className={className} role="img" aria-label="Avatar" onClick={tocar}
+      style={tocar ? { cursor: 'pointer', WebkitTapHighlightColor: 'transparent' } : undefined}>
+      {fondo && <Fondo clave={pieza('fondo')} id={id} />}
+      <g transform={`${espejo ? 'translate(200 0) scale(-1 1) ' : ''}translate(100 186) scale(${ESCALA}) translate(-100 -186)`}>
+        <ellipse cx={H[0] + 4} cy="187.5" rx={30 * g} ry="4.5" fill="#000" opacity=".25" />
+        {pierna(j.pf, true)}
+        {brazo(j.bf, true)}
+        {/* tronco */}
+        {boxeo && <polygon points={pts(...chaqueta)} fill={piel} stroke={piel} strokeWidth="3" strokeLinejoin="round" />}
+        {boxeo
+          ? <polygon points={pts(chaqueta[0], chaqueta[1], mas(mas(S, f, 0.2 * W), u, -4), mas(S, f, -0.3 * W), chaqueta[6], chaqueta[7])} fill={camiseta} stroke={camiseta} strokeWidth="3" strokeLinejoin="round" />
+          : <polygon points={pts(...chaqueta)} fill={tela.tela} stroke={tela.tela} strokeWidth="3" strokeLinejoin="round" />}
+        {!boxeo && <polygon points={pts(...sombraEspalda)} fill="#000" opacity=".1" />}
+        {uniforme === 'dobok' && <polyline points={pts(mas(N, f, -0.2 * W), mas(N, f, 0.12 * W), mas(mas(H, u, d.tronco * 0.5), f, 0.4 * W))} fill="none" stroke={tela.cuello === tela.tela ? tono(tela.tela, 0.82) : tela.cuello} strokeWidth={3.4 * g} strokeLinejoin="round" strokeLinecap="round" />}
+        {uniforme === 'gi' && (<>
+          <polyline points={pts(mas(N, f, -0.18 * W), mas(N, f, 0.14 * W), mas(mas(H, u, d.tronco * 0.25), f, 0.46 * W))} fill="none" stroke={tono(tela.tela, 0.8)} strokeWidth={4.6 * g} strokeLinejoin="round" strokeLinecap="round" />
+          <polyline points={pts(mas(mas(N, u, -3), f, 0.1 * W), mas(mas(H, u, d.tronco * 0.45), f, 0.5 * W))} fill="none" stroke={tono(tela.tela, 0.9)} strokeWidth={2 * g} strokeLinecap="round" />
+        </>)}
+        {pierna(j.pn, false)}
+        {!boxeo && (<>
+          {linea(cinturaA, cinturaB, 6.4 * g, cintaColor, { strokeLinecap: 'butt' })}
+          {avanzada && linea(cinturaA, cinturaB, 1.6 * g, '#000', { opacity: 0.35, strokeLinecap: 'butt' })}
+          {linea(nudo, colaCinta(4), 4.6 * g, cintaColor)}
+          {linea(nudo, colaCinta(-2), 4.6 * g, tono(cintaColor, 0.88))}
+          <circle cx={nudo[0]} cy={nudo[1]} r={4 * g} fill={cintaColor} stroke="#00000030" strokeWidth=".8" />
+        </>)}
+        {boxeo && linea(mas(H, f, -0.5 * W), mas(H, f, 0.48 * W), 5 * g, tono(short, 1.25), { strokeLinecap: 'butt' })}
+        {linea(mas(N, u, -2), mas(N, u, 4), 8 * g, pielSombra)}
+        {cabeza}
+        {brazo(j.bn, false)}
+        {fin && <Impacto p={fin} />}
+      </g>
+      {globo && (
+        <g className="anim-aparecer">
+          <rect x={gx} y={Math.max(4, hyG - r * ESCALA - 36)} width="60" height="22" rx="11" fill="#fff" />
+          <text x={gx + 30} y={Math.max(4, hyG - r * ESCALA - 36) + 15.5} textAnchor="middle" fontSize="11.5" fontWeight="900" fill="#011c42" fontFamily="Nunito Variable, sans-serif">{globo}</text>
+        </g>
+      )}
+    </svg>
+  );
+}
+
+function Impacto({ p }) {
+  return (
+    <g stroke="#ffd34d" strokeWidth="2.2" strokeLinecap="round" opacity=".95">
+      {[0, 45, 90, 135, 180, 225, 270, 315].map((a) => {
+        const c = Math.cos((a * Math.PI) / 180); const s = Math.sin((a * Math.PI) / 180);
+        return <line key={a} x1={p[0] + c * 9} y1={p[1] + s * 9} x2={p[0] + c * (a % 90 ? 13 : 17)} y2={p[1] + s * (a % 90 ? 13 : 17)} />;
+      })}
+    </g>
+  );
+}
+
+/* ---------------- cabello y vello (locales a la cabeza, mirando a la derecha) ---------------- */
+function PeloAtras({ estilo, r, color, ondea }) {
+  if (estilo === 'largo') return <path d={`M${-r * 0.85} ${-r * 0.7} Q${-r * 1.35} ${r * 0.5} ${-r * 1.05 + ondea * 0.3} ${r * 1.75} L${-r * 0.1} ${r * 1.5} Q${-r * 0.45} ${r * 0.6} ${-r * 0.2} ${-r * 0.2} Z`} fill={tono(color, 0.85)} />;
+  if (estilo === 'coleta') return (<>
+    <path d={`M${-r * 0.78} ${-r * 0.62} Q${-r * 1.9} ${-r * 0.5 + ondea} ${-r * 1.6 + ondea * 0.4} ${r * 0.95} Q${-r * 1.38} ${r * 0.2} ${-r * 0.7} ${-r * 0.18} Z`} fill={tono(color, 0.88)} />
+    <circle cx={-r * 0.9} cy={-r * 0.48} r={r * 0.13} fill="#c62f36" />
+  </>);
+  if (estilo === 'chongo') return <circle cx={-r * 0.62} cy={-r * 0.92} r={r * 0.4} fill={tono(color, 0.9)} />;
+  return null;
+}
+
+function PeloFrente({ estilo, r, color }) {
+  const brillo = tono(color, 1.25);
+  const casco = `M${-r * 1.0} ${r * 0.25} C${-r * 1.16} ${-r * 1.0} ${r * 0.1} ${-r * 1.38} ${r * 0.78} ${-r * 0.92} C${r * 1.02} ${-r * 0.74} ${r * 1.02} ${-r * 0.48} ${r * 0.96} ${-r * 0.4} C${r * 0.6} ${-r * 0.54} ${r * 0.2} ${-r * 0.56} ${-r * 0.04} ${-r * 0.44} C${-r * 0.24} ${-r * 0.22} ${-r * 0.36} ${r * 0.04} ${-r * 0.42} ${r * 0.3} Z`;
+  switch (estilo) {
+    case 'rapado':
+      return <path d={`M${-r * 0.96} ${r * 0.15} C${-r * 1.02} ${-r * 0.92} ${r * 0.2} ${-r * 1.26} ${r * 0.84} ${-r * 0.62} L${r * 0.6} ${-r * 0.5} C${r * 0.1} ${-r * 0.72} ${-r * 0.42} ${-r * 0.56} ${-r * 0.46} ${r * 0.12} Z`} fill={color} opacity=".55" />;
+    case 'despeinado':
       return (<>
-        <defs><linearGradient id={`${id}a`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#ff6f91" /><stop offset=".6" stopColor="#ffa45b" /><stop offset="1" stopColor="#ffd36b" /></linearGradient></defs>
-        <rect width="200" height="200" fill={`url(#${id}a)`} />
-        <circle cx="100" cy="132" r="58" fill="#fff2b3" opacity=".55" />
-        <path d="M0 160 Q50 145 100 158 T200 152 V200 H0Z" fill="#7a3a52" opacity=".55" />
+        <path d={casco} fill={color} />
+        <path d={`M${-r * 0.95} ${-r * 0.3} L${-r * 1.25} ${-r * 0.75} L${-r * 0.78} ${-r * 0.72} L${-r * 0.85} ${-r * 1.2} L${-r * 0.35} ${-r * 0.98} L${-r * 0.2} ${-r * 1.45} L${r * 0.18} ${-r * 1.08} L${r * 0.52} ${-r * 1.38} L${r * 0.6} ${-r * 0.98} L${r * 1.12} ${-r * 0.98} L${r * 0.85} ${-r * 0.7} Z`} fill={color} />
+        <path d={`M${-r * 0.2} ${-r * 1.0} L${r * 0.3} ${-r * 0.9}`} stroke={brillo} strokeWidth={r * 0.08} strokeLinecap="round" />
       </>);
-    case 'fondo-montana':
+    case 'rizado':
       return (<>
-        <defs><linearGradient id={`${id}m`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#4ea3ff" /><stop offset="1" stopColor="#c6e6ff" /></linearGradient></defs>
-        <rect width="200" height="200" fill={`url(#${id}m)`} />
-        <path d="M-10 170 L55 80 L95 135 L135 70 L210 170Z" fill="#35588f" />
-        <path d="M55 80 L67 96 L58 93 L50 100 L45 94Z M135 70 L149 89 L139 86 L130 94 L124 86Z" fill="#fff" />
-        <path d="M-10 175 Q100 150 210 175 V200 H-10Z" fill="#2b4d3f" />
+        <path d={casco} fill={color} />
+        {[[-0.95, -0.15], [-0.98, -0.55], [-0.72, -0.9], [-0.32, -1.12], [0.12, -1.18], [0.52, -1.02], [0.82, -0.72], [-0.5, 0.15]].map(([x, y], i) => (
+          <circle key={i} cx={r * x} cy={r * y} r={r * 0.3} fill={i % 2 ? color : tono(color, 1.1)} />
+        ))}
       </>);
-    case 'fondo-estrellas':
+    case 'largo':
       return (<>
-        <defs><linearGradient id={`${id}e`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#140a3a" /><stop offset="1" stopColor="#3d2a86" /></linearGradient></defs>
-        <rect width="200" height="200" fill={`url(#${id}e)`} />
-        {[[20, 25], [48, 60], [160, 30], [178, 78], [30, 120], [170, 132], [120, 18], [72, 22], [186, 175], [12, 180]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r={i % 3 ? 1.6 : 2.6} fill="#fff" opacity={i % 2 ? .7 : 1} />)}
-        <circle cx="158" cy="44" r="14" fill="#ffe9a8" /><circle cx="164" cy="39" r="12" fill="#2a1c62" />
+        <path d={casco} fill={color} />
+        <path d={`M${r * 0.2} ${-r * 1.02} Q${r * 0.95} ${-r * 0.95} ${r * 0.92} ${-r * 0.2} Q${r * 0.6} ${-r * 0.55} ${r * 0.05} ${-r * 0.5} Z`} fill={color} />
+        <path d={`M${-r * 0.3} ${-r * 1.0} Q${r * 0.2} ${-r * 1.12} ${r * 0.55} ${-r * 0.9}`} fill="none" stroke={brillo} strokeWidth={r * 0.08} strokeLinecap="round" />
       </>);
-    case 'fondo-dragon':
+    default: // corto, coleta y chongo comparten el casco
       return (<>
-        <defs><radialGradient id={`${id}d`} cx=".5" cy=".7" r=".8"><stop offset="0" stopColor="#ff8a3d" /><stop offset=".5" stopColor="#b3202a" /><stop offset="1" stopColor="#3b0a10" /></radialGradient></defs>
-        <rect width="200" height="200" fill={`url(#${id}d)`} />
-        <path d="M14 150 C20 90 70 70 60 30 C90 60 100 30 96 8 C130 40 150 30 150 6 C180 50 186 100 186 150Z" fill="#ffb44d" opacity=".25" />
-        <path d="M20 60 C60 20 110 70 150 40 C170 28 182 32 192 44" fill="none" stroke="#f2b705" strokeWidth="5" strokeLinecap="round" opacity=".8" />
-        <circle cx="188" cy="42" r="4" fill="#f2b705" />
-      </>);
-    default: // tatami
-      return (<>
-        <rect width="200" height="200" fill="#163a6b" />
-        <circle cx="100" cy="96" r="70" fill="#1f4c86" />
-        <rect y="156" width="200" height="44" fill="#2f6b4f" />
-        <path d="M0 156 H200 M66 156 V200 M134 156 V200 M0 178 H66 M134 178 H200" stroke="#255640" strokeWidth="3" />
+        <path d={casco} fill={color} />
+        <path d={`M${-r * 0.35} ${-r * 1.0} Q${r * 0.15} ${-r * 1.15} ${r * 0.55} ${-r * 0.9}`} fill="none" stroke={brillo} strokeWidth={r * 0.08} strokeLinecap="round" />
       </>);
   }
 }
 
-/** equipo: [{tipo, imagen}] · cinta: nombre del color ("Amarilla") · animado: rebota suave */
-export default function Avatar({ equipo = [], cinta, className = 'size-40', fondo = true, animado = false, saludo }) {
-  const id = useId().replace(/:/g, '');
-  const pieza = (tipo) => equipo.find((e) => e.tipo === tipo)?.imagen;
-  const banda = BANDAS[pieza('cabeza')];
-  const dobok = DOBOK[pieza('torso')] || DOBOK['dobok-blanco'];
-  const guante = GUANTES[pieza('mano')];
-  const pies = pieza('pies');
-  const cintaColor = colorCinta(cinta || 'blanca');
-  const avanzada = (cinta || '').toLowerCase().includes('avanzada');
-
-  return (
-    <svg viewBox="0 0 200 200" className={className} role="img" aria-label="Avatar">
-      {fondo && <Fondo clave={pieza('fondo')} id={id} />}
-      <g className={animado ? 'anim-rebote' : undefined} style={{ transformOrigin: '100px 190px' }}>
-        <ellipse cx="100" cy="193" rx="42" ry="5" fill="#000" opacity=".18" />
-        {/* piernas y pies */}
-        <rect x="78" y="156" width="20" height="30" rx="8" fill={dobok.tela} />
-        <rect x="102" y="156" width="20" height="30" rx="8" fill={dobok.tela} />
-        <ellipse cx="87" cy="188" rx="12" ry="6" fill={pies ? '#e23b3b' : PIEL} />
-        <ellipse cx="113" cy="188" rx="12" ry="6" fill={pies ? '#e23b3b' : PIEL} />
-        {pies && <><rect x="78" y="182" width="18" height="4" rx="2" fill="#fff" opacity=".6" /><rect x="104" y="182" width="18" height="4" rx="2" fill="#fff" opacity=".6" /></>}
-        {/* brazos arriba, celebrando */}
-        <path d="M70 122 L48 100" stroke={dobok.tela} strokeWidth="17" strokeLinecap="round" />
-        <path d="M130 122 L152 100" stroke={dobok.tela} strokeWidth="17" strokeLinecap="round" />
-        {guante ? (<>
-          <circle cx="45" cy="95" r="14" fill={guante} /><rect x="38" y="103" width="15" height="6" rx="3" fill="#fff" />
-          <circle cx="155" cy="95" r="14" fill={guante} /><rect x="147" y="103" width="15" height="6" rx="3" fill="#fff" />
-        </>) : (<>
-          <circle cx="46" cy="96" r="10.5" fill={PIEL} /><path d="M40 92 h10" stroke={PIEL_SOMBRA} strokeWidth="2" strokeLinecap="round" />
-          <circle cx="154" cy="96" r="10.5" fill={PIEL} /><path d="M150 92 h10" stroke={PIEL_SOMBRA} strokeWidth="2" strokeLinecap="round" />
-        </>)}
-        {/* torso con dobok */}
-        <path d="M63 126 Q63 112 76 110 L124 110 Q137 112 137 126 L135 162 Q100 168 65 162Z" fill={dobok.tela} />
-        <path d="M65 150 Q100 156 135 150 L135 162 Q100 168 65 162Z" fill={dobok.sombra} opacity=".6" />
-        <path d="M84 110 L100 140 L116 110" fill="none" stroke={dobok.cuello} strokeWidth="7" strokeLinejoin="round" />
-        {/* cinta del grado */}
-        <rect x="64" y="144" width="72" height="11" rx="4" fill={cintaColor} stroke="#00000022" />
-        {avanzada && <rect x="64" y="148" width="72" height="3" fill="#00000030" />}
-        <path d="M96 152 L88 174 L95 175 L101 155Z M104 152 L113 173 L106 175 L99 155Z" fill={cintaColor} stroke="#00000022" />
-        <rect x="93" y="141" width="14" height="16" rx="4" fill={cintaColor} stroke="#00000033" />
-        {/* cabeza */}
-        <rect x="92" y="100" width="16" height="14" rx="5" fill={PIEL_SOMBRA} />
-        <circle cx="57" cy="76" r="8" fill={PIEL_SOMBRA} /><circle cx="143" cy="76" r="8" fill={PIEL_SOMBRA} />
-        <circle cx="100" cy="70" r="44" fill={PIEL} />
-        <path d="M56 70 Q55 24 100 24 Q145 24 144 70 Q138 50 122 47 Q112 58 98 49 Q86 57 72 49 Q60 55 56 70Z" fill={PELO} />
-        {banda && (<>
-          <path d="M56.5 58 Q100 45 143.5 58 L143 69 Q100 56 57 69Z" fill={banda} stroke="#00000022" />
-          <path d="M141 60 Q160 50 176 56 L170 63 Q158 60 143 67Z M141 64 Q158 66 170 78 L162 82 Q154 72 142 69Z" fill={banda} stroke="#00000022" />
-        </>)}
-        {/* cara */}
-        <path d="M76 70 q8 -5 15 0 M109 70 q8 -5 15 0" stroke={PELO} strokeWidth="3.2" fill="none" strokeLinecap="round" />
-        <ellipse cx="84" cy="81" rx="5.2" ry="6.6" fill="#1d1d27" /><circle cx="86" cy="78.5" r="1.9" fill="#fff" />
-        <ellipse cx="116" cy="81" rx="5.2" ry="6.6" fill="#1d1d27" /><circle cx="118" cy="78.5" r="1.9" fill="#fff" />
-        <ellipse cx="73" cy="93" rx="7" ry="4" fill="#f59fb1" opacity=".75" /><ellipse cx="127" cy="93" rx="7" ry="4" fill="#f59fb1" opacity=".75" />
-        <path d="M89 95 Q100 108 111 95Z" fill="#8b2f3b" /><path d="M94 101 Q100 105 106 101 Q100 98 94 101Z" fill="#f27a8a" />
-      </g>
-      {saludo && (<>
-        <rect x="128" y="8" width="64" height="26" rx="13" fill="#fff" />
-        <path d="M140 32 L136 42 L150 33Z" fill="#fff" />
-        <text x="160" y="25.5" textAnchor="middle" fontSize="13" fontWeight="900" fill="#011c42" fontFamily="Nunito Variable, sans-serif">{saludo}</text>
-      </>)}
-    </svg>
-  );
+function Vello({ tipo, r, color }) {
+  const bigote = <path d={`M${r * 0.5} ${r * 0.5} Q${r * 0.72} ${r * 0.4} ${r * 0.98} ${r * 0.48} L${r * 0.96} ${r * 0.56} Q${r * 0.72} ${r * 0.5} ${r * 0.52} ${r * 0.6} Z`} fill={color} />;
+  if (tipo === 'bigote') return bigote;
+  if (tipo === 'candado') return (<>{bigote}<path d={`M${r * 0.48} ${r * 0.72} Q${r * 0.7} ${r * 1.12} ${r * 0.9} ${r * 0.72} Q${r * 0.7} ${r * 0.82} ${r * 0.48} ${r * 0.72} Z`} fill={color} /></>);
+  if (tipo === 'barba') return (<>
+    <path d={`M${-r * 0.08} ${r * 0.1} L${-r * 0.42} ${r * 0.5} Q${r * 0.05} ${r * 1.2} ${r * 0.64} ${r * 1.08} Q${r * 1.0} ${r * 0.92} ${r * 0.98} ${r * 0.58} L${r * 0.84} ${r * 0.7} Q${r * 0.66} ${r * 0.8} ${r * 0.5} ${r * 0.7} Q${r * 0.2} ${r * 0.62} ${r * 0.08} ${r * 0.18} Z`} fill={color} opacity=".95" />
+    {bigote}
+  </>);
+  return null;
 }
 
 /** Medalla de un grado: con el color de su cinta si ya se ganó; gris con candado si no */

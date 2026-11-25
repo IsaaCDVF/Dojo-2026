@@ -78,7 +78,7 @@ final class AppControlador
 
         [$semana, $racha] = $this->semanaYRacha($aid, $insc);
         Respuesta::ok(['alumno' => $a, 'grado' => $this->gradoPrincipal($aid), 'clases_hoy' => $clasesHoy, 'proxima_clase' => $proxima,
-                       'rumbo' => $rumbo, 'semana' => $semana, 'racha' => $racha, 'pago' => $pago, 'equipo' => $this->equipo($aid)]);
+                       'rumbo' => $rumbo, 'semana' => $semana, 'racha' => $racha, 'pago' => $pago, 'equipo' => $this->equipo($aid), 'apariencia' => $this->apariencia($aid)]);
     }
 
     /** GET /api/app/alumnos/{id}/camino — grados de cada disciplina: obtenidos, actual, siguiente y bloqueados */
@@ -108,7 +108,7 @@ final class AppControlador
                       'rumbo' => ExamenControlador::rumbo($aid, (int) $d['id'], (int) $a['sucursal_id']),
                       'examen' => $this->proximoExamen($aid, (int) $d['id'], (int) $a['sucursal_id'])];
         }
-        Respuesta::ok(['alumno' => ['id' => $aid, 'nombre' => $a['nombre']], 'disciplinas' => $res, 'equipo' => $this->equipo($aid)]);
+        Respuesta::ok(['alumno' => ['id' => $aid, 'nombre' => $a['nombre']], 'disciplinas' => $res, 'equipo' => $this->equipo($aid), 'apariencia' => $this->apariencia($aid)]);
     }
 
     /** GET /api/app/alumnos/{id}/avatar — accesorios (los desbloqueados por grado), lo que trae puesto e insignias */
@@ -130,17 +130,21 @@ final class AppControlador
                           ORDER BY d.nombre, g.orden', [$aid, $aid]);
         foreach ($ins as &$i) $i['obtenida'] = (bool) $i['obtenida'];
         Respuesta::ok(['alumno' => ['id' => $aid, 'nombre' => $a['nombre']], 'grado' => $this->gradoPrincipal($aid),
-                       'accesorios' => $acc, 'equipo' => $this->equipo($aid), 'insignias' => $ins]);
+                       'accesorios' => $acc, 'equipo' => $this->equipo($aid), 'apariencia' => $this->apariencia($aid), 'insignias' => $ins]);
     }
 
-    /** PUT /api/app/alumnos/{id}/avatar {equipo: [accesorio_id]} — uno por tipo y solo desbloqueados */
+    /**
+     * PUT /api/app/alumnos/{id}/avatar {equipo?: [accesorio_id], apariencia?: {piel, peinado, color_pelo, vello, complexion}}
+     * Equipo: uno por tipo y solo lo desbloqueado (lo bloqueado se puede probar en la app, pero no guardar).
+     */
     public function guardarAvatar(Peticion $req): void
     {
         $a = $this->alumno($req, (int) $req->params['id']);
         $aid = (int) $a['id'];
+        $hayEquipo = array_key_exists('equipo', $req->cuerpo);
         $ids = array_values(array_unique(array_map('intval', (array) ($req->cuerpo['equipo'] ?? []))));
         $tipos = [];
-        foreach ($ids as $id) {
+        foreach ($hayEquipo ? $ids : [] as $id) {
             $x = Db::uno('SELECT x.id, x.tipo, x.nombre, g.nombre AS grado,
                                  (x.grado_id IS NULL OR EXISTS (SELECT 1 FROM alumno_grados ag JOIN grados g2 ON g2.id = ag.grado_id
                                     WHERE ag.alumno_id = ? AND g2.disciplina_id = g.disciplina_id AND g2.orden >= g.orden)) AS ok
@@ -150,11 +154,27 @@ final class AppControlador
             if (isset($tipos[$x['tipo']])) throw new ErrorApi('Solo un accesorio de cada tipo', 422);
             $tipos[$x['tipo']] = true;
         }
-        Db::transaccion(function () use ($aid, $ids) {
-            Db::ejecutar('DELETE FROM avatar_equipo WHERE alumno_id = ?', [$aid]);
-            foreach ($ids as $id) Db::ejecutar('INSERT INTO avatar_equipo (alumno_id, accesorio_id) VALUES (?, ?)', [$aid, $id]);
+        $ap = null;
+        if (isset($req->cuerpo['apariencia'])) {
+            $ap = array_intersect_key($this->apariencia($aid), self::APARIENCIA);
+            foreach ((array) $req->cuerpo['apariencia'] as $k => $v) {
+                if (!isset(self::APARIENCIA[$k])) continue;
+                if (!in_array((string) $v, self::APARIENCIA[$k], true)) throw new ErrorApi("Ese valor no existe para $k", 422, ['campo' => $k]);
+                $ap[$k] = (string) $v;
+            }
+            if ($this->etapa($aid) === 'nino') $ap['vello'] = 'ninguno';
+        }
+        Db::transaccion(function () use ($aid, $ids, $hayEquipo, $ap) {
+            if ($hayEquipo) {
+                Db::ejecutar('DELETE FROM avatar_equipo WHERE alumno_id = ?', [$aid]);
+                foreach ($ids as $id) Db::ejecutar('INSERT INTO avatar_equipo (alumno_id, accesorio_id) VALUES (?, ?)', [$aid, $id]);
+            }
+            if ($ap) Db::ejecutar('INSERT INTO avatar_apariencia (alumno_id, piel, peinado, color_pelo, vello, complexion) VALUES (?, ?, ?, ?, ?, ?)
+                                   ON DUPLICATE KEY UPDATE piel = VALUES(piel), peinado = VALUES(peinado), color_pelo = VALUES(color_pelo),
+                                   vello = VALUES(vello), complexion = VALUES(complexion)',
+                [$aid, $ap['piel'], $ap['peinado'], $ap['color_pelo'], $ap['vello'], $ap['complexion']]);
         });
-        Respuesta::ok(['equipo' => $this->equipo($aid)]);
+        Respuesta::ok(['equipo' => $this->equipo($aid), 'apariencia' => $this->apariencia($aid)]);
     }
 
     /** GET /api/app/alumnos/{id}/examenes — próximas fechas de su sucursal, sus criterios y sus solicitudes */
@@ -180,7 +200,7 @@ final class AppControlador
                                   (se.pago_detalle_id IS NOT NULL) AS pagado
                            FROM solicitudes_examen se JOIN examenes e ON e.id = se.examen_id JOIN grados g ON g.id = se.grado_objetivo_id
                            JOIN disciplinas d ON d.id = e.disciplina_id WHERE se.alumno_id = ? ORDER BY se.fecha_envio DESC LIMIT 6', [$aid]);
-        Respuesta::ok(['alumno' => ['id' => $aid, 'nombre' => $a['nombre']], 'precio' => $precio, 'fechas' => $fechas, 'historial' => $hist, 'equipo' => $this->equipo($aid)]);
+        Respuesta::ok(['alumno' => ['id' => $aid, 'nombre' => $a['nombre']], 'precio' => $precio, 'fechas' => $fechas, 'historial' => $hist, 'equipo' => $this->equipo($aid), 'apariencia' => $this->apariencia($aid)]);
     }
 
     /** POST /api/app/alumnos/{id}/examenes/{examen} — solicitar desde la app (canal portal) */
@@ -211,7 +231,7 @@ final class AppControlador
                 $estado = 'al_dia';
                 foreach ($suyos as $l) { if ($l['estado'] === 'vencida') { $estado = 'vencido'; break; } if ($l['estado'] === 'pendiente') $estado = 'por_pagar'; }
                 $out['alumnos'][] = ['id' => (int) $al['id'], 'nombre' => $al['nombre'], 'apellido_paterno' => $al['apellido_paterno'], 'matricula' => $al['matricula'],
-                                     'estado_pago' => $estado, 'grado' => $this->gradoPrincipal((int) $al['id']), 'equipo' => $this->equipo((int) $al['id']),
+                                     'estado_pago' => $estado, 'grado' => $this->gradoPrincipal((int) $al['id']), 'equipo' => $this->equipo((int) $al['id']), 'apariencia' => $this->apariencia((int) $al['id']),
                                      'asistencia_mes' => (int) Db::uno('SELECT COUNT(*) n FROM asistencias WHERE alumno_id = ? AND DATE_FORMAT(fecha_hora, "%Y-%m") = DATE_FORMAT(CURDATE(), "%Y-%m")', [$al['id']])['n']];
             }
             foreach ($edo['adeudos'] as $l) {
@@ -286,6 +306,36 @@ final class AppControlador
     {
         return Db::uno('SELECT g.nombre, g.color_cinta, d.nombre AS disciplina FROM alumno_grados ag JOIN grados g ON g.id = ag.grado_id
                         JOIN disciplinas d ON d.id = g.disciplina_id WHERE ag.alumno_id = ? ORDER BY ag.fecha_obtencion DESC, ag.id DESC LIMIT 1', [$aid]);
+    }
+
+    /** Valores permitidos para personalizar el avatar */
+    private const APARIENCIA = [
+        'piel' => ['1', '2', '3', '4', '5', '6'],
+        'peinado' => ['rapado', 'corto', 'despeinado', 'rizado', 'coleta', 'chongo', 'largo'],
+        'color_pelo' => ['negro', 'castano_oscuro', 'castano', 'rubio', 'pelirrojo', 'canoso', 'azul', 'rosa'],
+        'vello' => ['ninguno', 'bigote', 'candado', 'barba'],
+        'complexion' => ['delgada', 'media', 'robusta'],
+    ];
+
+    /** niño (menos de 12), joven (12 a 17) o adulto: cambia las proporciones del avatar */
+    private function etapa(int $aid): string
+    {
+        $e = Db::uno('SELECT TIMESTAMPDIFF(YEAR, p.fecha_nacimiento, CURDATE()) AS edad FROM alumnos a JOIN personas p ON p.id = a.persona_id WHERE a.id = ?', [$aid]);
+        $edad = $e && $e['edad'] !== null ? (int) $e['edad'] : 18;
+        return $edad < 12 ? 'nino' : ($edad < 18 ? 'joven' : 'adulto');
+    }
+
+    /** Cómo se ve: lo que eligió (o lo básico), su etapa por edad y la disciplina que define el uniforme y los movimientos */
+    private function apariencia(int $aid): array
+    {
+        $r = Db::uno('SELECT piel, peinado, color_pelo, vello, complexion FROM avatar_apariencia WHERE alumno_id = ?', [$aid]);
+        if (!$r) {
+            $sexo = Db::uno('SELECT p.sexo FROM alumnos a JOIN personas p ON p.id = a.persona_id WHERE a.id = ?', [$aid])['sexo'] ?? null;
+            $r = ['piel' => '2', 'peinado' => $sexo === 'F' ? 'coleta' : 'corto', 'color_pelo' => 'negro', 'vello' => 'ninguno', 'complexion' => 'media'];
+        }
+        $etapa = $this->etapa($aid);
+        if ($etapa === 'nino') $r['vello'] = 'ninguno';
+        return $r + ['etapa' => $etapa, 'disciplina' => $this->gradoPrincipal($aid)['disciplina'] ?? null];
     }
 
     /** Lo que trae puesto; si nunca ha elegido, lo básico */
