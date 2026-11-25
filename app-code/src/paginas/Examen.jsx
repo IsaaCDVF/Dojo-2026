@@ -102,7 +102,7 @@ export default function Examen() {
       <Hoja abierta={!!listo} onCerrar={() => setListo(null)} titulo="">
         {listo && (
           <div className="text-center pb-2">
-            <Avatar equipo={d.equipo} apariencia={d.apariencia} cinta={listo.grado_objetivo?.color_cinta} fondo={false} animado interactivo pose="victoria" saludo="¡Osu!" className="size-44 mx-auto" />
+            <Avatar equipo={d.equipo} apariencia={d.apariencia} cinta={listo.grado_objetivo?.color_cinta} fondo={false} animado interactivo saludo="¡Osu!" className="size-44 mx-auto" />
             <PartyPopper className="size-9 text-gold mx-auto mt-1" />
             <h2 className="text-[26px] font-black mt-2">¡Solicitud enviada!</h2>
             <p className="text-soft font-semibold mt-2">

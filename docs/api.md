@@ -140,6 +140,6 @@ El acceso a la app lo da recepción (no hay registro abierto). El alumno entra c
 | GET | /app/familia | (sesión, responsable) | Alumnos con estado de pago, adeudos (sin los por vencer), total, vencido, saldo a favor, últimos pagos y próximo cargo; 403 si no es responsable |
 | GET | /app/pagos/{id} | (sesión, responsable) | Recibo de un pago propio; 404 si es de otra familia |
 
-`apariencia` viene en inicio, camino, avatar, exámenes y en cada alumno de familia: `{piel 1-6, peinado (rapado, corto, despeinado, rizado, coleta, chongo, largo), color_pelo, vello (ninguno, bigote, candado, barba), complexion (delgada, media, robusta), etapa (nino < 12, joven < 18, adulto), disciplina}`. Un niño nunca lleva vello facial.
+`apariencia` viene en inicio, camino, avatar, exámenes y en cada alumno de familia: `{piel 1-6, peinado (rapado, corto, despeinado, rizado, coleta, chongo, largo), color_pelo, vello (ninguno, bigote, candado, barba), complexion (delgada, media, robusta), etapa (nino < 12, joven < 18, adulto), disciplina}`. Un niño nunca lleva vello facial; la disciplina decide el uniforme y los movimientos.
 
 En `/app/alumnos/{id}/…` el alumno solo se ve a sí mismo y el responsable a los alumnos por los que paga (403 "Ese alumno no está en tu cuenta").

@@ -27,7 +27,7 @@ export default function Entrar() {
       <div className="mx-auto max-w-md px-5 pt-8 pb-10">
         <div className="flex items-center gap-2.5"><Isotipo className="size-10 text-white" /><span className="text-[22px] font-black">Dojo <span className="text-gold">OS</span></span></div>
         <div className="mt-6 mx-auto size-60 rounded-[36px] overflow-hidden border-2 border-line">
-          <Avatar equipo={[{ tipo: 'torso', imagen: 'dobok-cuello' }, { tipo: 'fondo', imagen: 'fondo-tatami' }]} apariencia={{ etapa: 'adulto', peinado: 'corto', piel: '3', disciplina: 'Taekwondo' }} cinta="Negra" className="size-full" animado interactivo demostracion />
+          <Avatar equipo={[{ tipo: 'cabeza', imagen: 'banda-roja' }, { tipo: 'fondo', imagen: 'fondo-atardecer' }]} cinta="Amarilla" className="size-full" animado interactivo demostracion />
         </div>
         <h1 className="text-[30px] font-black leading-tight mt-6">Entra a tu dojo</h1>
         <p className="text-muted font-semibold mt-1">Tu credencial, tu camino de cintas y tu avatar.</p>

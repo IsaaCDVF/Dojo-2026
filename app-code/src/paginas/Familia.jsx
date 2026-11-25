@@ -50,7 +50,7 @@ export default function Familia() {
           {d.alumnos.map((a) => (
             <li key={a.id}>
               <Link to={`/a/${a.id}`} className="flex items-center gap-3 rounded-3xl bg-surface border-2 border-line p-3 anim-entrar active:scale-[.99] transition-transform">
-                <div className="rounded-2xl bg-inset overflow-hidden shrink-0"><Avatar equipo={a.equipo} apariencia={a.apariencia} cinta={a.grado?.color_cinta} fondo={false} encuadre="cabeza" className="size-20" /></div>
+                <div className="rounded-2xl bg-inset overflow-hidden shrink-0"><Avatar equipo={a.equipo} apariencia={a.apariencia} cinta={a.grado?.color_cinta} fondo={false} className="size-20" /></div>
                 <div className="flex-1 min-w-0">
                   <div className="text-[18px] font-black truncate">{a.nombre} {a.apellido_paterno}</div>
                   {a.grado && <div className="flex items-center gap-2 text-[13px] font-bold text-soft mt-0.5"><span className="h-2.5 w-7 rounded-full ring-1 ring-black/30" style={{ background: colorCinta(a.grado.color_cinta) }} />{a.grado.disciplina} · {a.grado.nombre}</div>}

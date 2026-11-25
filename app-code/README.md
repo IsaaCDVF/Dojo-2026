@@ -23,8 +23,8 @@ Se "instala" desde el navegador del celular: menú ⋮ → *Agregar a pantalla d
 
 ## Avatar
 
-- `src/avatar/esqueleto.js`: proporciones por edad (niño, joven, adulto), poses y movimientos de cada disciplina. Una pose son ángulos de tronco, brazos y piernas; un movimiento es una lista de poses con su duración. Para agregar uno se define ahí y aparece como botón en Mi avatar.
-- `src/Avatar.jsx`: dibuja las piezas sobre el esqueleto (cabeza, cabello, vello, uniforme según la disciplina, cinta del grado, accesorios). Cada accesorio de la tabla `accesorios` (columna `imagen`) es una clave que se dibuja ahí (`banda-roja`, `dobok-negro`…).
+- `src/avatar/esqueleto.js`: poses y movimientos de cada disciplina. Una pose dice el ángulo y largo de cada brazo y pierna y cómo se mueve el cuerpo; un movimiento es una lista de poses con su duración. Para agregar uno se define ahí y aparece como botón en Mi avatar.
+- `src/Avatar.jsx`: el dibujo de frente por piezas (cabeza, cabello, vello, uniforme según la disciplina, cinta del grado, accesorios). Cada accesorio de la tabla `accesorios` (columna `imagen`) es una clave que se dibuja ahí (`banda-roja`, `dobok-negro`…).
 - `src/avatar/fondos.jsx`: los fondos.
 - Lo bloqueado se puede **probar**: el avatar se ve con esa pieza y un aviso de en qué grado se gana, pero no se guarda (la API lo rechaza).
 

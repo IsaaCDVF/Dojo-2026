@@ -151,7 +151,7 @@ export default function MiAvatar() {
             <div className="grid grid-cols-3 gap-2">
               {COMPLEXIONES.map(([k, n]) => (
                 <Opcion key={k} activo={apariencia.complexion === k} onClick={() => cambiar('complexion', k)} nombre={n}>
-                  <Avatar apariencia={{ ...apariencia, complexion: k }} equipo={equipo} cinta={cinta} fondo={false} pose="firmes" encuadre="figura" className="w-full aspect-square" />
+                  <Avatar apariencia={{ ...apariencia, complexion: k }} equipo={equipo} cinta={cinta} fondo={false} pose="firmes" className="w-full aspect-square" />
                 </Opcion>
               ))}
             </div>

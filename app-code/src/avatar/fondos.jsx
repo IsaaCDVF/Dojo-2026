@@ -1,4 +1,4 @@
-// Fondos del avatar (accesorio tipo fondo). Mismo lienzo de 200×200; el suelo del avatar está en y = 186.
+// Fondos del avatar (accesorio tipo fondo). Lienzo de 200×200.
 export function Fondo({ clave, id }) {
   switch (clave) {
     case 'fondo-atardecer':
@@ -31,18 +31,12 @@ export function Fondo({ clave, id }) {
         <path d="M20 60 C60 20 110 70 150 40 C170 28 182 32 192 44" fill="none" stroke="#f2b705" strokeWidth="5" strokeLinecap="round" opacity=".8" />
         <circle cx="188" cy="42" r="4" fill="#f2b705" />
       </>);
-    default: // dojo: pared de madera, pergamino y tatami
+    default: // tatami
       return (<>
-        <defs><linearGradient id={`${id}t`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#2a2118" /><stop offset="1" stopColor="#3d2f22" /></linearGradient></defs>
-        <rect width="200" height="200" fill={`url(#${id}t)`} />
-        {[18, 52, 86, 120, 154, 188].map((x) => <rect key={x} x={x} y="0" width="3" height="150" fill="#000" opacity=".22" />)}
-        <rect x="0" y="22" width="200" height="4" fill="#000" opacity=".25" />
-        <rect x="130" y="34" width="38" height="84" rx="2" fill="#e9e1cc" />
-        <rect x="128" y="32" width="42" height="5" rx="2" fill="#5a3b22" /><rect x="128" y="116" width="42" height="5" rx="2" fill="#5a3b22" />
-        <circle cx="149" cy="70" r="12" fill="none" stroke="#1d1a17" strokeWidth="4" strokeDasharray="62 14" strokeLinecap="round" />
-        <rect y="150" width="200" height="50" fill="#8c8a55" />
-        <path d="M0 150 H200 M0 174 H200 M66 150 V200 M134 150 V200" stroke="#6d6b3f" strokeWidth="2.5" />
-        <rect y="148" width="200" height="4" fill="#1f1810" opacity=".6" />
+        <rect width="200" height="200" fill="#163a6b" />
+        <circle cx="100" cy="96" r="70" fill="#1f4c86" />
+        <rect y="156" width="200" height="44" fill="#2f6b4f" />
+        <path d="M0 156 H200 M66 156 V200 M134 156 V200 M0 178 H66 M134 178 H200" stroke="#255640" strokeWidth="3" />
       </>);
   }
 }
