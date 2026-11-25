@@ -19,6 +19,16 @@ final class Permiso
         if (!$tiene) throw new ErrorApi('No tienes permiso para esta acción', 403, ['permiso' => $clave]);
     }
 
+    /** true si el rol activo tiene alguno de los permisos (sin lanzar error) */
+    public static function tiene(Peticion $req, string ...$claves): bool
+    {
+        $rol = $req->ctx['rol'] ?? null;
+        if (!$rol || !$claves) return false;
+        $marcas = implode(',', array_fill(0, count($claves), '?'));
+        return (bool) Db::uno("SELECT 1 FROM rol_permisos rp JOIN permisos p ON p.id = rp.permiso_id WHERE rp.rol_id = ? AND p.clave IN ($marcas) LIMIT 1",
+            [$rol['rol_id'], ...$claves]);
+    }
+
     /** Sucursal a la que se limita la consulta: null = todas (alcance global). */
     public static function sucursalDe(Peticion $req): ?int
     {

@@ -65,21 +65,12 @@ final class EstadoCuenta
                 $adeudos[] = self::linea("insc:$aid", $aid, $nombre, $cInsc, null, $suc, 'pendiente', null);
             }
             if ($activo && $cMens) {
-                $alta = new \DateTimeImmutable($a['fecha_alta']);
-                $dia = min(28, (int) $alta->format('d'));
                 $tol = (int) (Parametros::valor('dias_tolerancia_pago', $suc) ?? 5);
-                $mes = $alta->modify('first day of this month');
-                $limite = $hoy->modify('first day of this month')->modify('-11 months');
-                if ($mes < $limite) $mes = $limite;
-                for (; $mes <= $hoy; $mes = $mes->modify('+1 month')) {
-                    $periodo = $mes->format('Y-m');
+                foreach (self::periodos($a['fecha_alta'], $tol, $hoy) as [$periodo, $estado, $vence]) {
                     if (isset($pagados[$cMens['id'] . '|' . $periodo])) continue;
-                    $cobro = $mes->setDate((int) $mes->format('Y'), (int) $mes->format('m'), $dia);
-                    $vence = $cobro->modify("+$tol days");
-                    $estado = $hoy > $vence ? 'vencida' : ($hoy >= $cobro ? 'pendiente' : 'por_vencer');
-                    $adeudos[] = self::linea("mens:$aid:$periodo", $aid, $nombre, $cMens, $periodo, $suc, $estado, $vence->format('Y-m-d'));
+                    $adeudos[] = self::linea("mens:$aid:$periodo", $aid, $nombre, $cMens, $periodo, $suc, $estado, $vence);
                     if ($estado === 'vencida' && $cRec && !isset($pagados[$cRec['id'] . '|' . $periodo])) {
-                        $adeudos[] = self::linea("rec:$aid:$periodo", $aid, $nombre, $cRec, $periodo, $suc, 'vencida', $vence->format('Y-m-d'));
+                        $adeudos[] = self::linea("rec:$aid:$periodo", $aid, $nombre, $cRec, $periodo, $suc, 'vencida', $vence);
                     }
                 }
             }
@@ -94,6 +85,61 @@ final class EstadoCuenta
             }
         }
         return $adeudos;
+    }
+
+    /**
+     * Mensualidades que le tocan a un alumno: un periodo AAAA-MM por mes desde su alta (máx. 12 hacia atrás).
+     * Cobro fijo el día de su alta (tope 28, RN-34); vence en cobro + días de tolerancia.
+     * @return list<array{0: string, 1: string, 2: string}> [periodo, estado (vencida|pendiente|por_vencer), vence]
+     */
+    private static function periodos(string $fechaAlta, int $tolerancia, \DateTimeImmutable $hoy): array
+    {
+        $alta = new \DateTimeImmutable($fechaAlta);
+        $dia = min(28, (int) $alta->format('d'));
+        $mes = $alta->modify('first day of this month');
+        $limite = $hoy->modify('first day of this month')->modify('-11 months');
+        if ($mes < $limite) $mes = $limite;
+        $r = [];
+        for (; $mes <= $hoy; $mes = $mes->modify('+1 month')) {
+            $cobro = $mes->setDate((int) $mes->format('Y'), (int) $mes->format('m'), $dia);
+            $vence = $cobro->modify("+$tolerancia days");
+            $r[] = [$mes->format('Y-m'), $hoy > $vence ? 'vencida' : ($hoy >= $cobro ? 'pendiente' : 'por_vencer'), $vence->format('Y-m-d')];
+        }
+        return $r;
+    }
+
+    /**
+     * Alumnos activos con al menos una mensualidad vencida (ya pasó la tolerancia). Para el Inicio:
+     * resuelve todo con dos consultas en lugar de calcular la cuenta de cada alumno por separado.
+     */
+    public static function vencidos(?int $sucursal): array
+    {
+        $cMens = self::concepto('mensualidad');
+        if (!$cMens) return [];
+        $f = $sucursal ? ' AND a.sucursal_id = ?' : '';
+        $alumnos = Db::todos(
+            'SELECT a.id, a.sucursal_id, a.fecha_alta, a.matricula, CONCAT(pe.nombre, " ", pe.apellido_paterno) AS nombre, (pe.foto IS NOT NULL) AS tiene_foto,
+                    (SELECT ar.responsable_id FROM alumno_responsable ar WHERE ar.alumno_id = a.id AND ar.vigente_hasta IS NULL LIMIT 1) AS responsable_id
+             FROM alumnos a JOIN personas pe ON pe.id = a.persona_id WHERE a.estado = "activo"' . $f, $sucursal ? [$sucursal] : []);
+        $pagados = [];
+        foreach (Db::todos('SELECT d.alumno_id, d.periodo FROM pago_detalles d JOIN pagos p ON p.id = d.pago_id JOIN alumnos a ON a.id = d.alumno_id
+                            WHERE d.concepto_id = ? AND p.estado = "aprobado" AND a.estado = "activo"' . $f,
+                            $sucursal ? [$cMens['id'], $sucursal] : [$cMens['id']]) as $x) {
+            $pagados[$x['alumno_id'] . '|' . $x['periodo']] = true;
+        }
+        $hoy = new \DateTimeImmutable('today'); $tol = []; $res = [];
+        foreach ($alumnos as $a) {
+            $s = (int) $a['sucursal_id'];
+            $tol[$s] ??= (int) (Parametros::valor('dias_tolerancia_pago', $s) ?? 5);
+            $n = 0; $desde = null;
+            foreach (self::periodos($a['fecha_alta'], $tol[$s], $hoy) as [$periodo, $estado, $vence]) {
+                if ($estado !== 'vencida' || isset($pagados[$a['id'] . '|' . $periodo])) continue;
+                $n++; $desde ??= $vence;
+            }
+            if ($n) $res[] = $a + ['meses' => $n, 'vencida_desde' => $desde];
+        }
+        usort($res, fn($x, $y) => [$y['meses'], $x['vencida_desde']] <=> [$x['meses'], $y['vencida_desde']]);
+        return $res;
     }
 
     /** concepto|periodo ya pagados (pagos aprobados) de un alumno */

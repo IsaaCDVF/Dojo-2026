@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, UserPlus, Users } from 'lucide-react';
+import { FileSpreadsheet, Search, UserPlus, Users } from 'lucide-react';
 import { api } from '../api';
 import { useSesion } from '../auth/Sesion';
 import { Boton, Campo, Cargando, Chip, Encabezado, ErrorCaja, FotoAlumno, Pestanas, Tabla, Tarjeta, Vacio, useDatos } from '../ui';
@@ -19,7 +19,10 @@ export default function Alumnos() {
   return (
     <>
       <Encabezado ruta="Personas" titulo="Alumnos" descripcion="Busca por nombre, matrícula, CURP o teléfono. La matrícula distingue a dos personas con el mismo nombre."
-        acciones={tiene('inscripciones.crear') && <Link to="/inscripcion"><Boton icono={UserPlus}>Inscribir alumno</Boton></Link>} />
+        acciones={<>
+          {tiene('alumnos.importar') && <Link to="/alumnos/importar"><Boton variante="secundario" icono={FileSpreadsheet}>Importar CSV</Boton></Link>}
+          {tiene('inscripciones.crear') && <Link to="/inscripcion"><Boton icono={UserPlus}>Inscribir alumno</Boton></Link>}
+        </>} />
       <Tarjeta cuerpo="p-0">
         <div className="flex flex-wrap items-end gap-3 p-4 border-b border-line">
           <Campo className="flex-1 min-w-64" icono={Search} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Jorge Ramírez, CENT-26-0012, 2221234567…" autoFocus />
