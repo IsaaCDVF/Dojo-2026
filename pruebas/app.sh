@@ -150,6 +150,37 @@ prueba "Nueva contraseña"                  200 POST /api/app/activar "" "{\"usu
 prueba "La sesión vieja se cerró"          401 GET  /api/app/yo "$TM"
 entra "Entra con la nueva" "$TEL" 'Marta2027!'
 
+echo "Mi cuenta: cada quien actualiza sus datos"
+TEL3="22277$(printf '%05d' $R)"
+prueba "Cuenta de Raúl"                    200 GET  /api/app/cuenta "$TR"
+igual  "Entra con matrícula y teléfono"    "implode(',', \$j['datos']['entra_con'])" "$MATR,$TEL2"
+prueba "Nada que cambiar"                  422 PUT  /api/app/cuenta "$TR" '{}'
+prueba "Teléfono sin su contraseña"        422 PUT  /api/app/cuenta "$TR" "{\"telefono\":\"$TEL3\"}"
+prueba "Contraseña equivocada"             422 PUT  /api/app/cuenta "$TR" "{\"telefono\":\"$TEL3\",\"password\":\"otra1234\"}"
+prueba "El teléfono de otra mamá"          409 PUT  /api/app/cuenta "$TR" "{\"telefono\":\"$TEL\",\"password\":\"Raul2026!\"}"
+prueba "Responsable sin teléfono"          422 PUT  /api/app/cuenta "$TR" '{"telefono":"","password":"Raul2026!"}'
+prueba "Cambia su teléfono"                200 PUT  /api/app/cuenta "$TR" "{\"telefono\":\"222 77$(printf '%05d' $R)\",\"password\":\"Raul2026!\"}"
+igual  "Quedó limpio"                      "['datos']['telefono']" "$TEL3"
+entra "Entra con el teléfono nuevo" "$TEL3" 'Raul2026!'
+prueba "El viejo ya no sirve"              401 POST /api/auth/login "" "{\"email\":\"$TEL2\",\"password\":\"Raul2026!\"}"
+prueba "Correo mal escrito"                422 PUT  /api/app/cuenta "$TR" '{"email":"raul@","password":"Raul2026!"}'
+prueba "Correo de otra cuenta"             409 PUT  /api/app/cuenta "$TR" '{"email":"laura@dojoos.mx","password":"Raul2026!"}'
+prueba "Agrega su correo"                  200 PUT  /api/app/cuenta "$TR" "{\"email\":\"Raul$R@Correo.mx\",\"password\":\"Raul2026!\"}"
+igual  "En minúsculas"                     "['datos']['email']" "raul$R@correo.mx"
+entra "Entra con su correo" "raul$R@correo.mx" 'Raul2026!'
+prueba "Domicilio sin código postal"       422 PUT  /api/app/cuenta "$TR" '{"domicilio":{"calle":"Av. 5 de Mayo","municipio":"Puebla","estado":"Puebla"}}'
+prueba "Domicilio sin contraseña (no la pide)" 200 PUT /api/app/cuenta "$TR" '{"domicilio":{"calle":"Av. 5 de Mayo","numero":"12","colonia":"Centro","cp":"72000","municipio":"Puebla","estado":"Puebla"}}'
+igual  "Guardado"                          "\$j['datos']['domicilio']['calle'] . ' ' . \$j['datos']['domicilio']['cp']" "Av. 5 de Mayo 72000"
+prueba "Se muda"                           200 PUT  /api/app/cuenta "$TR" '{"domicilio":{"calle":"Calle 14 Sur","numero":"3301","cp":"72410","municipio":"Puebla","estado":"Puebla"}}'
+prueba "Recepción lo ve en la ficha"       200 GET  "/api/alumnos/$RAUL" "$ADM"
+igual  "Domicilio nuevo"                   "\$j['datos']['domicilio']['calle'] . ' / ' . implode(',', array_column(\$j['datos']['contactos'], 'valor'))" "Calle 14 Sur / $TEL3,raul$R@correo.mx"
+prueba "Queda en la bitácora"              200 GET  "/api/bitacora?tabla=domicilios" "$ADM"
+igual  "Con quién lo cambió"               "count(array_filter(\$j['datos']['registros'] ?? \$j['datos'], fn(\$b) => (\$b['tabla'] ?? '') === 'domicilios')) > 0 ? 'si' : 'no'" "si"
+prueba "Su modo claro"                     200 PUT  /api/preferencias "$TR" '{"tema":"claro"}'
+prueba "Se guarda en su cuenta"            200 GET  /api/preferencias "$TR"
+igual  "Claro"                             "['datos']['tema']" "claro"
+prueba "Sin sesión no hay cuenta"          401 GET  /api/app/cuenta ""
+
 echo "Permisos del personal"
 entra "Login Laura" laura@dojoos.mx 'Dojo2026!'
 LAU=$(campo "['datos']['token']"); ADMN=$(campo "['datos']['roles'][0]['usuario_rol_id']"); INST=$(campo "['datos']['roles'][1]['usuario_rol_id']")

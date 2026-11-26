@@ -8,6 +8,8 @@ Tipos: **Agregado** (nuevo), **Cambiado** (cambia algo que ya existía), **Corre
 ## [Sin publicar]
 
 ### Agregado
+- App: modo claro, además del oscuro. En Mi cuenta se elige "Como mi celular" (la que viene puesta), Claro u Oscuro, y en la cabecera hay un botón de sol/luna. Se guarda en el celular y en su cuenta. Los colores de la marca se respetan en los dos; los que se usan como letra se oscurecen solos para leerse sobre blanco. — Kevin
+- App: Mi cuenta. El alumno o el responsable cambia su teléfono, correo y domicilio sin ir a recepción (teléfono y correo piden su contraseña porque sirven para entrar), y su contraseña. Nombre, fecha de nacimiento y CURP siguen en recepción. Los cambios quedan en bitácora y el domicilio se ve en la ficha del alumno. — Kevin
 - Personal y accesos (Configuración → Personal y accesos): el súper admin da de alta a cada persona y le da uno o varios roles por sucursal (admin de sucursal, recepción, instructor, tableta); el admin de sucursal da recepción, instructor y tableta en la suya. Quitar roles, desactivar y generar contraseña temporal nueva; todo cierra las sesiones al momento y queda en bitácora. — Kevin
 - Contraseña temporal: al dar de alta se genera una (se ve una sola vez, con botón para mandarla por WhatsApp) y la persona debe crear la suya al entrar; la API bloquea todo lo demás mientras tanto. Cambiar contraseña también en Mi perfil. — Kevin
 - Nueva sucursal en 5 pasos: datos (la clave se sugiere sola), domicilio, disciplinas que se dan ahí, encargado (persona nueva o alguien del personal) y revisar. Se guarda todo junto. Editar sucursal con teléfono, domicilio, disciplinas y su personal; la lista muestra encargado, ciudad y avisa si una sucursal no tiene encargado. — Kevin
@@ -23,7 +25,7 @@ Tipos: **Agregado** (nuevo), **Cambiado** (cambia algo que ya existía), **Corre
 - Acceso a la app desde la ficha del alumno (tarjeta "App Dojo OS"): recepción genera un código de 6 dígitos (72 h) y lo manda por WhatsApp; la persona activa su cuenta y crea su contraseña. Volver a generar el código sirve para "olvidé mi contraseña". — Kevin
 - API `Modulos/App` (`AccesoControlador`, `AppControlador`); el inicio de sesión acepta matrícula o teléfono. — Kevin
 - Avatar animado y personalizable (el mismo dibujo de frente): movimientos de cada disciplina al tocarlo o con botones (Taekwondo: jirugi, dollyo chagi, kyungrye; Karate: oi-zuki, mae-geri, rei; Box: jab, uppercut, victoria; Jiu-Jitsu: derribo, victoria, saludo), tono de piel, peinado, color de cabello, vello facial (no en niños) y complexión. Lo bloqueado se ve a color y se puede probar (vista previa) sin guardarlo. — Kevin
-- `pruebas/app.sh` (105). — Kevin
+- `pruebas/app.sh` (133). — Kevin
 - 2.6 Carga masiva de alumnos desde CSV (`ImportacionControlador`): revisión sin guardar con errores por renglón, importación de los renglones válidos (matrícula, responsable nuevo o ya registrado por teléfono, hermanos con el mismo responsable, grado de migración y fecha de alta), historial de cargas y revertir una carga si nadie la ha usado. Acepta coma o punto y coma y archivos de Excel en Windows-1252. — Kevin
 - Inicio con datos reales (`GET /api/inicio`): alumnos activos, cobrado hoy, alumnos con pago vencido, asistencia y rechazos del día, clases de hoy, exámenes por autorizar y próximos; cada bloque según los permisos del rol. — Kevin
 - Panel: pantalla Importar alumnos (plantilla, revisión, importar, revertir) e Inicio nuevo. — Kevin

@@ -12,6 +12,7 @@ import Familia from './paginas/Familia';
 import Pagos from './paginas/Pagos';
 import SinAlumnos from './paginas/SinAlumnos';
 import CrearAvatar from './paginas/CrearAvatar';
+import MiCuenta from './paginas/MiCuenta';
 
 function Protegida({ children }) {
   const { yo, cargando } = useSesion();
@@ -44,6 +45,7 @@ export default function App() {
         <Route path="a/:id/examen" element={<Examen />} />
         <Route path="familia" element={<Familia />} />
         <Route path="pagos" element={<Pagos />} />
+        <Route path="cuenta" element={<MiCuenta />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

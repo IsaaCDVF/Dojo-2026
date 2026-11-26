@@ -1,5 +1,7 @@
-import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Flame, Home, LogOut, MapPin, Smile, Trophy, Users, Wallet } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { ChevronLeft, Flame, Home, MapPin, Moon, Smile, Sun, Trophy, UserRound, Users, Wallet } from 'lucide-react';
+import { api } from './api';
 import { useSesion } from './sesion';
 import { Isotipo } from './Logo';
 import { MarcaIcono, Nombre, useMarca } from './marca';
@@ -8,7 +10,14 @@ import { cx } from './ui';
 /** Columna de celular + barra de pestañas abajo. Las pestañas cambian si estás viendo a un alumno o a tu familia */
 export default function Marco() {
   const { yo } = useSesion();
+  const marca = useMarca();
   const loc = useLocation();
+  // Al entrar se trae el modo que guardó en su cuenta (por si lo cambió en otro celular)
+  const sincronizado = useRef(false);
+  useEffect(() => {
+    if (sincronizado.current) return; sincronizado.current = true;
+    api.get('/preferencias').then((p) => { if (p?.tema && p.tema !== marca.tema) marca.ponerTema(p.tema, false); }).catch(() => {});
+  }, [marca]);
   const m = loc.pathname.match(/^\/a\/(\d+)/);
   const tabs = m
     ? [
@@ -48,9 +57,8 @@ export default function Marco() {
 
 /** Encabezado de cada pantalla: logo y título; racha a la derecha; "Mi familia" si un papá ve a su hijo */
 export function Cabecera({ titulo, racha, alumnoId }) {
-  const { yo, salir } = useSesion();
+  const { yo } = useSesion();
   const marca = useMarca();
-  const navegar = useNavigate();
   const ajeno = alumnoId && yo.es_responsable && Number(alumnoId) !== yo.alumno_id;
   return (
     <header className="flex items-center gap-3 h-14 mb-3">
@@ -59,7 +67,9 @@ export function Cabecera({ titulo, racha, alumnoId }) {
         : <MarcaIcono Isotipo={Isotipo} />}
       <h1 className="flex-1 text-[22px] font-black truncate">{titulo === 'Dojo OS' ? <Nombre /> : titulo}</h1>
       {racha > 0 && <span className="inline-flex items-center gap-1 font-black text-gold text-[18px]" title={`${racha} clases seguidas`}><Flame className="size-6 fill-gold" />{racha}</span>}
-      <button onClick={async () => { await salir(); navegar('/entrar'); }} aria-label="Salir" className="grid place-items-center size-10 rounded-full text-muted hover:text-text cursor-pointer"><LogOut className="size-5" /></button>
+      <button onClick={() => marca.ponerTema(marca.modo === 'oscuro' ? 'claro' : 'oscuro')} aria-label={marca.modo === 'oscuro' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+        className="grid place-items-center size-10 rounded-full text-muted hover:text-text cursor-pointer">{marca.modo === 'oscuro' ? <Sun className="size-5" /> : <Moon className="size-5" />}</button>
+      <Link to="/cuenta" aria-label="Mi cuenta" className="grid place-items-center size-10 -mr-1 rounded-full bg-surface border-2 border-line text-text"><UserRound className="size-5" /></Link>
     </header>
   );
 }

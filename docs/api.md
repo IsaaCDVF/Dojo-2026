@@ -142,6 +142,11 @@ El acceso a la app lo da recepción (no hay registro abierto). El alumno entra c
 | GET | /app/familia | (sesión, responsable) | Alumnos con estado de pago, adeudos (sin los por vencer), total, vencido, saldo a favor, últimos pagos y próximo cargo; 403 si no es responsable |
 | GET | /app/pagos/{id} | (sesión, responsable) | Recibo de un pago propio; 404 si es de otra familia |
 
+| GET | /app/cuenta | (sesión) | Mi cuenta: nombre, matrícula, `telefono`, `email`, `domicilio`, `es_responsable` y `entra_con` (con qué puede entrar) |
+| PUT | /app/cuenta | (sesión) | `{telefono?, email?, domicilio?:{calle, numero?, colonia?, cp, municipio, estado} \| null, password?}`. Cambiar teléfono o correo pide `password` (422 si falta o está mal). El responsable no puede quedarse sin teléfono (es su usuario) y no puede usar el de otro responsable (409). El correo también sirve para entrar; si ya lo usa otra cuenta → 409. Todo queda en bitácora con la sucursal del alumno |
+
+El modo claro u oscuro de la app se guarda con `PUT /preferencias {tema}` (el mismo de Mi perfil del panel).
+
 `apariencia` viene en inicio, camino, avatar, exámenes y en cada alumno de familia: `{piel 1-6, peinado (rapado, corto, despeinado, rizado, coleta, chongo, largo), color_pelo, vello (ninguno, bigote, candado, barba), complexion (delgada, media, robusta), etapa (nino < 12, joven < 18, adulto), disciplina, personalizada}`. `personalizada` es `false` mientras el alumno no haya guardado su apariencia: la app le pide armar su avatar la primera vez que entra. Un niño nunca lleva vello facial; la disciplina decide el uniforme y los movimientos.
 
 En `/app/alumnos/{id}/…` el alumno solo se ve a sí mismo y el responsable a los alumnos por los que paga (403 "Ese alumno no está en tu cuenta").

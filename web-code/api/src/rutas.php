@@ -98,6 +98,8 @@ $router->get('/api/alumnos/{id}/asistencia',     [AsistenciaControlador::class, 
 $router->put('/api/alumnos/{id}/qr',             [AsistenciaControlador::class, 'regenerarQr'],'alumnos.editar');
 
 // Fase 6 · App del alumno y del responsable (sin permiso de personal: cada quien ve solo lo suyo)
+$router->get('/api/app/cuenta',                  [\Dojo\Modulos\App\CuentaControlador::class, 'ver'],     '');
+$router->put('/api/app/cuenta',                  [\Dojo\Modulos\App\CuentaControlador::class, 'guardar'], '');
 $router->get('/api/alumnos/{id}/app',            [AccesoControlador::class, 'estado'],        'alumnos.ver');
 $router->post('/api/alumnos/{id}/app',           [AccesoControlador::class, 'dar'],           'alumnos.editar,responsables.gestionar');
 $router->post('/api/app/activar',                [AccesoControlador::class, 'activar'],       null);

@@ -45,7 +45,7 @@ export default function Camino() {
           const esActual = g.estado === 'actual';
           return (
             <li key={g.id} ref={esActual ? actualRef : null} className="relative flex items-center justify-center" style={{ transform: `translateX(${off}px)` }}>
-              {esActual && <span className="absolute -top-9 rounded-xl bg-white text-canvas px-3 py-1 text-[13px] font-black shadow anim-rebote">Estás aquí</span>}
+              {esActual && <span className="absolute -top-9 rounded-xl bg-white text-[#011c42] px-3 py-1 text-[13px] font-black shadow anim-rebote">Estás aquí</span>}
               <Nodo g={g} examen={g.estado === 'siguiente' ? x.examen : null} avatar={esActual && <Avatar equipo={d.equipo} apariencia={d.apariencia} cinta={g.color_cinta} fondo={false} className="size-20" />} />
             </li>
           );
@@ -81,7 +81,7 @@ function Nodo({ g, examen, avatar }) {
     <div className="relative">
       {g.estado === 'obtenido' && <div className={cx(base, 'size-[72px] bg-[#f3f1ea] [--sombra:#bdb8a8]')}><Check className="size-9 text-[#011c42]" strokeWidth={3.4} /></div>}
       {g.estado === 'siguiente' && <div className={cx(base, 'size-[76px] bg-[#22b573] [--sombra:#16794c]')}><Trophy className="size-9 text-[#062b1b]" strokeWidth={2.6} /></div>}
-      {g.estado === 'bloqueado' && <div className={cx(base, 'size-[68px] bg-inset [--sombra:#06182f]')}><Lock className="size-7 text-muted" /></div>}
+      {g.estado === 'bloqueado' && <div className={cx(base, 'size-[68px] bg-inset [--sombra:var(--sombra-base)]')}><Lock className="size-7 text-muted" /></div>}
       <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 h-2 w-10 rounded-full ring-1 ring-black/30" style={{ background: colorCinta(g.color_cinta), opacity: g.estado === 'bloqueado' ? .35 : 1 }} />
       {etiqueta}
     </div>

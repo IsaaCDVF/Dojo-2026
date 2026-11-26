@@ -36,8 +36,8 @@ export default function Inicio() {
               <div className="etiqueta">{hoy}</div>
               <h2 className="text-[28px] font-black leading-tight mt-1">¡Hola, {d.alumno.nombre}!</h2>
               <p className="text-soft font-semibold mt-1.5 text-[15px]">
-                {enCurso ? <>Hoy tienes <b className="text-white">{enCurso.disciplina}</b> a las <b className="text-white">{enCurso.hora_inicio}</b>{enCurso.registrada ? ' · ya registraste tu llegada' : ''}.</>
-                  : d.proxima_clase ? <>Tu próxima clase es <b className="text-white">{d.proxima_clase.dia}</b> a las <b className="text-white">{d.proxima_clase.hora}</b>.</>
+                {enCurso ? <>Hoy tienes <b className="text-text">{enCurso.disciplina}</b> a las <b className="text-text">{enCurso.hora_inicio}</b>{enCurso.registrada ? ' · ya registraste tu llegada' : ''}.</>
+                  : d.proxima_clase ? <>Tu próxima clase es <b className="text-text">{d.proxima_clase.dia}</b> a las <b className="text-text">{d.proxima_clase.hora}</b>.</>
                     : 'Todavía no tienes clases asignadas.'}
               </p>
             </div>

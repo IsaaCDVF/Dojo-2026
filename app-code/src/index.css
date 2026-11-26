@@ -18,7 +18,16 @@
   --gold: #f2a900; --gold-dark: #b37c00;
   --danger: #ff5a5f; --danger-dark: #c2343a;
   --ok: #4ade80; --violet: #7b6cf6; --pink: #f58ad8;
+  --action-texto: var(--action); --gold-texto: var(--gold); --ok-texto: var(--ok); --danger-texto: var(--danger); --sombra-base: rgba(0,0,0,.35);
   color-scheme: dark;
+}
+
+/* Valores del modo claro antes de que cargue la marca (evita un parpadeo oscuro al abrir) */
+html[data-modo="claro"] {
+  --canvas: #f3f6fb; --surface: #ffffff; --inset: #e9eef7; --deep: #e2e8f3;
+  --line: rgba(15,23,42,.11); --line-strong: rgba(15,23,42,.2);
+  --text: #0b1a33; --muted: #5d6a80; --soft: #2c4a63; --sombra-base: rgba(15,23,42,.13);
+  color-scheme: light;
 }
 
 @theme inline {
@@ -50,8 +59,8 @@ button { font-family: inherit; }
 :focus-visible { outline: 3px solid var(--action); outline-offset: 2px; }
 
 .etiqueta { text-transform: uppercase; letter-spacing: .08em; font-size: 11px; font-weight: 800; color: var(--muted); }
-.relieve { box-shadow: 0 4px 0 var(--sombra, rgba(0,0,0,.35)); transition: transform .08s, box-shadow .08s; }
-.relieve:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--sombra, rgba(0,0,0,.35)); }
+.relieve { box-shadow: 0 4px 0 var(--sombra, var(--sombra-base)); transition: transform .08s, box-shadow .08s; }
+.relieve:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--sombra, var(--sombra-base)); }
 .seguro-abajo { padding-bottom: max(env(safe-area-inset-bottom), 8px); }
 
 @keyframes entrar { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
@@ -68,3 +77,11 @@ button { font-family: inherit; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Modo claro: los colores que se usan como LETRA se cambian por su versión legible sobre blanco
+   (fuera de @layer para ganarle a las utilidades de Tailwind). Los fondos con esos colores no cambian. */
+html[data-modo="claro"] .text-action { color: var(--action-texto); }
+html[data-modo="claro"] .text-gold { color: var(--gold-texto); }
+html[data-modo="claro"] .text-ok { color: var(--ok-texto); }
+html[data-modo="claro"] .text-danger { color: var(--danger-texto); }
+html[data-modo="claro"] .fill-gold { fill: var(--gold); }

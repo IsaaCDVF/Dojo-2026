@@ -9,8 +9,8 @@ const TONOS = {
   accion: 'bg-action text-on-action [--sombra:var(--action-dark)]',
   oro: 'bg-gold text-[#2b1d00] [--sombra:var(--gold-dark)]',
   peligro: 'bg-danger text-white [--sombra:var(--danger-dark)]',
-  contorno: 'bg-surface text-action border-2 border-action/70 [--sombra:#06182f]',
-  suave: 'bg-inset text-text [--sombra:#06182f]',
+  contorno: 'bg-surface text-action border-2 border-action/70 [--sombra:var(--sombra-base)]',
+  suave: 'bg-inset text-text [--sombra:var(--sombra-base)]',
 };
 export function Boton({ tono = 'accion', icono: Icono, cargando, children, className, ...p }) {
   return (
@@ -50,11 +50,12 @@ export function ErrorCaja({ error, reintentar }) {
   );
 }
 
-export function Campo({ etiqueta, className, ...p }) {
+export function Campo({ etiqueta, className, error, ayuda, ...p }) {
   return (
     <label className={cx('block', className)}>
       <span className="etiqueta block mb-1.5">{etiqueta}</span>
-      <input {...p} className="w-full h-14 rounded-2xl bg-deep border-2 border-line px-4 text-[17px] font-bold outline-none focus:border-action placeholder:text-muted/60" />
+      <input {...p} aria-invalid={!!error} className={cx('w-full h-14 rounded-2xl bg-deep border-2 px-4 text-[17px] font-bold outline-none focus:border-action placeholder:text-muted/60', error ? 'border-danger' : 'border-line')} />
+      {error ? <span className="block mt-1.5 text-[13px] font-bold text-danger">{error}</span> : ayuda && <span className="block mt-1.5 text-[13px] font-semibold text-muted">{ayuda}</span>}
     </label>
   );
 }

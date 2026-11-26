@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import QRCode from 'qrcode';
-import { ArrowLeft, CalendarCheck, CalendarPlus, IdCard, Mail, Phone, Printer, RefreshCw, UserCheck, UserX, Users } from 'lucide-react';
+import { ArrowLeft, CalendarCheck, CalendarPlus, IdCard, Mail, MapPin, Phone, Printer, RefreshCw, UserCheck, UserX, Users } from 'lucide-react';
 import { api, DIAS, formato, nombreCompleto } from '../api';
 import { useSesion } from '../auth/Sesion';
 import { Boton, Cargando, Chip, Cinta, ErrorCaja, FotoAlumno, Modal, Selector, Tarjeta, Vacio, useAvisos, useConfirmar, useDatos, MarcaImpresa } from '../ui';
@@ -178,7 +178,8 @@ export default function Ficha() {
             {!a.contactos.length ? <p className="text-sm text-muted">Sin datos de contacto propios.</p> : a.contactos.map((c) => (
               <div key={c.id} className="flex items-center gap-2 text-sm py-1">{c.tipo === 'email' ? <Mail className="size-3.5 text-muted" /> : <Phone className="size-3.5 text-muted" />}<span className={c.tipo !== 'email' ? 'font-mono' : ''}>{c.valor}</span></div>
             ))}
-            <div className="text-[12px] text-muted mt-3">Alta: {formato.fecha(a.fecha_alta)}</div>
+            {a.domicilio && <div className="flex items-start gap-2 text-sm py-1"><MapPin className="size-3.5 text-muted mt-0.5" /><span>{[`${a.domicilio.calle}${a.domicilio.numero ? ` ${a.domicilio.numero}` : ''}`, a.domicilio.colonia, `CP ${a.domicilio.cp}`, a.domicilio.municipio, a.domicilio.estado].filter(Boolean).join(', ')}</span></div>}
+            <div className="text-[12px] text-muted mt-3">Alta: {formato.fecha(a.fecha_alta)} · El alumno puede actualizar su teléfono, correo y domicilio desde la app (queda en bitácora).</div>
           </Tarjeta>
           {tiene('alumnos.baja') && (
             <Tarjeta titulo="Estado">

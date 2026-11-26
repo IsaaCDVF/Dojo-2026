@@ -1,8 +1,10 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { api, token } from './api';
 import { NombreMarca, nombrePlano } from './NombreMarca';
 
 // Marca de la empresa en la app: nombre, logos y colores (los mismos temas del panel, ver
-// web-code/panel/src/marca/temas.js). La app siempre es oscura: usa el color de acción y los fondos del tema.
+// web-code/panel/src/marca/temas.js), en modo oscuro o claro. Cada quien elige su modo en Mi cuenta
+// ("como mi celular", claro u oscuro); se guarda en el celular y en su cuenta (/api/preferencias).
 
 const TEMAS = {
   oceano: { accion: '#34e8bb', fondo: ['#011c42', '#0a2852', '#10335f'], menu: '#00132e' },
@@ -33,28 +35,63 @@ function base(m) {
   const [h, s] = hsl(m.color_fondo || accion); const sat = m.color_fondo ? Math.min(s, 70) : Math.min(s, 35);
   return { accion, fondo: [deHsl(h, sat, 11), deHsl(h, sat, 16), deHsl(h, sat, 21)], menu: deHsl(h, sat, 7) };
 }
-function aplicar(m) {
+/** Oscurece un color hasta que se lea como texto sobre blanco (contraste 4.5) */
+const legibleEnBlanco = (c) => { let x = c; for (let i = 0; i < 12 && contraste(x, '#ffffff') < 4.5; i += 1) x = mezclar(x, '#000000', 0.12); return x; };
+
+function aplicar(m, modo) {
   const b = base(m);
   const texto = contraste(b.accion, '#ffffff') >= contraste(b.accion, '#0b1220') ? '#ffffff' : mezclar(b.accion, '#000000', 0.8);
-  const v = { canvas: b.fondo[0], surface: b.fondo[1], inset: b.fondo[2], deep: b.menu, action: b.accion, 'action-dark': mezclar(b.accion, '#000000', 0.35), 'on-action': texto,
-    muted: mezclar('#ffffff', b.fondo[0], 0.32), soft: mezclar('#ffffff', b.accion, 0.18) };
+  const comun = { action: b.accion, 'action-dark': mezclar(b.accion, '#000000', 0.35), 'on-action': texto };
+  let v;
+  if (modo === 'claro') {
+    // Fondos blancos con un toque del color de la marca; textos oscuros. Los colores que se usan como letra
+    // (acción, oro, verde, rojo) se oscurecen lo necesario para leerse sobre blanco.
+    const tinta = mezclar(b.fondo[0], '#000000', 0.25);
+    v = { ...comun, canvas: mezclar('#ffffff', b.fondo[1], 0.05), surface: '#ffffff', inset: mezclar('#ffffff', b.fondo[1], 0.09), deep: mezclar('#ffffff', b.fondo[1], 0.13),
+      line: 'rgba(15,23,42,.11)', 'line-strong': 'rgba(15,23,42,.2)', text: tinta, muted: mezclar(tinta, '#ffffff', 0.4), soft: mezclar(tinta, b.accion, 0.25),
+      'action-texto': legibleEnBlanco(b.accion), 'gold-texto': '#946200', 'ok-texto': '#15803d', 'danger-texto': '#d12f36', 'sombra-base': 'rgba(15,23,42,.13)' };
+  } else {
+    v = { ...comun, canvas: b.fondo[0], surface: b.fondo[1], inset: b.fondo[2], deep: b.menu, line: 'rgba(255,255,255,.10)', 'line-strong': 'rgba(255,255,255,.18)',
+      text: '#ffffff', muted: mezclar('#ffffff', b.fondo[0], 0.32), soft: mezclar('#ffffff', b.accion, 0.18),
+      'action-texto': b.accion, 'gold-texto': '#f2a900', 'ok-texto': '#4ade80', 'danger-texto': '#ff5a5f', 'sombra-base': 'rgba(0,0,0,.35)' };
+  }
   let el = document.getElementById('marca-tema');
   if (!el) { el = document.createElement('style'); el.id = 'marca-tema'; document.head.appendChild(el); }
-  el.textContent = `html:root{${Object.entries(v).map(([k, x]) => `--${k}:${x};`).join('')}}`;
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', b.menu);
+  el.textContent = `html:root{${Object.entries(v).map(([k, x]) => `--${k}:${x};`).join('')}color-scheme:${modo === 'claro' ? 'light' : 'dark'};}`;
+  document.documentElement.dataset.modo = modo;
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', modo === 'claro' ? v.canvas : b.menu);
   document.title = nombrePlano(m.nombre) || 'Dojo OS';
   if (m.imagenes?.icono) document.querySelector('link[rel="icon"]')?.setAttribute('href', m.imagenes.icono);
 }
 
 const Ctx = createContext({ nombre: 'Dojo OS', imagenes: {} });
 export const useMarca = () => useContext(Ctx);
+
+const leerTema = () => { try { return localStorage.getItem('dojo-app-tema') || 'sistema'; } catch { return 'sistema'; } };
+const oscuroDelCelular = () => window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? true;
+
 export function MarcaProvider({ children }) {
   const [m, setM] = useState(() => { try { return JSON.parse(localStorage.getItem('dojo-app-marca')) || { nombre: 'Dojo OS', tema: 'oceano', imagenes: {} }; } catch { return { nombre: 'Dojo OS', tema: 'oceano', imagenes: {} }; } });
-  useEffect(() => { aplicar(m); }, [m]);
+  const [tema, setTema] = useState(leerTema);              // lo que eligió: sistema | claro | oscuro
+  const [celularOscuro, setCelularOscuro] = useState(oscuroDelCelular);
+  useEffect(() => {
+    const mq = window.matchMedia?.('(prefers-color-scheme: dark)');
+    const cambio = (e) => setCelularOscuro(e.matches);
+    mq?.addEventListener?.('change', cambio);
+    return () => mq?.removeEventListener?.('change', cambio);
+  }, []);
+  const modo = tema === 'sistema' ? (celularOscuro ? 'oscuro' : 'claro') : tema;
+  /** Cambia el modo; con guardar=true también lo guarda en su cuenta (para que lo tenga en otro celular) */
+  const ponerTema = useCallback((t, guardar = true) => {
+    setTema(t); try { localStorage.setItem('dojo-app-tema', t); } catch { /* nada */ }
+    if (guardar && token.get()) api.put('/preferencias', { tema: t }).catch(() => {});
+  }, []);
+  useEffect(() => { aplicar(m, modo); }, [m, modo]);
   useEffect(() => {
     fetch('/api/marca').then((r) => r.json()).then((j) => { if (j.ok) { setM(j.datos); try { localStorage.setItem('dojo-app-marca', JSON.stringify(j.datos)); } catch { /* nada */ } } }).catch(() => {});
   }, []);
-  return <Ctx.Provider value={m}>{children}</Ctx.Provider>;
+  const valor = useMemo(() => ({ ...m, tema, modo, ponerTema }), [m, tema, modo, ponerTema]);
+  return <Ctx.Provider value={valor}>{children}</Ctx.Provider>;
 }
 
 /** Nombre de la empresa con su letra y decoraciones (o "Dojo OS" con su estilo) */
@@ -77,7 +114,7 @@ export function MarcaPortada({ Isotipo }) {
       {img
         ? <img src={img} alt="" onLoad={(e) => setAncho(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight >= 1.8)}
             className={ancho ? 'h-20 max-w-[85%] mx-auto object-contain' : 'size-28 mx-auto object-contain rounded-[26px]'} />
-        : <Isotipo className="size-24 mx-auto text-white" />}
+        : <Isotipo className="size-24 mx-auto text-text" />}
       {(!img || !ancho) && <Nombre className="block text-[32px] font-black leading-tight mt-4" />}
       {m.lema && <p className="text-soft font-bold mt-1.5">{m.lema}</p>}
     </div>
@@ -85,5 +122,5 @@ export function MarcaPortada({ Isotipo }) {
 }
 export function MarcaIcono({ Isotipo, className = 'size-9' }) {
   const im = useMarca().imagenes || {};
-  return im.icono ? <img src={im.icono} alt="" className={`${className} rounded-lg object-contain`} /> : <Isotipo className={`${className} text-white`} />;
+  return im.icono ? <img src={im.icono} alt="" className={`${className} rounded-lg object-contain`} /> : <Isotipo className={`${className} text-text`} />;
 }
