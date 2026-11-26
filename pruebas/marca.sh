@@ -39,7 +39,7 @@ echo "Cambiar la marca"
 prueba "Nada que cambiar"                  422 PUT  /api/marca "$ADM" '{"otra":"cosa"}'
 prueba "Nombre vacío"                      422 PUT  /api/marca "$ADM" '{"nombre":"  "}'
 prueba "Tema que no existe"                422 PUT  /api/marca "$ADM" '{"tema":"arcoiris"}'
-prueba "Personalizado sin color"           422 PUT  /api/marca "$ADM" '{"tema":"personalizado"}'
+prueba "Personalizado sin color"           422 PUT  /api/marca "$ADM" '{"tema":"personalizado","color_primario":null}'
 prueba "Color mal escrito"                 422 PUT  /api/marca "$ADM" '{"tema":"personalizado","color_primario":"rojo"}'
 prueba "Fuente que no existe"              422 PUT  /api/marca "$ADM" '{"fuente":"comic-sans"}'
 prueba "Zona horaria inventada"            422 PUT  /api/marca "$ADM" '{"zona_horaria":"Marte/Olympus"}'

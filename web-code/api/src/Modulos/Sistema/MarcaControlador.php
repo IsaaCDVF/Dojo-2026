@@ -64,8 +64,10 @@ final class MarcaControlador
                 if ($d[$k] !== null && !preg_match('/^#[0-9a-f]{6}$/', $d[$k])) throw new ErrorApi('El color debe ser #rrggbb', 422, ['campo' => $k]);
             }
         }
-        $tema = $d['tema'] ?? $antes['tema'];
-        if ($tema === 'personalizado' && !($d['color_primario'] ?? $antes['color_primario'])) {
+        // Lo que quedaría guardado: lo que se manda (aunque sea null) o, si no se manda, lo que ya había
+        $tema = array_key_exists('tema', $d) ? $d['tema'] : $antes['tema'];
+        $color = array_key_exists('color_primario', $d) ? $d['color_primario'] : $antes['color_primario'];
+        if ($tema === 'personalizado' && !$color) {
             throw new ErrorApi('Con el tema personalizado elige al menos el color principal', 422, ['campo' => 'color_primario']);
         }
         if (array_key_exists('zona_horaria', $d) && !in_array($d['zona_horaria'], \DateTimeZone::listIdentifiers(), true)) {
