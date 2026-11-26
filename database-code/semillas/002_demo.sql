@@ -41,3 +41,9 @@ INSERT INTO horarios (sucursal_id, disciplina_id, instructor_id, dia_semana, hor
 INSERT INTO precios (concepto_id, sucursal_id, monto, vigente_desde)
   SELECT id, NULL, x.monto, '2026-01-01' FROM conceptos c
   JOIN (SELECT 'examen' tipo, 450 monto UNION ALL SELECT 'pase_dia', 150 UNION ALL SELECT 'recargo', 100) x ON x.tipo = c.tipo;
+
+-- Tableta (por ahora un celular) de la Sucursal Centro: solo registra asistencia
+INSERT INTO personas (nombre, apellido_paterno, fecha_nacimiento) VALUES ('Tableta','Centro','2000-01-01');
+INSERT INTO usuarios (persona_id, email, password_hash) VALUES (LAST_INSERT_ID(), 'tableta.centro@dojoos.mx', '$2y$10$IKLlkoO0VtYbYtsUYPd.KOGsCOygwlWhgdY91MH12K83XGa5gfMKq');
+INSERT INTO usuario_roles (usuario_id, rol_id, sucursal_id)
+  SELECT u.id, r.id, s.id FROM usuarios u, roles r, sucursales s WHERE u.email='tableta.centro@dojoos.mx' AND r.nombre='tableta' AND s.clave='CENT';

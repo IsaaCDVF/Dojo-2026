@@ -98,6 +98,18 @@ final class AlumnoControlador
             throw new ErrorApi('Fecha de nacimiento no válida', 422, ['campo' => 'fecha_nacimiento']);
         }
         $edad = $nac->diff(new \DateTime())->y;
+
+        // Fecha de alta distinta de hoy: solo al migrar alumnos que ya venían (permiso alumnos.importar).
+        // De ella sale el día fijo de cobro de la mensualidad (RN-34).
+        $alta = date('Y-m-d');
+        if (!empty($c['fecha_alta']) && $c['fecha_alta'] !== $alta) {
+            Permiso::exigir($req, 'alumnos.importar');
+            $fa = \DateTime::createFromFormat('Y-m-d', (string) $c['fecha_alta']);
+            if (!$fa || $fa->format('Y-m-d') !== $c['fecha_alta'] || $fa > new \DateTime() || $fa < new \DateTime('-10 years')) {
+                throw new ErrorApi('Fecha de alta no válida', 422, ['campo' => 'fecha_alta']);
+            }
+            $alta = $fa->format('Y-m-d');
+        }
         $sexo = in_array($c['sexo'] ?? null, ['F', 'M', 'X'], true) ? $c['sexo'] : null;
         $tel = $this->telefono($c['telefono'] ?? null);
         $email = $this->email($c['email'] ?? null);
@@ -115,14 +127,14 @@ final class AlumnoControlador
         }
         $foto = Fotos::guardar($d['foto']);
 
-        $res = Db::transaccion(function () use ($req, $d, $c, $curp, $sexo, $tel, $email, $sucursal, $foto, $r) {
+        $res = Db::transaccion(function () use ($req, $d, $c, $curp, $sexo, $tel, $email, $sucursal, $foto, $r, $alta) {
             $pid = Db::insertar('INSERT INTO personas (nombre, apellido_paterno, apellido_materno, fecha_nacimiento, sexo, curp, foto) VALUES (?, ?, ?, ?, ?, ?, ?)',
                 [trim($d['nombre']), trim($d['apellido_paterno']), trim((string) ($c['apellido_materno'] ?? '')) ?: null, $d['fecha_nacimiento'], $sexo, $curp, $foto]);
             if ($tel) Db::ejecutar('INSERT INTO contactos (persona_id, tipo, valor, principal) VALUES (?, "telefono", ?, 1)', [$pid, $tel]);
             if ($email) Db::ejecutar('INSERT INTO contactos (persona_id, tipo, valor, principal) VALUES (?, "email", ?, 0)', [$pid, $email]);
             $matricula = Folios::siguiente($sucursal, 'matricula');
-            $aid = Db::insertar('INSERT INTO alumnos (matricula, persona_id, sucursal_id, fecha_alta, codigo_qr) VALUES (?, ?, ?, CURDATE(), ?)',
-                [$matricula, $pid, $sucursal, bin2hex(random_bytes(16))]);
+            $aid = Db::insertar('INSERT INTO alumnos (matricula, persona_id, sucursal_id, fecha_alta, codigo_qr) VALUES (?, ?, ?, ?, ?)',
+                [$matricula, $pid, $sucursal, $alta, bin2hex(random_bytes(16))]);
 
             if (!empty($r['id'])) { $rid = (int) $r['id']; $parentesco = trim((string) ($r['parentesco'] ?? 'responsable')) ?: 'responsable'; }
             elseif (!empty($r['el_mismo'])) { $rid = Db::insertar('INSERT INTO responsables_pago (persona_id) VALUES (?)', [$pid]); $parentesco = 'él mismo'; }

@@ -95,3 +95,18 @@ Los adeudos no se guardan: se calculan con inscripciones, grados y pagos. Cada a
 | PUT | /solicitudes-examen/{id}/validar | examenes.validar | `{decision: autorizada\|no_autorizada, observaciones}` (obligatorias al no autorizar) |
 | PUT | /solicitudes-examen/{id}/resultado | examenes.resultados | `{resultado: aprobada\|reprobada}`; exige pago o excepción; al aprobar agrega el grado con origen examen |
 | PUT | /solicitudes-examen/{id}/cancelar | examenes.programar o solicitar | `{motivo: no_pago\|no_se_presento\|a_peticion\|otro, detalle?}`; si ya pagó, genera saldo a favor |
+
+## Endpoints · Fase 3 Asistencia
+
+| Método | Ruta | Permiso | Qué hace |
+|---|---|---|---|
+| GET | /asistencias/clases | asistencia.registrar, validar, manual o ver | `?sucursal_id=&fecha=` clases de ese día con `estado` (en_curso, proxima, terminada), inscritos, registrados y `mia` (si es del instructor) |
+| POST | /asistencias/qr | asistencia.registrar | `{codigo, horario_id}` → 201 `{resultado: bienvenido\|retardo, alumno, visita, minutos_tarde, avisos[]}`; 403 `detalle.motivo`: no_inscrito, visita_rechazada, adeudo, alumno_baja (queda en accesos_rechazados); 409 si ya registró esa clase hoy o la clase no es ahora; 404 si el código no existe |
+| POST | /asistencias | asistencia.manual | `{alumno_id, horario_id, fecha?, forzar?}` registro a mano (hasta 7 días atrás); 409 con `se_puede_forzar` si una regla lo impide; forzado queda en bitácora |
+| GET | /asistencias/clase/{horario} | asistencia.validar, manual o ver | `?fecha=` inscritos con su registro, retardo y visita; rechazos; resumen |
+| PUT | /asistencias/clase/{horario}/validar | asistencia.validar | `{fecha?}` marca validados los registros del día |
+| DELETE | /asistencias/{id} | asistencia.validar | Quita un registro equivocado (bitácora) |
+| GET | /alumnos/{id}/asistencia | asistencia.ver, validar o alumnos.ver | `?desde=&hasta=` (90 días por omisión) registros con retardo y visita, rechazos y resumen (retardos, faltas por retardo, visitas del mes) |
+| PUT | /alumnos/{id}/qr | alumnos.editar | Nueva credencial: el QR anterior deja de servir |
+
+El retardo no se guarda: se calcula con el parámetro `minutos_retardo` vigente (por sucursal y disciplina). `retardos_por_falta` dice cuántos retardos son una falta y `visitas_por_mes` cuántas clases puede tomar en otra sucursal.

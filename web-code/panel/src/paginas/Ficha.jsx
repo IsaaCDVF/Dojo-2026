@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import QRCode from 'qrcode';
-import { ArrowLeft, CalendarPlus, IdCard, Mail, Phone, Printer, UserCheck, UserX, Users } from 'lucide-react';
+import { ArrowLeft, CalendarCheck, CalendarPlus, IdCard, Mail, Phone, Printer, RefreshCw, UserCheck, UserX, Users } from 'lucide-react';
 import { api, DIAS, formato, nombreCompleto } from '../api';
 import { useSesion } from '../auth/Sesion';
 import { Boton, Cargando, Chip, Cinta, ErrorCaja, FotoAlumno, Modal, Selector, Tarjeta, Vacio, useAvisos, useConfirmar, useDatos } from '../ui';
 import { inscribir } from './inscribir';
+import { MOTIVOS } from './Asistencia';
 
 // S-05 · Ficha del alumno
 function Credencial({ a }) {
@@ -94,6 +95,11 @@ export default function Ficha() {
     try { await api.put(`/inscripciones/${i.id}/terminar`); avisar('Inscripción terminada', 'info'); datos.recargar(); }
     catch (e) { avisar(e.message, 'error'); }
   };
+  const regenerar = async () => {
+    if (!(await confirmar({ titulo: '¿Generar una credencial nueva?', texto: 'El QR anterior dejará de funcionar en la tableta. Úsalo si la credencial se perdió.', aceptar: 'Generar', peligro: true }))) return;
+    try { await api.put(`/alumnos/${a.id}/qr`); avisar('Credencial nueva: imprímela y entrégasela'); datos.recargar(); }
+    catch (e) { avisar(e.message, 'error'); }
+  };
 
   return (
     <>
@@ -152,6 +158,7 @@ export default function Ficha() {
               </ul>
             )}
           </Tarjeta>
+          {tiene('asistencia.ver', 'asistencia.validar', 'alumnos.ver') && <AsistenciaAlumno id={a.id} />}
         </div>
         <div className="space-y-4">
           <Tarjeta titulo="Responsable de pago" icono={Users}>
@@ -184,9 +191,49 @@ export default function Ficha() {
       </div>
       {agregar && <AgregarHorario a={a} onCerrar={() => setAgregar(false)} onListo={() => { setAgregar(false); datos.recargar(); }} />}
       <Modal abierto={cred} onCerrar={() => setCred(false)} titulo="Credencial" subtitulo="El QR es el mismo para todas sus disciplinas"
-        pie={<Boton variante="secundario" icono={Printer} onClick={() => window.print()}>Imprimir</Boton>}>
+        pie={<>
+          {tiene('alumnos.editar') && <Boton variante="fantasma" icono={RefreshCw} onClick={regenerar}>Nueva credencial</Boton>}
+          <Boton variante="secundario" icono={Printer} onClick={() => window.print()}>Imprimir</Boton>
+        </>}>
         <Credencial a={a} />
       </Modal>
     </>
+  );
+}
+
+/** Asistencia de los últimos 90 días: retardos, faltas por retardo, visitas y rechazos de la tableta */
+function AsistenciaAlumno({ id }) {
+  const datos = useDatos(() => api.get(`/alumnos/${id}/asistencia`), [id]);
+  const d = datos.datos;
+  return (
+    <Tarjeta titulo="Asistencia" subtitulo="Últimos 90 días" icono={CalendarCheck} cuerpo="p-0">
+      {datos.cargando && !d ? <Cargando /> : datos.error ? <div className="p-4"><ErrorCaja error={datos.error} /></div> : (
+        <>
+          <div className="grid grid-cols-4 divide-x divide-line border-b border-line text-center">
+            {[['Clases', d.resumen.asistencias], ['Retardos', d.resumen.retardos], ['Faltas por retardo', d.resumen.faltas_por_retardo], ['Visitas del mes', d.resumen.visitas_mes]].map(([t, v]) => (
+              <div key={t} className="py-3 px-1"><div className="text-[22px] font-semibold">{v}</div><div className="etiqueta !text-[10px]">{t}</div></div>
+            ))}
+          </div>
+          {!d.asistencias.length && !d.rechazos.length ? <Vacio titulo="Sin registros" texto="Aparecen cuando pasa su credencial por la tableta." /> : (
+            <ul className="divide-y divide-line max-h-80 overflow-y-auto">
+              {d.rechazos.slice(0, 3).map((r) => (
+                <li key={r.fecha_hora} className="flex items-center gap-3 px-5 py-2.5 text-sm">
+                  <span className="font-mono text-[13px] text-muted w-32 shrink-0 whitespace-nowrap">{formato.fechaHora(r.fecha_hora)}</span>
+                  <span className="flex-1">{r.disciplina}</span><Chip tono="peligro">{MOTIVOS[r.motivo] || r.motivo}</Chip>
+                </li>
+              ))}
+              {d.asistencias.map((s) => (
+                <li key={s.id} className="flex items-center gap-3 px-5 py-2.5 text-sm">
+                  <span className="font-mono text-[13px] text-muted w-32 shrink-0 whitespace-nowrap">{formato.fechaHora(s.fecha_hora)}</span>
+                  <span className="flex-1">{s.disciplina}{s.visita && <span className="text-muted"> · {s.sucursal}</span>}</span>
+                  {s.visita && <Chip tono="oro">Visita</Chip>}
+                  <Chip tono={s.retardo ? 'aviso' : 'ok'}>{s.retardo ? `Retardo ${s.minutos_tarde} min` : 'A tiempo'}</Chip>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+    </Tarjeta>
   );
 }
