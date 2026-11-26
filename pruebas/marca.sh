@@ -76,7 +76,11 @@ igual  "Sin logo"                          "\$j['datos']['imagenes']['logo'] ===
 prueba "Ya no existe"                      404 GET  /api/marca/imagen/logo
 
 echo "Preferencias por usuario"
-prueba "Por defecto"                       200 GET  /api/preferencias "$LAU"
+# Lo que cada quien tenga elegido en Mi perfil se guarda y se regresa al final
+prueba "Las del admin, como estén"         200 GET  /api/preferencias "$ADM"; ADM_TEMA=$(campo "['datos']['tema']")
+prueba "Las de Laura, como estén"          200 GET  /api/preferencias "$LAU"
+php -r '$d=json_decode(file_get_contents("/tmp/r.json"),true)["datos"]; echo json_encode(["idioma"=>$d["idioma"],"tema"=>$d["tema"],"letra"=>$d["letra"]]);' > /tmp/pref_laura.json
+prueba "Laura sin preferencias"            200 PUT  /api/preferencias "$LAU" '{"idioma":null,"tema":"sistema","letra":"normal"}'
 igual  "Tema del sistema, letra normal"    "\$j['datos']['tema'] . ' ' . \$j['datos']['letra'] . ' ' . var_export(\$j['datos']['idioma'], true)" "sistema normal NULL"
 prueba "Sin sesión"                        401 GET  /api/preferencias
 prueba "Idioma que no hay"                 422 PUT  /api/preferencias "$LAU" '{"idioma":"fr-FR"}'
@@ -87,8 +91,8 @@ igual  "Lo demás se queda"                 "\$j['datos']['idioma'] . ' ' . \$j[
 prueba "Vienen en /auth/yo"                200 GET  /api/auth/yo "$LAU"
 igual  "Preferencias de Laura"             "['datos']['preferencias']['tema']" "oscuro"
 prueba "El admin sigue con las suyas"      200 GET  /api/preferencias "$ADM"
-igual  "Sin cambios"                       "['datos']['tema']" "sistema"
-prueba "Laura vuelve al idioma de la empresa" 200 PUT /api/preferencias "$LAU" '{"idioma":null,"tema":"sistema","letra":"normal"}'
+igual  "Sin cambios"                       "['datos']['tema']" "$ADM_TEMA"
+prueba "Laura vuelve a las suyas"          200 PUT  /api/preferencias "$LAU" @/tmp/pref_laura.json
 
 echo "Dejar todo como estaba"
 prueba "Regresa la marca que había"        200 PUT  /api/marca "$ADM" @/tmp/marca_antes.json
