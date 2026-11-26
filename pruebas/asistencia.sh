@@ -21,7 +21,12 @@ ATRAS=$(date -d '-45 days' +%Y-%m-%d)
 
 prueba "Login súper admin"                 200 POST /api/auth/login "" '{"email":"admin@dojoos.mx","password":"Dojo2026!"}'
 ADM=$(campo "['datos']['token']")
-prueba "Login de la tableta de Centro"     200 POST /api/auth/login "" '{"email":"tableta.centro@dojoos.mx","password":"Dojo2026!"}'
+# Tableta propia de la prueba, conectada con código (no depende de la cuenta vieja tableta.centro@dojoos.mx)
+prueba "La tableta pide código"            201 POST /api/dispositivos/solicitar ""
+COD=$(campo "['datos']['codigo']"); CLAVE=$(campo "['datos']['clave']")
+prueba "Se conecta a Centro"               201 POST /api/dispositivos "$ADM" "{\"codigo\":\"$COD\",\"nombre\":\"Prueba asistencia $R\",\"sucursal_id\":1}"
+DIS=$(campo "['datos']['id']")
+prueba "Recibe su sesión"                  200 POST /api/dispositivos/estado "" "{\"clave\":\"$CLAVE\"}"
 TAB=$(campo "['datos']['token']")
 prueba "Login Laura"                       200 POST /api/auth/login "" '{"email":"laura@dojoos.mx","password":"Dojo2026!"}'
 LAU=$(campo "['datos']['token']"); ADMN=$(campo "['datos']['roles'][0]['usuario_rol_id']"); INST=$(campo "['datos']['roles'][1]['usuario_rol_id']")
@@ -117,5 +122,6 @@ echo "Limpieza"
 prueba "Retardo regresa a 30 min"          201 POST /api/parametros/valores "$ADM" '{"clave":"minutos_retardo","valor":"30","sucursal_id":1,"disciplina_id":1}'
 prueba "Desactiva la clase de hoy"         200 PUT  "/api/horarios/$HOR/desactivar" "$ADM" '{"forzar":true}'
 prueba "Desactiva la clase de Norte"       200 PUT  "/api/horarios/$HORN/desactivar" "$ADM" '{"forzar":true}'
+prueba "Desconecta la tableta de prueba"   200 PUT  "/api/dispositivos/$DIS" "$ADM" '{"activo":0}'
 
 echo; echo "Resultado: $pasa pasaron, $falla fallaron"; [ $falla -eq 0 ]

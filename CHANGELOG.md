@@ -64,7 +64,7 @@ Tipos: **Agregado** (nuevo), **Cambiado** (cambia algo que ya existía), **Corre
 - Los roles de alcance propio (alumno, responsable) solo ven sus alumnos, su estado de cuenta y sus recibos (`Permiso::alumnosPropios`, `exigirAlumno`, `exigirResponsable`). — Kevin
 
 ### Corregido
-- La lista de instructores para horarios ya no muestra a personal desactivado. `pruebas/asistencia.sh` usa a Laura como instructora (antes tomaba el primero de la lista y fallaba si había más instructores). — Kevin
+- La lista de instructores para horarios ya no muestra a personal desactivado. `pruebas/asistencia.sh` usa a Laura como instructora (antes tomaba el primero de la lista y fallaba si había más instructores) y conecta su propia tableta con código en lugar de entrar con la cuenta `tableta.centro@dojoos.mx` (76 pruebas; ya no falla si esa cuenta se desactivó o se le cambió la contraseña). — Kevin
 - Las ventanas del panel mandaban el cursor a la X al escribir la primera letra (no dejaba escribir); ahora al abrir el cursor va directo al primer campo. Pasaba en todas las ventanas. — Kevin
 - Login del panel: con un logo cuadrado (solo el símbolo) no se veía el nombre de la empresa; ahora va abajo con su letra. — Kevin
 - Semillas: las fechas de vigencia iniciales eran `NOW()` en la zona del contenedor (UTC) y quedaban "en el futuro" frente a la API (hora de México); ahora son una fecha fija. — Kevin
