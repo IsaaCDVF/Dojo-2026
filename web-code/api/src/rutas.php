@@ -16,6 +16,7 @@ use Dojo\Modulos\Inicio\InicioControlador;
 use Dojo\Modulos\App\AccesoControlador;
 use Dojo\Modulos\App\AppControlador;
 use Dojo\Modulos\Personas\ImportacionControlador;
+use Dojo\Modulos\Personal\PersonalControlador;
 
 /** @var Dojo\Nucleo\Router $router */
 $router->get('/api/salud',                       [SaludControlador::class, 'ver'],             null);
@@ -24,10 +25,22 @@ $router->post('/api/auth/login',                 [AuthControlador::class, 'login
 $router->post('/api/auth/rol',                   [AuthControlador::class, 'elegirRol'],        '');
 $router->get('/api/auth/yo',                     [AuthControlador::class, 'yo'],               '');
 $router->post('/api/auth/logout',                [AuthControlador::class, 'logout'],           '');
+$router->put('/api/auth/contrasena',             [AuthControlador::class, 'cambiarContrasena'], '');
 
 $router->get('/api/sucursales',                  [SucursalControlador::class, 'listar'],       'horarios.ver');
 $router->post('/api/sucursales',                 [SucursalControlador::class, 'crear'],        'sucursales.gestionar');
 $router->put('/api/sucursales/{id}',             [SucursalControlador::class, 'editar'],       'sucursales.gestionar');
+$router->get('/api/sucursales/{id}',             [SucursalControlador::class, 'ver'],          'horarios.ver');
+
+// Personal y accesos: alta del personal, sus roles por sucursal y contraseñas temporales
+$router->get('/api/personal',                    [PersonalControlador::class, 'listar'],       'roles.asignar');
+$router->get('/api/personal/opciones',           [PersonalControlador::class, 'opciones'],     'roles.asignar');
+$router->get('/api/personal/{id}',               [PersonalControlador::class, 'ver'],          'roles.asignar');
+$router->post('/api/personal',                   [PersonalControlador::class, 'crear'],        'roles.asignar');
+$router->put('/api/personal/{id}',               [PersonalControlador::class, 'editar'],       'roles.asignar');
+$router->post('/api/personal/{id}/roles',        [PersonalControlador::class, 'darRol'],       'roles.asignar');
+$router->delete('/api/personal/{id}/roles/{rid}',[PersonalControlador::class, 'quitarRol'],    'roles.asignar');
+$router->post('/api/personal/{id}/contrasena',   [PersonalControlador::class, 'restablecer'],  'roles.asignar');
 
 $router->get('/api/disciplinas',                 [DisciplinaControlador::class, 'listar'],     'horarios.ver');
 $router->post('/api/disciplinas',                [DisciplinaControlador::class, 'crear'],      'disciplinas.gestionar');

@@ -5,7 +5,7 @@ Base: `http://localhost:8080/api` (desarrollo). Todo es JSON en UTF-8.
 **Respuesta correcta:** `{ "ok": true, "datos": ... }`  
 **Error:** `{ "ok": false, "error": "mensaje para el usuario", "detalle": { ... } }`
 
-**Sesión:** `POST /auth/login` devuelve un `token`; se manda en cada petición como `Authorization: Bearer <token>`.
+**Sesión:** `POST /auth/login` devuelve un `token`; si `debe_cambiar_password` es `true` (entró con contraseña temporal) todo lo que pide permiso responde 403 hasta que llame `PUT /auth/contrasena`. El token se manda en cada petición como `Authorization: Bearer <token>`.
 Si la persona tiene varios roles, debe llamar `POST /auth/rol` antes de usar el resto (si no, responde 409).
 
 | Código | Significa |
@@ -23,13 +23,15 @@ Si la persona tiene varios roles, debe llamar `POST /auth/rol` antes de usar el 
 | Método | Ruta | Permiso | Qué hace |
 |---|---|---|---|
 | GET | /salud | pública | Estado de la API y número de tablas |
-| POST | /auth/login | pública | `{email, password}` → `{token, roles, debe_elegir_rol}` |
+| POST | /auth/login | pública | `{email, password}` → `{token, roles, debe_elegir_rol, debe_cambiar_password}` |
 | POST | /auth/rol | sesión | `{usuario_rol_id}` elige con qué rol y sucursal trabajar |
 | GET | /auth/yo | sesión | Usuario, rol activo, todos sus roles y permisos (para el menú) |
 | POST | /auth/logout | sesión | Cierra la sesión |
+| PUT | /auth/contrasena | sesión | `{actual, nueva}`: mínimo 8, con letras y números, distinta a la actual. Quita `debe_cambiar_password` y cierra sus otras sesiones |
 | GET | /sucursales | horarios.ver | Lista; un rol de sucursal solo ve la suya |
-| POST | /sucursales | sucursales.gestionar | `{clave (4 letras), nombre}` |
-| PUT | /sucursales/{id} | sucursales.gestionar | `{nombre?, activa?}` — registra en bitácora cada campo |
+| POST | /sucursales | sucursales.gestionar | `{clave (4 letras), nombre, telefono?, domicilio?:{calle, numero?, colonia?, cp, municipio, estado}, disciplinas?:[ids], encargado?: {usuario_id} \| {nuevo:{nombre, apellido_paterno, apellido_materno?, fecha_nacimiento, email, telefono?}}}`. Todo o nada (si el encargado falla no queda la sucursal). Con encargado nuevo responde `encargado_nuevo` con su contraseña temporal. El panel pide todo; la API acepta solo clave y nombre |
+| GET | /sucursales/{id} | horarios.ver | Con `domicilio`, `disciplinas` y `personal` (roles activos de la sucursal) |
+| PUT | /sucursales/{id} | sucursales.gestionar | `{nombre?, activa?, telefono?, domicilio?, disciplinas?}` — la clave no cambia. Quitar una disciplina con horarios activos → 409. Registra en bitácora cada campo |
 | GET | /disciplinas | horarios.ver | Lista con número de grados |
 | POST | /disciplinas | disciplinas.gestionar | `{nombre}` |
 | GET | /disciplinas/{id}/grados | horarios.ver | Grados en orden |
@@ -159,3 +161,19 @@ Cada instalación guarda su marca en la tabla `marca` (una fila). Todo lo de la 
 | GET / PUT | /preferencias | (sesión) | `{idioma (null = el de la empresa), tema: sistema\|claro\|oscuro, letra: normal\|grande\|muy_grande}`. También vienen en `GET /auth/yo` como `preferencias` |
 
 El router acepta parámetros de texto con `{nombre:texto}` (letras minúsculas y guion bajo); `{id}` sigue siendo solo número.
+
+## Endpoints · Personal y accesos
+
+Quién entra al panel, con qué rol y en qué sucursal. Solo se dan roles de **nivel menor** al propio: el súper admin da admin de sucursal, recepción, instructor y tableta; el admin de sucursal da recepción, instructor y tableta, y solo en su sucursal. Nadie cambia a alguien de su mismo nivel o mayor, ni sus propios accesos. Al dar de alta se genera una contraseña temporal (10 caracteres) que se muestra una sola vez, con el mensaje listo para WhatsApp.
+
+| Método | Ruta | Permiso | Qué hace |
+|---|---|---|---|
+| GET | /personal | roles.asignar | `?sucursal_id=&q=&inactivos=1`. Cada persona con `roles` (activos e inactivos, `se_puede_quitar`), `nivel`, `editable`, `debe_cambiar_password`, `ultima_vez`. El admin de sucursal solo ve a quien tiene rol en la suya |
+| GET | /personal/opciones | roles.asignar | Roles que puede dar quien pregunta y en qué sucursales |
+| GET | /personal/{id} | roles.asignar | Ficha |
+| POST | /personal | roles.asignar | `{nombre, apellido_paterno, apellido_materno?, fecha_nacimiento (16 a 100 años), sexo?, email, telefono?, roles:[{rol, sucursal_id}]}` → `{usuario_id, email, password_temporal, telefono, mensaje, ficha}`. Correo ya usado → 409. Rol de instructor → queda también en `instructores` (para horarios) |
+| PUT | /personal/{id} | roles.asignar | `{nombre?, apellido_paterno?, apellido_materno?, email?, telefono?, activo?}`. Desactivar cierra sus sesiones; no puedes desactivarte |
+| POST | /personal/{id}/roles | roles.asignar | `{rol, sucursal_id}`; si lo tuvo antes se reactiva; repetido → 409 |
+| DELETE | /personal/{id}/roles/{rid} | roles.asignar | Desactiva el rol (queda en el historial) y cierra las sesiones con ese rol |
+| POST | /personal/{id}/contrasena | roles.asignar | Contraseña temporal nueva ("olvidé mi contraseña"); cierra sus sesiones y desbloquea la cuenta |
+

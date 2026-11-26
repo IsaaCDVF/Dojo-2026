@@ -13,7 +13,7 @@ final class Autenticacion
     public static function verificar(Peticion $req): void
     {
         if (!$req->token) throw new ErrorApi('Inicia sesión', 401);
-        $s = Db::uno('SELECT s.id, s.usuario_id, s.usuario_rol_id, u.activo, TIMESTAMPDIFF(MINUTE, s.ultima_actividad, NOW()) AS inactivo,
+        $s = Db::uno('SELECT s.id, s.usuario_id, s.usuario_rol_id, u.activo, u.debe_cambiar_password, TIMESTAMPDIFF(MINUTE, s.ultima_actividad, NOW()) AS inactivo,
                              (SELECT MIN(r.alcance = "propio") FROM usuario_roles ur JOIN roles r ON r.id = ur.rol_id
                                WHERE ur.usuario_id = s.usuario_id AND ur.activo = 1) AS solo_app
                       FROM sesiones s JOIN usuarios u ON u.id = s.usuario_id
@@ -29,7 +29,7 @@ final class Autenticacion
         }
         Db::ejecutar('UPDATE sesiones SET ultima_actividad = NOW() WHERE id = ?', [$s['id']]);
 
-        $req->ctx = ['sesion_id' => (int) $s['id'], 'usuario_id' => (int) $s['usuario_id'], 'rol' => null];
+        $req->ctx = ['sesion_id' => (int) $s['id'], 'usuario_id' => (int) $s['usuario_id'], 'rol' => null, 'debe_cambiar_password' => (bool) $s['debe_cambiar_password']];
         if ($s['usuario_rol_id']) {
             $rol = Db::uno('SELECT ur.id usuario_rol_id, ur.sucursal_id, r.id rol_id, r.nombre, r.nivel, r.alcance
                             FROM usuario_roles ur JOIN roles r ON r.id = ur.rol_id

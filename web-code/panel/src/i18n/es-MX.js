@@ -12,7 +12,7 @@ export default {
   menu: {
     inicio: 'Inicio', miPerfil: 'Mi perfil', alumnos: 'Alumnos', inscripcion: 'Inscripción', caja: 'Caja', horarios: 'Horarios',
     asistencia: 'Asistencia', examenes: 'Exámenes', tarifas: 'Precios y promociones', parametros: 'Parámetros', bitacora: 'Bitácora',
-    configuracion: 'Configuración', apariencia: 'Apariencia y marca',
+    configuracion: 'Configuración', personal: 'Personal y accesos', apariencia: 'Apariencia y marca',
   },
   roles: {
     super_admin: 'Súper administrador', admin_sucursal: 'Administrador de sucursal', recepcion: 'Recepción', instructor: 'Instructor',
@@ -34,6 +34,7 @@ export default {
     },
   },
   perfil: {
+    contrasena: 'Contraseña', cambiarContrasena: 'Cambiar contraseña', contrasenaLista: 'Contraseña cambiada. Tus otras sesiones se cerraron.', 
     hola: 'Hola, {{nombre}}', tusDatos: 'Tus datos', correo: 'Correo', rolActivo: 'Rol activo', sucursal: 'Sucursal',
     preferencias: 'Preferencias', preferenciasSub: 'Solo cambian cómo ves el sistema tú; no afectan a los demás',
     idioma: 'Idioma', idiomaEmpresa: 'El de la empresa ({{idioma}})', tema: 'Tema', temaSistema: 'Como mi equipo', temaClaro: 'Claro', temaOscuro: 'Oscuro',

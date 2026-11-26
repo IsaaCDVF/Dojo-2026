@@ -4,6 +4,7 @@ import { useSesion } from '../auth/Sesion';
 import { useMarca } from '../marca/Marca';
 import { IDIOMAS } from '../i18n';
 import { Encabezado, Selector, Tarjeta, useAvisos } from '../ui';
+import { FormContrasena } from './CambiarContrasena';
 
 const cx = (...c) => c.filter(Boolean).join(' ');
 
@@ -40,6 +41,10 @@ export default function MiPerfil() {
             <div>{t('perfil.correo')}: <b>{usuario?.email}</b></div>
             <div>{t('perfil.rolActivo')}: <b>{rol?.nombre ? t(`roles.${rol.nombre}`) : ''}</b></div>
             <div>{t('perfil.sucursal')}: <b>{actual?.sucursal || t('comun.todas')}</b></div>
+          </div>
+          <div className="border-t border-line mt-5 pt-5">
+            <div className="etiqueta mb-3">{t('perfil.contrasena')}</div>
+            <FormContrasena onListo={() => avisar(t('perfil.contrasenaLista'))} textoBoton={t('perfil.cambiarContrasena')} />
           </div>
         </Tarjeta>
         <Tarjeta titulo={t('perfil.preferencias')} subtitulo={t('perfil.preferenciasSub')}>

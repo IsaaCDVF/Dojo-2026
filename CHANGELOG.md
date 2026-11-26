@@ -8,6 +8,10 @@ Tipos: **Agregado** (nuevo), **Cambiado** (cambia algo que ya existía), **Corre
 ## [Sin publicar]
 
 ### Agregado
+- Personal y accesos (Configuración → Personal y accesos): el súper admin da de alta a cada persona y le da uno o varios roles por sucursal (admin de sucursal, recepción, instructor, tableta); el admin de sucursal da recepción, instructor y tableta en la suya. Quitar roles, desactivar y generar contraseña temporal nueva; todo cierra las sesiones al momento y queda en bitácora. — Kevin
+- Contraseña temporal: al dar de alta se genera una (se ve una sola vez, con botón para mandarla por WhatsApp) y la persona debe crear la suya al entrar; la API bloquea todo lo demás mientras tanto. Cambiar contraseña también en Mi perfil. — Kevin
+- Nueva sucursal en 5 pasos: datos (la clave se sugiere sola), domicilio, disciplinas que se dan ahí, encargado (persona nueva o alguien del personal) y revisar. Se guarda todo junto. Editar sucursal con teléfono, domicilio, disciplinas y su personal; la lista muestra encargado, ciudad y avisa si una sucursal no tiene encargado. — Kevin
+- `pruebas/personal.sh` (109). — Kevin
 - Letra propia para el nombre comercial (Apariencia y marca → Letra del nombre): condensada, titular, gruesa, deportiva, elegante o pincel, además de la del sistema. Botones para decorar letras del nombre con raya arriba, subrayado o tachado (por ejemplo, KEMMA ST̅O̅R̅E̅): se dibuja como una línea continua en el panel, el login, los recibos y la app, aunque el nombre venga de copiar y pegar. — Kevin
 - App: el alumno que entra por primera vez arma su avatar en 5 pasos (tono de piel, peinado, color de cabello, barba o bigote si no es niño, y complexión) con vista previa animada; puede dejarlo para después y cambiarlo cuando quiera en Mi avatar → Tú. — Kevin
 - Marca blanca (Configuración → Apariencia y marca): nombre comercial y lema, logo para fondo claro, para fondo oscuro e ícono; 6 temas de color listos o uno personalizado con revisión automática de contraste; 8 tipos de letra incluidos en el sistema; idioma, moneda, zona horaria y país. Vista previa en vivo en modo claro y oscuro. La marca aparece en el panel, el login, los recibos, las credenciales y la app de alumnos (nombre, logo, colores e ícono al instalarla). — Kevin
@@ -54,10 +58,13 @@ Tipos: **Agregado** (nuevo), **Cambiado** (cambia algo que ya existía), **Corre
 - Los roles de alcance propio (alumno, responsable) solo ven sus alumnos, su estado de cuenta y sus recibos (`Permiso::alumnosPropios`, `exigirAlumno`, `exigirResponsable`). — Kevin
 
 ### Corregido
+- Las ventanas del panel mandaban el cursor a la X al escribir la primera letra (no dejaba escribir); ahora al abrir el cursor va directo al primer campo. Pasaba en todas las ventanas. — Kevin
+- Login del panel: con un logo cuadrado (solo el símbolo) no se veía el nombre de la empresa; ahora va abajo con su letra. — Kevin
 - Semillas: las fechas de vigencia iniciales eran `NOW()` en la zona del contenedor (UTC) y quedaban "en el futuro" frente a la API (hora de México); ahora son una fecha fija. — Kevin
 - Panel: las fechas sin hora (`2026-11-28`) se mostraban un día antes. — Kevin
 
 ### Base de datos
+- `012_sucursal_completa_personal.sql`: `sucursales.telefono` y `usuarios.debe_cambiar_password`. Para una base que ya existe: `parches/2026-11-26_sucursal_personal.sql` (se puede correr dos veces). — Kevin
 - `011_marca_fuente_nombre.sql`: columna `marca.fuente_nombre` (letra del nombre comercial). Para una base que ya existe: `parches/2026-11-26_marca_nombre.sql` (se puede correr dos veces). — Kevin
 - `010_marca_preferencias`: tablas `marca`, `marca_imagenes` y `usuario_preferencias`; permiso `marca.editar` para el súper administrador. Para una base que ya existe: `database-code/parches/2026-11-26_marca.sql`. — Kevin
 - `008_app_movil`: tabla `activaciones`. Semilla `003_app_demo`: parámetro `dias_sesion_app`, insignias por grado y 16 accesorios de Taekwondo. Para una base que ya existe: `database-code/parches/2026-11-25_app_movil.sql`. `009_avatar_apariencia`: tabla `avatar_apariencia` (parche `2026-11-25_avatar_apariencia.sql`). — Kevin

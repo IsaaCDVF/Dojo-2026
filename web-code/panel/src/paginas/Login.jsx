@@ -14,6 +14,7 @@ export default function Login() {
   const { marca, modo } = useMarca();
   const im = marca.imagenes || {};
   const logo = modo === 'dark' ? (im.logo_oscuro || im.logo) : (im.logo || im.logo_oscuro);
+  const [logoAncho, setLogoAncho] = useState(true);
   const navegar = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -35,7 +36,7 @@ export default function Login() {
     setEnviando(true); setError('');
     try {
       const r = await login(email.trim(), password, recordar);
-      navegar(r.debe_elegir_rol ? '/elegir-rol' : '/', { replace: true });
+      navegar(r.debe_cambiar_password ? '/cambiar-contrasena' : r.debe_elegir_rol ? '/elegir-rol' : '/', { replace: true });
     } catch (err) {
       setError(err.message); setSacudir((n) => n + 1);
     } finally { setEnviando(false); }
@@ -58,10 +59,12 @@ export default function Login() {
           <div className="px-8 pt-8 pb-7">
             <div className="flex flex-col items-center text-center">
               {logo
-                ? <img src={logo} alt={marca.nombre} className="h-16 max-w-[240px] object-contain" />
+                ? <img src={logo} alt={nombrePlano(marca.nombre)} className="h-16 max-w-[240px] object-contain"
+                    onLoad={(e) => setLogoAncho(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight >= 2.2)} />
                 : <span className="grid place-items-center size-16 rounded-full bg-inset text-text">{im.icono ? <img src={im.icono} alt="" className="size-12 rounded-md object-contain" /> : <Isotipo className="size-12" />}</span>}
-              {!logo && <h1 className="text-[28px] mt-3">{marca.nombre === 'Dojo OS' ? <>Dojo <span className="text-gold font-normal">OS</span></> : <NombreMarca nombre={marca.nombre} fuente={marca.fuente_nombre} />}</h1>}
-              <p className={`text-muted text-sm ${logo ? 'mt-3' : ''}`}>{marca.lema || t('login.subtitulo')}</p>
+              {/* Un logo cuadrado (solo el símbolo) va con el nombre abajo; uno ancho ya trae el nombre escrito */}
+              {(!logo || !logoAncho) && <h1 className="text-[28px] mt-3">{marca.nombre === 'Dojo OS' ? <>Dojo <span className="text-gold font-normal">OS</span></> : <NombreMarca nombre={marca.nombre} fuente={marca.fuente_nombre} />}</h1>}
+              <p className={`text-muted text-sm ${logo && logoAncho ? 'mt-3' : ''}`}>{marca.lema || t('login.subtitulo')}</p>
             </div>
 
             {(error || aviso) && (

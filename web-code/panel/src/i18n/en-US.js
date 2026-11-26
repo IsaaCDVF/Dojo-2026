@@ -11,7 +11,7 @@ export default {
   menu: {
     inicio: 'Home', miPerfil: 'My profile', alumnos: 'Students', inscripcion: 'Enrollment', caja: 'Front desk', horarios: 'Schedule',
     asistencia: 'Attendance', examenes: 'Belt testing', tarifas: 'Pricing & promotions', parametros: 'Settings', bitacora: 'Audit log',
-    configuracion: 'Setup', apariencia: 'Branding & appearance',
+    configuracion: 'Setup', personal: 'Staff & access', apariencia: 'Branding & appearance',
   },
   roles: {
     super_admin: 'Owner', admin_sucursal: 'Location manager', recepcion: 'Front desk', instructor: 'Instructor',
@@ -33,6 +33,7 @@ export default {
     },
   },
   perfil: {
+    contrasena: 'Password', cambiarContrasena: 'Change password', contrasenaLista: 'Password changed. Your other sessions were signed out.', 
     hola: 'Hi, {{nombre}}', tusDatos: 'Your details', correo: 'Email', rolActivo: 'Current role', sucursal: 'Location',
     preferencias: 'Preferences', preferenciasSub: 'These only change how you see the system; nobody else is affected',
     idioma: 'Language', idiomaEmpresa: 'Business default ({{idioma}})', tema: 'Theme', temaSistema: 'Match my device', temaClaro: 'Light', temaOscuro: 'Dark',

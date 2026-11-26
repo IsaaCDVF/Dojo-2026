@@ -11,7 +11,7 @@ final class AuthControlador
     {
         $d = $req->requeridos('email', 'password');
         $id = self::buscarUsuario((string) $d['email']);
-        $u = $id ? Db::uno('SELECT id, password_hash, activo, intentos_fallidos, bloqueado_hasta FROM usuarios WHERE id = ?', [$id]) : null;
+        $u = $id ? Db::uno('SELECT id, password_hash, activo, intentos_fallidos, bloqueado_hasta, debe_cambiar_password FROM usuarios WHERE id = ?', [$id]) : null;
         if ($u && $u['bloqueado_hasta'] && strtotime($u['bloqueado_hasta']) > time()) {
             throw new ErrorApi('Cuenta bloqueada por intentos fallidos; intenta en unos minutos', 423);
         }
@@ -30,7 +30,7 @@ final class AuthControlador
         $token = bin2hex(random_bytes(32));
         Db::insertar('INSERT INTO sesiones (usuario_id, usuario_rol_id, token_hash, ip) VALUES (?, ?, ?, ?)',
             [$u['id'], count($roles) === 1 ? $roles[0]['usuario_rol_id'] : null, hash('sha256', $token), $req->ip]);
-        Respuesta::ok(['token' => $token, 'roles' => $roles, 'debe_elegir_rol' => count($roles) > 1]);
+        Respuesta::ok(['token' => $token, 'roles' => $roles, 'debe_elegir_rol' => count($roles) > 1, 'debe_cambiar_password' => (bool) $u['debe_cambiar_password']]);
     }
 
     /** POST /api/auth/rol  { usuario_rol_id } — una persona con varios roles elige con cuál trabaja. */
@@ -46,13 +46,35 @@ final class AuthControlador
     /** GET /api/auth/yo — datos del usuario, rol activo y sus permisos (para armar el menú). */
     public function yo(Peticion $req): void
     {
-        $p = Db::uno('SELECT u.email, pe.nombre, pe.apellido_paterno FROM usuarios u JOIN personas pe ON pe.id = u.persona_id WHERE u.id = ?',
+        $p = Db::uno('SELECT u.email, pe.nombre, pe.apellido_paterno, u.debe_cambiar_password FROM usuarios u JOIN personas pe ON pe.id = u.persona_id WHERE u.id = ?',
             [$req->ctx['usuario_id']]);
         $rol = $req->ctx['rol'];
         $permisos = $rol ? array_column(Db::todos('SELECT p.clave FROM rol_permisos rp JOIN permisos p ON p.id = rp.permiso_id
                                                     WHERE rp.rol_id = ? ORDER BY p.clave', [$rol['rol_id']]), 'clave') : [];
         Respuesta::ok(['usuario' => $p, 'rol_activo' => $rol, 'roles' => $this->roles($req->ctx['usuario_id']), 'permisos' => $permisos,
                        'preferencias' => \Dojo\Modulos\Sistema\PreferenciasControlador::de((int) $req->ctx['usuario_id'])]);
+    }
+
+    /**
+     * PUT /api/auth/contrasena {actual, nueva} — la persona cambia su contraseña (obligatorio si entró con una temporal).
+     * Cierra sus otras sesiones; la de este equipo sigue abierta.
+     */
+    public function cambiarContrasena(Peticion $req): void
+    {
+        $d = $req->requeridos('actual', 'nueva');
+        $u = Db::uno('SELECT password_hash FROM usuarios WHERE id = ?', [$req->ctx['usuario_id']]);
+        if (!password_verify((string) $d['actual'], $u['password_hash'])) throw new ErrorApi('La contraseña actual no es correcta', 422, ['campo' => 'actual']);
+        $n = (string) $d['nueva'];
+        if (mb_strlen($n) < 8 || !preg_match('/[A-Za-zÁÉÍÓÚÑáéíóúñ]/u', $n) || !preg_match('/\d/', $n)) {
+            throw new ErrorApi('La contraseña nueva debe tener al menos 8 caracteres, con letras y números', 422, ['campo' => 'nueva']);
+        }
+        if (password_verify($n, $u['password_hash'])) throw new ErrorApi('La contraseña nueva debe ser distinta a la actual', 422, ['campo' => 'nueva']);
+        Db::transaccion(function () use ($req, $n) {
+            Db::ejecutar('UPDATE usuarios SET password_hash = ?, debe_cambiar_password = 0 WHERE id = ?', [password_hash($n, PASSWORD_DEFAULT), $req->ctx['usuario_id']]);
+            \Dojo\Modulos\Personal\PersonalControlador::cerrarSesiones((int) $req->ctx['usuario_id'], (int) $req->ctx['sesion_id']);
+            \Dojo\Modulos\Bitacora\Bitacora::cambio($req, 'usuarios', (int) $req->ctx['usuario_id'], ['password' => '(anterior)'], ['password' => '(la cambió la persona)']);
+        });
+        Respuesta::ok(['cambiada' => true]);
     }
 
     /** POST /api/auth/logout */

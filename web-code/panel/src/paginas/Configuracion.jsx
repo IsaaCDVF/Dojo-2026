@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Building2, Layers, Pencil, Plus, Power } from 'lucide-react';
 import { api } from '../api';
 import { useSesion } from '../auth/Sesion';
+import { EditarSucursal, NuevaSucursal } from './SucursalAsistente';
 import { Boton, Campo, Cargando, Chip, Encabezado, ErrorCaja, Modal, Tarjeta, Vacio, useAvisos, useConfirmar, useDatos } from '../ui';
 
 // Configuración: sucursales, disciplinas y grados (catálogos base)
@@ -13,20 +14,11 @@ function Sucursales() {
   const avisar = useAvisos();
   const confirmar = useConfirmar();
   const datos = useDatos(() => api.get('/sucursales'), []);
-  const [form, setForm] = useState(null);
-  const [err, setErr] = useState('');
-  const [guardando, setGuardando] = useState(false);
+  const [nueva, setNueva] = useState(false);
+  const [editar, setEditar] = useState(null);
+  const [verInactivas, setVerInactivas] = useState(false);
   const puede = tiene('sucursales.gestionar');
 
-  const guardar = async () => {
-    setGuardando(true); setErr('');
-    try {
-      if (form.id) await api.put(`/sucursales/${form.id}`, { nombre: form.nombre });
-      else await api.post('/sucursales', { clave: form.clave, nombre: form.nombre });
-      avisar(form.id ? 'Sucursal actualizada' : `Sucursal ${form.nombre} creada`);
-      setForm(null); datos.recargar();
-    } catch (e) { setErr(e.message); } finally { setGuardando(false); }
-  };
   const alternar = async (s) => {
     const activa = Number(s.activa);
     if (activa && !(await confirmar({ titulo: 'Desactivar sucursal', texto: `${s.nombre} dejará de aparecer para inscribir y cobrar. Su historial se conserva.`, aceptar: 'Desactivar', peligro: true }))) return;
@@ -36,36 +28,40 @@ function Sucursales() {
 
   return (
     <Tarjeta titulo="Sucursales" subtitulo="La clave de 4 letras es el prefijo de matrículas y recibos" icono={Building2} cuerpo="p-0"
-      acciones={puede && <Boton tam="sm" icono={Plus} onClick={() => { setForm({ clave: '', nombre: '' }); setErr(''); }}>Sucursal</Boton>}>
+      acciones={puede && <Boton tam="sm" icono={Plus} onClick={() => setNueva(true)}>Sucursal</Boton>}>
       <div className="px-5 pt-3"><ErrorCaja error={datos.error} reintentar={datos.recargar} /></div>
       {datos.cargando && !datos.datos ? <Cargando /> : (
         <ul className="divide-y divide-line">
-          {(datos.datos || []).map((s) => (
-            <li key={s.id} className="flex items-center gap-4 px-5 py-3.5">
+          {(datos.datos || []).filter((s) => verInactivas || Number(s.activa)).sort((a, b) => Number(b.activa) - Number(a.activa)).map((s) => (
+            <li key={s.id} className={`flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3.5 ${Number(s.activa) ? '' : 'opacity-60'}`}>
               <span className="font-mono text-[13px] px-2 py-1 rounded bg-inset text-gold">{s.clave}</span>
-              <div className="flex-1">
+              <div className="flex-1 min-w-[200px]">
                 <div className="font-medium">{s.nombre}</div>
-                <div className="text-[12px] text-muted font-mono">Matrícula {s.clave}-{String(new Date().getFullYear()).slice(2)}-0001</div>
+                <div className="text-[12px] text-muted">
+                  {[s.municipio && `${s.municipio}, ${s.estado}`, s.telefono, `${s.disciplinas} disciplina${Number(s.disciplinas) === 1 ? '' : 's'}`].filter(Boolean).join(' · ')}
+                </div>
+              </div>
+              <div className="text-[13px] min-w-[160px]">
+                {s.encargado ? <><span className="text-muted">Encargado: </span>{s.encargado}</> : Number(s.activa) ? <span className="text-danger">Sin encargado</span> : null}
               </div>
               {Number(s.activa) ? <Chip tono="ok">Activa</Chip> : <Chip>Inactiva</Chip>}
               {puede && <div className="flex gap-1">
-                <Boton variante="fantasma" tam="sm" icono={Pencil} onClick={() => { setForm({ ...s }); setErr(''); }}>Editar</Boton>
+                <Boton variante="fantasma" tam="sm" icono={Pencil} onClick={() => setEditar(s.id)}>Editar</Boton>
                 <Boton variante="fantasma" tam="sm" icono={Power} onClick={() => alternar(s)}>{Number(s.activa) ? 'Desactivar' : 'Activar'}</Boton>
               </div>}
             </li>
           ))}
         </ul>
       )}
-      <Modal abierto={!!form} onCerrar={() => setForm(null)} titulo={form?.id ? 'Editar sucursal' : 'Nueva sucursal'}
-        subtitulo={form?.id ? 'La clave no se puede cambiar porque ya está en matrículas y recibos' : 'Hereda los parámetros y precios globales'}
-        pie={<><Boton variante="secundario" onClick={() => setForm(null)}>Cancelar</Boton><Boton cargando={guardando} onClick={guardar}>Guardar</Boton></>}>
-        {form && <div className="space-y-4">
-          <Campo etiqueta="Clave (4 letras)" value={form.clave} disabled={!!form.id} maxLength={4}
-            onChange={(e) => setForm({ ...form, clave: e.target.value.toUpperCase().replace(/[^A-Z]/g, '') })} placeholder="SURE" />
-          <Campo etiqueta="Nombre" value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} placeholder="Sucursal Sur" />
-          <ErrorCaja error={err && { message: err }} />
-        </div>}
-      </Modal>
+      {(datos.datos || []).some((s) => !Number(s.activa)) && (
+        <div className="px-5 py-2.5 border-t border-line">
+          <button onClick={() => setVerInactivas(!verInactivas)} className="text-[13px] text-muted hover:text-text cursor-pointer">
+            {verInactivas ? 'Ocultar las inactivas' : `Ver las inactivas (${datos.datos.filter((s) => !Number(s.activa)).length})`}
+          </button>
+        </div>
+      )}
+      <NuevaSucursal abierto={nueva} onCerrar={() => setNueva(false)} onCreada={(r) => { avisar(`${r.nombre} quedó lista`); datos.recargar(); }} />
+      <EditarSucursal id={editar} onCerrar={() => setEditar(null)} onGuardada={() => { avisar('Sucursal actualizada'); datos.recargar(); }} />
     </Tarjeta>
   );
 }

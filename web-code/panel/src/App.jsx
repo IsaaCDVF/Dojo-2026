@@ -23,6 +23,8 @@ import Asistencia from './paginas/Asistencia';
 import Tableta from './paginas/Tableta';
 import Importar from './paginas/Importar';
 import Apariencia from './paginas/Apariencia';
+import Personal from './paginas/Personal';
+import CambiarContrasena from './paginas/CambiarContrasena';
 
 /** La cuenta de la tableta (o del celular que hace de tableta) va directo a leer credenciales */
 function InicioSegunRol() {
@@ -36,6 +38,7 @@ function Protegida({ children }) {
   const loc = useLocation();
   if (cargando) return <Cargando className="h-full" texto="Abriendo Dojo OS…" />;
   if (!yo) return <Navigate to="/login" replace state={{ desde: loc.pathname }} />;
+  if (yo.usuario?.debe_cambiar_password) return <Navigate to="/cambiar-contrasena" replace />;
   if (!rol) return <Navigate to="/elegir-rol" replace />;
   return children;
 }
@@ -52,6 +55,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={yo && !cargando ? <Navigate to="/" replace /> : <Login />} />
+      <Route path="/cambiar-contrasena" element={yo ? (yo.usuario?.debe_cambiar_password ? <CambiarContrasena /> : <Navigate to="/" replace />) : <Navigate to="/login" replace />} />
       <Route path="/elegir-rol" element={yo ? <ElegirRol /> : <Navigate to="/login" replace />} />
       <Route path="/tableta" element={<Protegida><Tableta /></Protegida>} />
       <Route element={<Protegida><Panel /></Protegida>}>
@@ -71,6 +75,7 @@ export default function App() {
         <Route path="bitacora" element={<Bitacora />} />
         <Route path="configuracion" element={<Configuracion />} />
         <Route path="configuracion/apariencia" element={<Apariencia />} />
+        <Route path="configuracion/personal" element={<Personal />} />
         <Route path="*" element={<Pronto titulo="Página no encontrada" />} />
       </Route>
     </Routes>
