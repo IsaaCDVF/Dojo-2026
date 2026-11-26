@@ -9,9 +9,10 @@ Tipos: **Agregado** (nuevo), **Cambiado** (cambia algo que ya existía), **Corre
 
 ### Agregado
 - Marca blanca (Configuración → Apariencia y marca): nombre comercial y lema, logo para fondo claro, para fondo oscuro e ícono; 6 temas de color listos o uno personalizado con revisión automática de contraste; 8 tipos de letra incluidos en el sistema; idioma, moneda, zona horaria y país. Vista previa en vivo en modo claro y oscuro. La marca aparece en el panel, el login, los recibos, las credenciales y la app de alumnos (nombre, logo, colores e ícono al instalarla). — Kevin
+- Asistente de logo (Apariencia y marca): se sube una sola imagen y el sistema detecta y quita el fondo, recorta el espacio sobrante, acomoda en horizontal un logo apilado, revisa que se vea en fondo claro y en el menú oscuro (si no, propone versión en blanco/negro o con placa) y saca el símbolo para el ícono. Vista previa de menú, recibo, pestaña y celular antes de guardar. Todo se procesa en el navegador. En el menú, un logo casi cuadrado se muestra con el nombre escrito al lado. — Kevin
 - Preferencias por usuario en Mi perfil: idioma (o el de la empresa), tema claro/oscuro/como mi equipo y tamaño de letra. — Kevin
 - Traducción con i18next (`web-code/panel/src/i18n`): español e inglés en el menú, la barra superior, el login, elegir rol, Mi perfil y Apariencia. Las demás pantallas siguen en español por ahora. Dinero y fechas con el formato del idioma y la moneda de la empresa. — Kevin
-- `pruebas/marca.sh` (53). — Kevin
+- `pruebas/marca.sh` (54; guarda la marca que haya y la regresa al terminar). — Kevin
 - Fase 6 · App móvil para alumnos y responsables (`app-code`, PWA en `/app/`): inicio con credencial QR, rumbo a la siguiente cinta, semana de asistencia y racha; Mi camino de cintas; avatar en SVG con accesorios que se desbloquean por grado e insignias; solicitar examen; Mi familia con lo que se debe, pagos y recibos. Se instala en el celular desde el navegador. — Kevin
 - Acceso a la app desde la ficha del alumno (tarjeta "App Dojo OS"): recepción genera un código de 6 dígitos (72 h) y lo manda por WhatsApp; la persona activa su cuenta y crea su contraseña. Volver a generar el código sirve para "olvidé mi contraseña". — Kevin
 - API `Modulos/App` (`AccesoControlador`, `AppControlador`); el inicio de sesión acepta matrícula o teléfono. — Kevin

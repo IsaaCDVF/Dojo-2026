@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useMarca } from '../marca/Marca';
 // Isotipo Dojo OS (mismo trazo que Logo/dojo-os-isotipo.svg). El anillo usa currentColor
 // para verse en fondo oscuro o claro; el cinturón siempre va en oro.
@@ -20,10 +21,19 @@ export function Logo({ subtitulo, oscuro = false }) {
   const im = marca.imagenes || {};
   const fondoOscuro = oscuro || modo === 'dark';
   const img = fondoOscuro ? (im.logo_oscuro || im.logo) : (im.logo || im.logo_oscuro);
+  const [cuadrado, setCuadrado] = useState(false);   // un logo casi cuadrado no se lee a 36 px: va con el nombre al lado
+  if (img && cuadrado) {
+    return (
+      <div className="flex items-center gap-2.5 min-w-0">
+        <img src={img} alt="" className="size-9 object-contain shrink-0" />
+        <div className="font-semibold tracking-tight text-[16px] truncate">{marca.nombre}</div>
+      </div>
+    );
+  }
   if (img) {
     return (
       <div className="flex items-center gap-2.5 min-w-0">
-        <img src={img} alt={marca.nombre} className="h-9 max-w-[170px] object-contain object-left" />
+        <img src={img} alt={marca.nombre} className="h-9 max-w-[170px] object-contain object-left" onLoad={(e) => setCuadrado(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight < 1.8)} />
         {subtitulo && <div className="etiqueta !text-[9.5px] hidden xl:block">{subtitulo}</div>}
       </div>
     );

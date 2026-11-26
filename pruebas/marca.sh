@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Pruebas de marca blanca (logo, tema, letra, idioma) y preferencias por usuario.
-# Uso: ./pruebas/marca.sh [http://localhost:8080]. Al final deja la marca como estaba (Dojo OS, tema océano, sin logos).
+# Uso: ./pruebas/marca.sh [http://localhost:8080]. Guarda la marca que tengas (datos y logos) y al final la deja igual.
 API=${1:-http://localhost:8080}
 pasa=0; falla=0
 prueba() { local cod; cod=$(curl -s -o /tmp/r.json -w '%{http_code}' -X "$3" "$API$4" -H 'Content-Type: application/json' ${5:+-H "Authorization: Bearer $5"} ${6:+-d "$6"})
@@ -16,8 +16,17 @@ printf '{"imagen":"data:image/png;base64,%s"}' "$(head -c 600000 /dev/urandom | 
 
 echo "Marca pública"
 prueba "Sin sesión se puede leer"          200 GET  /api/marca
-igual  "Por defecto Dojo OS"               "['datos']['nombre']" "Dojo OS"
-igual  "Tema océano"                       "['datos']['tema']" "oceano"
+igual  "Trae nombre y tema"                "(\$j['datos']['nombre'] !== '' && \$j['datos']['tema'] !== '') ? 'si' : 'no'" "si"
+# Respaldo de la marca actual para dejarla igual al final
+php -r '$j=json_decode(file_get_contents("/tmp/r.json"),true)["datos"]; $c=array_intersect_key($j, array_flip(["nombre","lema","tema","color_primario","color_fondo","fuente","idioma","moneda","zona_horaria","pais"])); file_put_contents("/tmp/marca_antes.json", json_encode($c, JSON_UNESCAPED_UNICODE)); foreach ($j["imagenes"] as $t => $u) echo $t, " ", $u ? 1 : 0, "\n";' > /tmp/marca_imgs.txt
+while read -r t hay; do
+  rm -f "/tmp/marca_$t.json"
+  if [ "$hay" = "1" ]; then
+    curl -s -D /tmp/h.txt -o /tmp/img.bin "$API/api/marca/imagen/$t"
+    mime=$(grep -i '^content-type:' /tmp/h.txt | cut -d' ' -f2 | tr -d '\r')
+    printf '{"imagen":"data:%s;base64,%s"}' "$mime" "$(base64 -w0 /tmp/img.bin)" > "/tmp/marca_$t.json"
+  fi
+done < /tmp/marca_imgs.txt
 prueba "Sin sesión no se cambia"           401 PUT  /api/marca "" '{"nombre":"X"}'
 entra "Login súper admin" admin@dojoos.mx 'Dojo2026!'; ADM=$(campo "['datos']['token']")
 entra "Login Laura" laura@dojoos.mx 'Dojo2026!'; LAU=$(campo "['datos']['token']")
@@ -50,7 +59,7 @@ prueba "SVG con código"                    422 PUT  /api/marca/imagen/logo "$AD
 prueba "Más de 512 KB"                     422 PUT  /api/marca/imagen/logo "$ADM" @/tmp/grande.json
 prueba "Logo en SVG limpio"                200 PUT  /api/marca/imagen/logo "$ADM" "{\"imagen\":\"$SVG\"}"
 prueba "Ícono en PNG"                      200 PUT  /api/marca/imagen/icono "$ADM" "{\"imagen\":\"$PNG\"}"
-igual  "Trae las direcciones"              "(\$j['datos']['imagenes']['logo'] ? 'logo' : '') . (\$j['datos']['imagenes']['icono'] ? '+icono' : '') . (\$j['datos']['imagenes']['logo_oscuro'] ? '+oscuro' : '')" "logo+icono"
+igual  "Trae las direcciones"              "(\$j['datos']['imagenes']['logo'] ? 'logo' : '') . (\$j['datos']['imagenes']['icono'] ? '+icono' : '')" "logo+icono"
 CT=$(curl -s -o /dev/null -w '%{content_type}' "$API/api/marca/imagen/logo")
 if [ "$CT" = "image/svg+xml" ]; then pasa=$((pasa+1)); echo "  ok   El logo se sirve como SVG ($CT)"; else falla=$((falla+1)); echo "  FALLA El logo debía ser image/svg+xml, llegó $CT"; fi
 CSP=$(curl -s -D - -o /dev/null "$API/api/marca/imagen/logo" | grep -ci "content-security-policy: default-src 'none'")
@@ -78,7 +87,10 @@ igual  "Sin cambios"                       "['datos']['tema']" "sistema"
 prueba "Laura vuelve al idioma de la empresa" 200 PUT /api/preferencias "$LAU" '{"idioma":null,"tema":"sistema","letra":"normal"}'
 
 echo "Dejar todo como estaba"
-prueba "Marca de fábrica"                  200 PUT  /api/marca "$ADM" '{"nombre":"Dojo OS","lema":null,"tema":"oceano","color_primario":null,"color_fondo":null,"fuente":"dm-sans","idioma":"es-MX","moneda":"MXN","zona_horaria":"America/Mexico_City","pais":"MX"}'
-prueba "Sin ícono"                         200 DELETE /api/marca/imagen/icono "$ADM"
+prueba "Regresa la marca que había"        200 PUT  /api/marca "$ADM" @/tmp/marca_antes.json
+for t in logo logo_oscuro icono; do
+  if [ -f "/tmp/marca_$t.json" ]; then prueba "Regresa $t"  200 PUT "/api/marca/imagen/$t" "$ADM" "@/tmp/marca_$t.json"
+  else prueba "Sin $t, como estaba" 200 DELETE "/api/marca/imagen/$t" "$ADM"; fi
+done
 
 echo; echo "Resultado: $pasa pasaron, $falla fallaron"; [ $falla -eq 0 ]

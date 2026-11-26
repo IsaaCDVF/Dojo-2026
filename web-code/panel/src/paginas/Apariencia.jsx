@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Check, CheckCircle2, AlertTriangle, Home, ImagePlus, Paintbrush, Trash2, Users, Wallet, XCircle } from 'lucide-react';
+import { Check, CheckCircle2, AlertTriangle, Home, ImagePlus, Paintbrush, Trash2, Users, Wallet, Wand2, XCircle } from 'lucide-react';
 import { api } from '../api';
 import { useSesion } from '../auth/Sesion';
 import { useMarca } from '../marca/Marca';
@@ -8,6 +8,7 @@ import { TEMAS, base, estiloVista, variables } from '../marca/temas';
 import { FUENTES, fuenteDe } from '../marca/fuentes';
 import { IDIOMAS } from '../i18n';
 import { Boton, Campo, Encabezado, Isotipo, Selector, Tarjeta, Vacio, useAvisos } from '../ui';
+import AsistenteLogo from './AsistenteLogo';
 
 // Configuración → Apariencia y marca. Lo que se edita se ve al instante en todo el panel (vista previa);
 // se guarda con "Guardar cambios". Los logos se guardan en cuanto se suben.
@@ -28,6 +29,7 @@ export default function Apariencia() {
   const [f, setF] = useState(() => Object.fromEntries(CAMPOS.map((k) => [k, guardada[k] ?? ''])));
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState({});
+  const [asistente, setAsistente] = useState(false);
 
   const cambios = useMemo(() => {
     const c = {};
@@ -82,6 +84,12 @@ export default function Apariencia() {
           </Tarjeta>
 
           <Tarjeta titulo={t('apariencia.logos')} subtitulo={t('apariencia.formatos')}>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-[10px] border border-action/40 bg-action/8 p-4 mb-4">
+              <Wand2 className="size-6 text-action shrink-0" />
+              <p className="text-sm flex-1">{t('apariencia.asistente.botonAyuda')}</p>
+              <Boton icono={Wand2} onClick={() => setAsistente(true)}>{t('apariencia.asistente.boton')}</Boton>
+            </div>
+            <div className="etiqueta mb-2">{t('apariencia.asistente.porSeparado')}</div>
             <div className="grid md:grid-cols-3 gap-4">
               <Imagen tipo="logo" titulo={t('apariencia.logo')} ayuda={t('apariencia.logoAyuda')} fondo="#ffffff" />
               <Imagen tipo="logo_oscuro" titulo={t('apariencia.logoOscuro')} ayuda={t('apariencia.logoOscuroAyuda')} fondo={vars.fondoBarra} />
@@ -157,6 +165,7 @@ export default function Apariencia() {
         </aside>
       </div>
 
+      <AsistenteLogo abierto={asistente} onCerrar={() => setAsistente(false)} colorMenu={vars.fondoBarra} colorMarca={vars.oscuro.action} />
       {sucio && (
         <div className="fixed bottom-0 inset-x-0 lg:left-64 z-40 border-t border-line bg-surface/95 backdrop-blur anim-entrar">
           <div className="max-w-[1280px] mx-auto px-4 lg:px-8 h-16 flex items-center gap-3">
