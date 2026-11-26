@@ -10,6 +10,7 @@ use Dojo\Modulos\Horarios\HorarioControlador;
 use Dojo\Modulos\Personas\AlumnoControlador;
 use Dojo\Modulos\Inscripciones\InscripcionControlador;
 use Dojo\Modulos\Pagos\CajaControlador;
+use Dojo\Modulos\Pagos\Pasarela\{PasarelaControlador, PagoEnLineaControlador};
 use Dojo\Modulos\Examenes\ExamenControlador;
 use Dojo\Modulos\Asistencia\AsistenciaControlador;
 use Dojo\Modulos\Inicio\InicioControlador;
@@ -125,6 +126,15 @@ $router->post('/api/caja/cobros',                [CajaControlador::class, 'cobra
 $router->get('/api/caja/pagos/{id}',             [CajaControlador::class, 'recibo'],           'pagos.ver');
 $router->put('/api/caja/pagos/{id}/cancelar',    [CajaControlador::class, 'cancelar'],         'pagos.cancelar');
 $router->get('/api/caja/corte',                  [CajaControlador::class, 'corte'],            'caja.corte');
+
+// Pago en línea (Mercado Pago). La configuración solo la toca el súper admin; el aviso de Mercado Pago es público (se valida su firma)
+$router->get('/api/pasarela',                     [PasarelaControlador::class, 'ver'],          'pasarela.configurar');
+$router->put('/api/pasarela',                     [PasarelaControlador::class, 'guardar'],      'pasarela.configurar');
+$router->post('/api/pasarela/probar',             [PasarelaControlador::class, 'probar'],       'pasarela.configurar');
+$router->post('/api/app/pagos-en-linea',          [PagoEnLineaControlador::class, 'crear'],     '');
+$router->get('/api/app/pagos-en-linea/{id}',      [PagoEnLineaControlador::class, 'ver'],       '');
+$router->post('/api/app/pagos-en-linea/{id}/prueba', [PagoEnLineaControlador::class, 'prueba'], '');
+$router->post('/api/pagos-en-linea/aviso',        [PagoEnLineaControlador::class, 'aviso'],     null);
 
 // Fase 5 · Exámenes
 $router->get('/api/examenes',                    [ExamenControlador::class, 'listar'],         'examenes.programar,examenes.validar,examenes.solicitar');

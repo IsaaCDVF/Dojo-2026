@@ -12,7 +12,7 @@ export default {
   menu: {
     inicio: 'Inicio', miPerfil: 'Mi perfil', alumnos: 'Alumnos', inscripcion: 'Inscripción', caja: 'Caja', horarios: 'Horarios',
     asistencia: 'Asistencia', examenes: 'Exámenes', tarifas: 'Precios y promociones', parametros: 'Parámetros', bitacora: 'Bitácora',
-    configuracion: 'Configuración', personal: 'Personal y accesos', tabletas: 'Tabletas de asistencia', apariencia: 'Apariencia y marca',
+    configuracion: 'Configuración', personal: 'Personal y accesos', tabletas: 'Tabletas de asistencia', pagosEnLinea: 'Pagos en línea', apariencia: 'Apariencia y marca',
   },
   roles: {
     super_admin: 'Súper administrador', admin_sucursal: 'Administrador de sucursal', recepcion: 'Recepción', instructor: 'Instructor',

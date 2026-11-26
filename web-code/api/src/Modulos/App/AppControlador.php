@@ -241,11 +241,15 @@ final class AppControlador
                 $total += $c; if ($l['estado'] === 'vencida') $vencido += $c;
             }
             $saldo += Tarifas::aCentavos($edo['saldo_favor']);
-            foreach (Db::todos('SELECT p.id, p.folio, p.fecha, p.metodo, p.estado, SUM(d.monto_cobrado - d.descuento_aplicado) AS total
-                                FROM pagos p JOIN pago_detalles d ON d.pago_id = p.id WHERE p.responsable_id = ? GROUP BY p.id ORDER BY p.fecha DESC LIMIT 10', [$rid]) as $p) $out['pagos'][] = $p;
+            // Los intentos en línea rechazados no se listan (quedan en la base: RN-35); los pendientes sí, para retomarlos
+            foreach (Db::todos('SELECT p.id, p.folio, p.fecha, p.metodo, p.estado, SUM(d.monto_cobrado - d.descuento_aplicado) AS total,
+                                       (SELECT pl.medio FROM pagos_en_linea pl WHERE pl.pago_id = p.id) AS medio, EXISTS(SELECT 1 FROM pagos_en_linea pl WHERE pl.pago_id = p.id) AS en_linea
+                                FROM pagos p JOIN pago_detalles d ON d.pago_id = p.id WHERE p.responsable_id = ? AND p.estado <> "rechazado"
+                                GROUP BY p.id ORDER BY p.fecha DESC LIMIT 10', [$rid]) as $p) $out['pagos'][] = $p;
             $prox = array_values(array_filter($edo['adeudos'], fn($l) => $l['estado'] === 'por_vencer'));
             if ($prox) $out['proximo'] = ['concepto' => $prox[0]['concepto'], 'detalle' => $prox[0]['detalle'], 'vence' => $prox[0]['vence'], 'precio' => $prox[0]['precio']];
         }
+        $out['pago_en_linea'] = \Dojo\Modulos\Pagos\Pasarela\PagoEnLineaControlador::modo();   // apagado | prueba | real
         $vence = array_column(array_filter($out['adeudos'], fn($l) => $l['estado'] === 'vencida'), 'vence');
         $out['vencido_desde'] = $vence ? min($vence) : null;
         $out['total'] = Tarifas::aPesos($total); $out['vencido'] = Tarifas::aPesos($vencido); $out['saldo_favor'] = Tarifas::aPesos($saldo);

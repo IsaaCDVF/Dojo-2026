@@ -49,10 +49,11 @@ INSERT INTO permisos (clave, modulo, descripcion, nivel_minimo) VALUES
   ('facturas.emitir','facturacion','Emitir facturas',3),
   ('facturas.ver','facturacion','Consultar y descargar facturas',2),
   ('avatar.editar','portal','Vestir su avatar',1),
-  ('marca.editar','sistema','Cambiar logo, colores, letra e idioma del sistema',5);
+  ('marca.editar','sistema','Cambiar logo, colores, letra e idioma del sistema',5),
+  ('pasarela.configurar','sistema','Conectar la cuenta de Mercado Pago y encender el pago en línea',5);
 
 INSERT INTO rol_permisos (rol_id, permiso_id)
-  SELECT r.id, p.id FROM roles r JOIN permisos p ON p.clave IN ('sucursales.gestionar','roles.asignar','parametros.ver','parametros.editar','bitacora.ver','reportes.ver','disciplinas.gestionar','grados.gestionar','horarios.gestionar','horarios.ver','precios.gestionar','promociones.gestionar','alumnos.ver','alumnos.crear','alumnos.editar','alumnos.baja','alumnos.importar','responsables.gestionar','perfil.ver','inscripciones.crear','asistencia.registrar','asistencia.manual','asistencia.validar','asistencia.ver','pagos.cobrar','pagos.ver','pagos.en_linea','pagos.cancelar','caja.corte','examenes.programar','examenes.solicitar','examenes.validar','examenes.excepcion','examenes.resultados','facturas.emitir','facturas.ver','avatar.editar','marca.editar') WHERE r.nombre='super_admin';
+  SELECT r.id, p.id FROM roles r JOIN permisos p ON p.clave IN ('sucursales.gestionar','roles.asignar','parametros.ver','parametros.editar','bitacora.ver','reportes.ver','disciplinas.gestionar','grados.gestionar','horarios.gestionar','horarios.ver','precios.gestionar','promociones.gestionar','alumnos.ver','alumnos.crear','alumnos.editar','alumnos.baja','alumnos.importar','responsables.gestionar','perfil.ver','inscripciones.crear','asistencia.registrar','asistencia.manual','asistencia.validar','asistencia.ver','pagos.cobrar','pagos.ver','pagos.en_linea','pagos.cancelar','caja.corte','examenes.programar','examenes.solicitar','examenes.validar','examenes.excepcion','examenes.resultados','facturas.emitir','facturas.ver','avatar.editar','marca.editar','pasarela.configurar') WHERE r.nombre='super_admin';
 INSERT INTO rol_permisos (rol_id, permiso_id)
   SELECT r.id, p.id FROM roles r JOIN permisos p ON p.clave IN ('roles.asignar','parametros.ver','bitacora.ver','reportes.ver','horarios.gestionar','horarios.ver','promociones.gestionar','alumnos.ver','alumnos.crear','alumnos.editar','alumnos.baja','alumnos.importar','responsables.gestionar','perfil.ver','inscripciones.crear','asistencia.manual','asistencia.validar','asistencia.ver','pagos.cobrar','pagos.ver','pagos.cancelar','caja.corte','examenes.programar','examenes.validar','examenes.excepcion','examenes.resultados','facturas.emitir','facturas.ver') WHERE r.nombre='admin_sucursal';
 INSERT INTO rol_permisos (rol_id, permiso_id)
@@ -107,4 +108,7 @@ INSERT INTO codigos_respuesta_pasarela (codigo, descripcion, mensaje_usuario, pe
   ('fondos_insuficientes','Fondos insuficientes','Tu banco rechazó el pago por fondos insuficientes. Puedes intentar con otra tarjeta o pagar en la sucursal.',1),
   ('tarjeta_vencida','Tarjeta vencida','Tu tarjeta está vencida. Actualiza tus datos de pago.',1),
   ('rechazo_banco','Rechazo genérico del banco','Hubo un inconveniente con tu tarjeta; el banco no pudo procesar tu pago. Comunícate con tu banco o intenta más tarde.',1),
-  ('sospecha_fraude','Bloqueo por seguridad','Tu banco bloqueó el cargo por seguridad. Comunícate con tu banco para autorizarlo.',1);
+  ('sospecha_fraude','Bloqueo por seguridad','Tu banco bloqueó el cargo por seguridad. Comunícate con tu banco para autorizarlo.',1),
+  ('pendiente','Esperando el pago (OXXO o SPEI)','Tu ficha está lista. Cuando pagues, se registra solo (puede tardar unas horas).',0),
+  ('cancelado','Pago cancelado o vencido','El pago se canceló o la ficha venció. Puedes generar uno nuevo.',1),
+  ('datos_tarjeta','Datos de la tarjeta incorrectos','Revisa el número, la fecha o el código de seguridad de tu tarjeta e intenta otra vez.',1);

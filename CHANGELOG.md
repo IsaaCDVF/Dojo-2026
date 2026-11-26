@@ -8,6 +8,11 @@ Tipos: **Agregado** (nuevo), **Cambiado** (cambia algo que ya existía), **Corre
 ## [Sin publicar]
 
 ### Agregado
+- Pago en línea desde la app con Mercado Pago (tarjeta, OXXO, SPEI y saldo de Mercado Pago): el responsable elige qué pagar (la mensualidad vencida va con su recargo), paga en el checkout de Mercado Pago y recibe su recibo con folio; las fichas de OXXO y SPEI quedan pendientes hasta que se pagan. Si lo pagan en caja mientras la ficha sigue viva, lo repetido queda como saldo a favor. — Kevin
+- Configuración → Pagos en línea (súper admin): apagado, modo prueba (simula todo dentro del sistema, no cobra) o cobrar con Mercado Pago; Access Token, Public Key, clave de avisos y dirección pública. Las llaves se guardan cifradas (`web-code/api/almacen/llaves/`) y nunca se vuelven a mostrar; no se toca el `.env`. Botón "Probar conexión". — Kevin
+- Avisos de Mercado Pago (webhook) con validación de firma, y consulta a Mercado Pago cuando la persona vuelve a la app (funciona aunque el servidor no sea público). — Kevin
+- Caja: las líneas con un pago en línea en proceso dicen "Pagando en línea (OXXO/SPEI)". — Kevin
+- `pruebas/pagos_linea.sh` (91). — Kevin
 - Tabletas de asistencia (Configuración → Tabletas): la tableta de la entrada se conecta con un código de 6 dígitos que muestra en pantalla (`/tableta/vincular`, también desde el login), sin correo ni contraseña. Se queda conectada (no se cierra por inactividad) hasta que la desconectan desde el panel; la lista muestra si está en línea. Las cuentas de tableta con correo de antes siguen funcionando y se listan aparte. — Kevin
 - La tableta ya no pide elegir la clase: el alumno acerca su QR y el sistema busca la clase de ahorita en la que está inscrito (si tiene dos seguidas, la más cercana y luego la siguiente; si viene de otra sucursal, una de su disciplina como visita). Muestra las clases de ahora y en el resultado de qué clase quedó. Elegir una clase a mano sigue disponible. Se puede agregar a la pantalla de inicio y abre a pantalla completa. — Kevin
 - `pruebas/tabletas.sh` (81). — Kevin
@@ -53,6 +58,7 @@ Tipos: **Agregado** (nuevo), **Cambiado** (cambia algo que ya existía), **Corre
 - `pruebas/tarifas.sh` con 42 pruebas de tarifas y promociones. — Kevin
 
 ### Cambiado
+- `Cotizador` (nuevo): la caja y el pago en línea arman el ticket con el mismo código. El corte del día ya no lista intentos en línea rechazados o sin pagar, y en "Cobró" dice "App · en línea". — Kevin
 - Personal y accesos ya no ofrece el rol de tableta para personas (la tableta se conecta en Configuración → Tabletas) ni lista las tabletas conectadas. — Kevin
 - App: el login ya no muestra un avatar de ejemplo; ahora es la portada de la empresa: su símbolo en grande, el nombre con su letra y el lema. — Kevin
 - La sesión de alumnos y responsables dura `dias_sesion_app` días (para no pedir la contraseña cada vez que abren la app); el personal sigue con `minutos_inactividad_sesion`. Ficha del alumno: tarjeta "App Dojo OS". — Kevin
@@ -71,6 +77,7 @@ Tipos: **Agregado** (nuevo), **Cambiado** (cambia algo que ya existía), **Corre
 - Panel: las fechas sin hora (`2026-11-28`) se mostraban un día antes. — Kevin
 
 ### Base de datos
+- `014_pagos_en_linea.sql`: `pasarela_config` y `pagos_en_linea`; permiso `pasarela.configurar` y mensajes nuevos en `codigos_respuesta_pasarela` (en semillas). Para una base que ya existe: `parches/2026-11-26_pagos_en_linea.sql` (se puede correr dos veces). — Kevin
 - `013_dispositivos.sql`: tablas `dispositivos` y `dispositivo_vinculos`. Para una base que ya existe: `parches/2026-11-26_dispositivos.sql` (**obligatorio**: sin estas tablas la API no deja entrar a nadie; se puede correr dos veces). — Kevin
 - `012_sucursal_completa_personal.sql`: `sucursales.telefono` y `usuarios.debe_cambiar_password`. Para una base que ya existe: `parches/2026-11-26_sucursal_personal.sql` (se puede correr dos veces). — Kevin
 - `011_marca_fuente_nombre.sql`: columna `marca.fuente_nombre` (letra del nombre comercial). Para una base que ya existe: `parches/2026-11-26_marca_nombre.sql` (se puede correr dos veces). — Kevin

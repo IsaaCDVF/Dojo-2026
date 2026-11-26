@@ -41,51 +41,9 @@ final class CajaControlador
         $ref = trim((string) ($c['referencia'] ?? ''));
         if ($d['metodo'] === 'transferencia' && $ref === '') throw new ErrorApi('Escribe el número de rastreo de la transferencia', 422, ['campo' => 'referencia']);
         $r = $this->responsable((int) $d['responsable_id']);
-        $propia = Permiso::sucursalDe($req);
-        $edo = EstadoCuenta::de($r['id'], $propia);
-
-        // 1. Líneas pedidas: deben existir en el estado de cuenta actual
-        $porClave = array_column($edo['adeudos'], null, 'clave');
-        $lineas = [];
-        foreach (array_unique((array) ($c['claves'] ?? [])) as $k) {
-            if (!isset($porClave[$k])) throw new ErrorApi("El adeudo $k ya no está pendiente; recarga el estado de cuenta", 409);
-            $lineas[] = $porClave[$k];
-        }
-        // Una mensualidad vencida no se cobra sin su recargo
-        foreach ($lineas as $l) {
-            if (str_starts_with($l['clave'], 'mens:') && isset($porClave['rec:' . substr($l['clave'], 5)]) && !in_array('rec:' . substr($l['clave'], 5), $c['claves'], true)) {
-                throw new ErrorApi("La mensualidad de {$l['detalle']} está vencida: cóbrala junto con su recargo", 422);
-            }
-        }
-        $alumnos = array_column($edo['alumnos'], null, 'id');
-        foreach ((array) ($c['productos'] ?? []) as $p) {
-            $con = Db::uno('SELECT id, nombre FROM conceptos WHERE id = ? AND tipo = "producto"', [(int) ($p['concepto_id'] ?? 0)]);
-            if (!$con) throw new ErrorApi('Producto no encontrado', 404);
-            $aid = !empty($p['alumno_id']) ? (int) $p['alumno_id'] : null;
-            if ($aid && !isset($alumnos[$aid])) throw new ErrorApi('Ese alumno no está a cargo de este responsable', 422);
-            for ($i = 0, $n = max(1, min(20, (int) ($p['cantidad'] ?? 1))); $i < $n; $i++) {
-                $lineas[] = ['clave' => null, 'alumno_id' => $aid, 'concepto_id' => (int) $con['id'], 'concepto' => $con['nombre'], 'periodo' => null, 'solicitud_id' => null];
-            }
-        }
-        if (!$lineas) throw new ErrorApi('Elige al menos un concepto para cobrar', 422);
-
-        // 2. Precios y promoción: los calcula el servidor (nunca se confía en el monto que manda la pantalla)
-        $sucursal = $propia ?? (int) ($alumnos[$lineas[0]['alumno_id'] ?? 0]['sucursal_id'] ?? 0);
-        if (!$sucursal) $sucursal = (int) ($edo['alumnos'][0]['sucursal_id'] ?? 0);
-        if (!$sucursal) throw new ErrorApi('No se pudo saber la sucursal del cobro', 422);
-        $codigo = isset($c['codigo']) && trim($c['codigo']) !== '' ? trim($c['codigo']) : null;
-        $cot = Tarifas::cotizar(array_map(fn($l) => ['concepto_id' => $l['concepto_id'], 'cantidad' => 1], $lineas), $sucursal, $codigo);
-
-        // 3. Saldo a favor
-        $saldos = !empty($c['usar_saldo']) ? $edo['saldos'] : [];
-        $totalCent = Tarifas::aCentavos($cot['total']);
-        $saldoCent = array_sum(array_map(fn($s) => Tarifas::aCentavos($s['monto']), $saldos));
-        if ($saldoCent > $totalCent) {   // solo se usan saldos completos que quepan en el total
-            $usar = []; $acum = 0;
-            foreach ($saldos as $s) { $m = Tarifas::aCentavos($s['monto']); if ($acum + $m <= $totalCent) { $usar[] = $s; $acum += $m; } }
-            $saldos = $usar; $saldoCent = $acum;
-        }
-        $aPagar = $totalCent - $saldoCent;
+        $codigo = isset($c['codigo']) && trim((string) $c['codigo']) !== '' ? trim((string) $c['codigo']) : null;
+        $x = Cotizador::preparar($r, Permiso::sucursalDe($req), (array) ($c['claves'] ?? []), (array) ($c['productos'] ?? []), $codigo, !empty($c['usar_saldo']));
+        ['sucursal' => $sucursal, 'lineas' => $lineas, 'cot' => $cot, 'saldos' => $saldos, 'saldoCent' => $saldoCent, 'aPagar' => $aPagar] = $x;
         $metodo = $aPagar === 0 && $saldoCent > 0 ? 'saldo_favor' : $d['metodo'];
 
         return compact('r', 'sucursal', 'metodo', 'ref', 'lineas', 'cot', 'saldos', 'saldoCent', 'aPagar');
@@ -126,7 +84,7 @@ final class CajaControlador
     public function recibo(Peticion $req): void
     {
         $p = Db::uno('SELECT p.id, p.folio, p.fecha, p.metodo, p.referencia_pasarela AS referencia, p.estado, p.sucursal_id, s.nombre AS sucursal,
-                             p.responsable_id, CONCAT(pe.nombre, " ", pe.apellido_paterno) AS responsable, u.email AS cobro
+                             p.responsable_id, CONCAT(pe.nombre, " ", pe.apellido_paterno) AS responsable, IF(p.metodo = "pasarela", "App · en línea", u.email) AS cobro
                       FROM pagos p JOIN sucursales s ON s.id = p.sucursal_id LEFT JOIN responsables_pago r ON r.id = p.responsable_id
                       LEFT JOIN personas pe ON pe.id = r.persona_id LEFT JOIN usuarios u ON u.id = p.registrado_por WHERE p.id = ?', [$req->params['id']]);
         if (!$p) throw new ErrorApi('Pago no encontrado', 404);
@@ -152,10 +110,11 @@ final class CajaControlador
         $fecha = $req->query['fecha'] ?? date('Y-m-d');
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha)) throw new ErrorApi('Fecha no válida', 422);
         $s = Permiso::sucursalDe($req) ?? (!empty($req->query['sucursal_id']) ? (int) $req->query['sucursal_id'] : null);
-        $w = 'DATE(p.fecha) = ?'; $par = [$fecha];
+        // Solo lo que entró o se canceló: los intentos en línea rechazados o sin pagar no son movimientos de caja
+        $w = 'DATE(p.fecha) = ? AND p.estado IN ("aprobado", "reembolsado")'; $par = [$fecha];
         if ($s) { $w .= ' AND p.sucursal_id = ?'; $par[] = $s; }
         $pagos = Db::todos(
-            "SELECT p.id, p.folio, p.fecha, p.metodo, p.estado, s.nombre AS sucursal, u.email AS cobro,
+            "SELECT p.id, p.folio, p.fecha, p.metodo, p.estado, s.nombre AS sucursal, IF(p.metodo = 'pasarela', 'App · en línea', u.email) AS cobro,
                     CONCAT(pe.nombre, ' ', pe.apellido_paterno) AS responsable,
                     SUM(d.monto_cobrado - d.descuento_aplicado) AS total,
                     (SELECT COALESCE(SUM(sf.monto), 0) FROM saldos_favor sf WHERE sf.aplicado_en_pago_id = p.id) AS saldo_usado

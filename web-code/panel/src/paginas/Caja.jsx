@@ -19,7 +19,7 @@ export default function Caja() {
   return (
     <>
       <Encabezado ruta="Pagos" titulo="Caja"
-        descripcion="Cobro en efectivo o transferencia. Las mensualidades vencidas se cobran con su recargo."
+        descripcion="Cobro en efectivo o transferencia. Las mensualidades vencidas se cobran con su recargo. Lo que pagan desde la app (en línea) aparece solo en el corte."
         acciones={tiene('caja.corte') && <Pestanas valor={vista} onCambio={(v) => cambiar('vista', v === 'corte' ? 'corte' : '')}
           opciones={[{ valor: 'cobrar', etiqueta: 'Cobrar' }, { valor: 'corte', etiqueta: 'Corte del día' }]} />} />
       {vista === 'corte'
@@ -195,6 +195,7 @@ function Cobrar({ responsable, alumno, onElegir, onRecibo, version }) {
                           <Chip tono={TONO[l.estado]}>{ESTADO[l.estado]}</Chip>
                           {l.vence && <span className="inline-flex items-center gap-1"><CalendarClock className="size-3" />{l.clave.startsWith('exa:') ? 'examen el' : 'vence'} {formato.fecha(l.vence)}</span>}
                           {rec && <span className="text-danger">+ recargo {formato.dinero(rec.precio)}</span>}
+                          {l.en_linea && <Chip tono="accion">Pagando en línea{l.en_linea.medio === 'ticket' ? ' (OXXO)' : l.en_linea.medio === 'bank_transfer' ? ' (SPEI)' : ''}</Chip>}
                         </div>
                       </div>
                       <div className="text-right font-mono">

@@ -198,3 +198,19 @@ La tableta de la entrada se conecta con un código (como una tele con una app de
 
 `GET /marca/manifest/tableta`: manifiesto para "Agregar a pantalla de inicio" en la tableta (abre `/tableta` a pantalla completa).
 
+## Endpoints · Pago en línea (Mercado Pago)
+
+El responsable paga desde la app lo que debe (mensualidad, recargo, inscripción, examen) con tarjeta, OXXO, SPEI o saldo de Mercado Pago (Checkout Pro, API de preferencias). Usa las mismas tablas de la caja: un pago `metodo = pasarela` que nace `pendiente` sin folio y recibe folio al aprobarse. Los montos los calcula el servidor (`Cotizador`, el mismo de la caja). Las llaves se guardan cifradas (`almacen/llaves/pasarela.key`, fuera de git); no se usa el `.env`.
+
+| Método | Ruta | Permiso | Qué hace |
+|---|---|---|---|
+| GET | /pasarela | pasarela.configurar | `{modo: apagado\|prueba\|real, public_key, tiene_token, token_final, tiene_secreto, url_publica, url_aviso, https, pagos_hoy}`. El token y la clave nunca se devuelven |
+| PUT | /pasarela | pasarela.configurar | `{modo?, public_key?, access_token?, webhook_secret?, url_publica?}` (vacío = borrar). `real` sin token → 422 |
+| POST | /pasarela/probar | pasarela.configurar | Llama a `GET /users/me` de Mercado Pago con el token → `{cuenta, correo, pais}` |
+| POST | /app/pagos-en-linea | (sesión, responsable) | `{claves: [...]}` → `{pago_id, url, origen, total}`. Con `real` crea la preferencia y `url` es el checkout de Mercado Pago; con `prueba`, `url` es `/app/pago/{id}`. Una línea con un pago en proceso → 409 con `pago_id`. Apagado → 409 |
+| GET | /app/pagos-en-linea/{id} | (sesión, dueño) | Estado: `pendiente\|aprobado\|rechazado\|reembolsado`, `vigente`, `medio` (credit_card, debit_card, ticket = OXXO, bank_transfer = SPEI), `ficha_url`, `expira`, `folio`, `mensaje_usuario`, `permite_reintento`, `lineas`, `a_favor`. Si está pendiente en modo real, antes le pregunta a Mercado Pago (busca por `external_reference`): así funciona aunque el aviso no pueda llegar (local) |
+| POST | /app/pagos-en-linea/{id}/prueba | (sesión, dueño) | Solo en modo prueba: `{resultado: aprobado\|rechazado\|oxxo\|spei\|pagar_ficha\|vencer}` simula a Mercado Pago |
+| POST | /pagos-en-linea/aviso | pública | Webhook de Mercado Pago. Con clave secreta configurada valida `x-signature` (HMAC-SHA256 de `id:{data.id};request-id:{x-request-id};ts:{ts};`) → 401 si no cuadra. Solo `type=payment` en modo real; el pago se vuelve a pedir a Mercado Pago con el token |
+
+Reglas al aplicar lo que dice Mercado Pago: `approved` → folio, `aprobado`, solicitudes de examen ligadas; si alguna línea ya se había pagado en caja mientras tanto, su monto queda como **saldo a favor**. `pending/in_process` → sigue pendiente con la ficha. `rejected` → `rechazado` con el mensaje del catálogo (`fondos_insuficientes`, `datos_tarjeta`, `sospecha_fraude`, `rechazo_banco`); `cancelled` (ficha vencida) → `cancelado`. Un pago aprobado nunca baja a pendiente o rechazado; `refunded/charged_back` lo pasan a `reembolsado`. Cada intento es un pago (RN-35): los rechazados no salen en la app ni en el corte. `GET /app/familia` trae `pago_en_linea` (modo) y cada adeudo en proceso trae `en_linea {pago_id, medio}` (también en el estado de cuenta de la caja).
+

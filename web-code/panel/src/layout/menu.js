@@ -1,4 +1,4 @@
-import { BadgeDollarSign, Tablet, UserCog, CalendarCheck, CalendarDays, ClipboardList, Home, Medal, Palette, Settings, SlidersHorizontal, Tags, UserPlus, UserRound, Users, Wallet } from 'lucide-react';
+import { BadgeDollarSign, CreditCard, Tablet, UserCog, CalendarCheck, CalendarDays, ClipboardList, Home, Medal, Palette, Settings, SlidersHorizontal, Tags, UserPlus, UserRound, Users, Wallet } from 'lucide-react';
 
 // Menú lateral: cada opción aparece solo si el rol activo tiene alguno de sus permisos.
 // t = clave de traducción (src/i18n). listo: false = la pantalla todavía no está terminada (se muestra con la etiqueta "Pronto").
@@ -17,6 +17,7 @@ export const MENU = [
   { a: '/configuracion', t: 'menu.configuracion', icono: Settings, permisos: ['sucursales.gestionar', 'disciplinas.gestionar'], listo: true, exacto: true },
   { a: '/configuracion/personal', t: 'menu.personal', icono: UserCog, permisos: ['roles.asignar'], listo: true },
   { a: '/configuracion/tabletas', t: 'menu.tabletas', icono: Tablet, permisos: ['roles.asignar'], listo: true },
+  { a: '/configuracion/pagos-en-linea', t: 'menu.pagosEnLinea', icono: CreditCard, permisos: ['pasarela.configurar'], listo: true },
   { a: '/configuracion/apariencia', t: 'menu.apariencia', icono: Palette, permisos: ['marca.editar'], listo: true },
 ];
 

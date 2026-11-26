@@ -84,6 +84,29 @@ final class EstadoCuenta
                 }
             }
         }
+        return self::marcarEnLinea($adeudos, array_map(fn($a) => (int) $a['id'], $alumnos));
+    }
+
+    /** Marca las líneas que ya tienen un pago en línea en proceso (ficha de OXXO/SPEI vigente o checkout abierto) */
+    private static function marcarEnLinea(array $adeudos, array $alumnos): array
+    {
+        static $hayTabla = null;   // si todavía no se corre el parche del pago en línea, no se marca nada
+        $hayTabla ??= (bool) Db::uno("SHOW TABLES LIKE 'pagos_en_linea'");
+        if (!$adeudos || !$alumnos || !$hayTabla) return $adeudos;
+        $marcas = implode(',', array_fill(0, count($alumnos), '?'));
+        $en = [];
+        foreach (Db::todos("SELECT d.alumno_id, d.concepto_id, d.periodo, p.id pago_id, pl.medio, pl.solicitudes, d.id detalle_id
+                            FROM pago_detalles d JOIN pagos p ON p.id = d.pago_id JOIN pagos_en_linea pl ON pl.pago_id = p.id
+                            WHERE d.alumno_id IN ($marcas) AND " . \Dojo\Modulos\Pagos\Pasarela\PagoEnLineaControlador::ACTIVO, $alumnos) as $r) {
+            $sol = json_decode((string) ($r['solicitudes'] ?? ''), true) ?: [];
+            $k = isset($sol[$r['detalle_id']]) ? 'exa:' . $sol[$r['detalle_id']] : $r['alumno_id'] . '|' . $r['concepto_id'] . '|' . ($r['periodo'] ?? '');
+            $en[$k] = ['pago_id' => (int) $r['pago_id'], 'medio' => $r['medio']];
+        }
+        if (!$en) return $adeudos;
+        foreach ($adeudos as &$l) {
+            $k = $l['solicitud_id'] ? 'exa:' . $l['solicitud_id'] : $l['alumno_id'] . '|' . $l['concepto_id'] . '|' . ($l['periodo'] ?? '');
+            if (isset($en[$k])) $l['en_linea'] = $en[$k];
+        }
         return $adeudos;
     }
 

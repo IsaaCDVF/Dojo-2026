@@ -27,6 +27,7 @@ import Personal from './paginas/Personal';
 import CambiarContrasena from './paginas/CambiarContrasena';
 import VincularTableta from './paginas/VincularTableta';
 import Tabletas from './paginas/Tabletas';
+import PagosEnLinea from './paginas/PagosEnLinea';
 
 /** La cuenta de la tableta (o del celular que hace de tableta) va directo a leer credenciales */
 function InicioSegunRol() {
@@ -80,6 +81,7 @@ export default function App() {
         <Route path="configuracion/apariencia" element={<Apariencia />} />
         <Route path="configuracion/personal" element={<Personal />} />
         <Route path="configuracion/tabletas" element={<Tabletas />} />
+        <Route path="configuracion/pagos-en-linea" element={<PagosEnLinea />} />
         <Route path="*" element={<Pronto titulo="Página no encontrada" />} />
       </Route>
     </Routes>

@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { AlertTriangle, CheckCircle2, ChevronRight, CreditCard, PiggyBank, Store } from 'lucide-react';
 import { api, colorCinta, formato } from '../api';
 import { Cabecera } from '../Marco';
@@ -10,6 +10,7 @@ const PAGO = { vencido: ['Vencido', 'peligro'], por_pagar: ['Por pagar', 'oro'],
 
 export default function Familia() {
   const datos = useDatos(() => api.get('/app/familia'), []);
+  const navegar = useNavigate();
   const d = datos.datos;
   if (datos.cargando && !d) return <Cargando />;
   if (datos.error) return <><Cabecera titulo="Mi familia" /><ErrorCaja error={datos.error} reintentar={datos.recargar} /></>;
@@ -30,8 +31,8 @@ export default function Familia() {
           {!debe && d.proximo && <p className="text-soft font-semibold mt-1 text-[14px]">Siguiente: {d.proximo.concepto}{d.proximo.detalle ? ` · ${d.proximo.detalle}` : ''} el {formato.fecha(d.proximo.vence)} ({formato.dinero(d.proximo.precio)})</p>}
           {debe && (
             <div className="mt-4 space-y-3">
-              <Boton tono="oro" icono={CreditCard} disabled>Pago en línea: pronto</Boton>
-              <div className="flex items-center gap-3 rounded-2xl bg-deep/60 px-4 py-3 text-[14px] font-bold"><Store className="size-5 text-soft shrink-0" />Paga en recepción{d.sucursal ? ` de ${d.sucursal}` : ''}: efectivo o transferencia.</div>
+              {d.pago_en_linea !== 'apagado' && <Boton tono="oro" icono={CreditCard} onClick={() => navegar('/pagar')}>{d.adeudos.some((l) => l.en_linea) ? 'Ver mi pago en proceso' : 'Pagar en línea'}</Boton>}
+              <div className="flex items-center gap-3 rounded-2xl bg-deep/60 px-4 py-3 text-[14px] font-bold"><Store className="size-5 text-soft shrink-0" />{d.pago_en_linea !== 'apagado' ? 'O paga' : 'Paga'} en recepción{d.sucursal ? ` de ${d.sucursal}` : ''}: efectivo o transferencia.</div>
             </div>
           )}
           <Link to="/pagos" className="mt-4 inline-flex items-center gap-1 font-black text-action">Ver detalle y recibos <ChevronRight className="size-5" /></Link>

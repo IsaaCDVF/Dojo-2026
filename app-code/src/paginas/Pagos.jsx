@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { ChevronRight, Receipt } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ChevronRight, CreditCard, Receipt } from 'lucide-react';
 import { api, formato } from '../api';
 import { Cabecera } from '../Marco';
-import { Cargando, Chip, ErrorCaja, Hoja, Tarjeta, useDatos } from '../ui';
+import { Boton, Cargando, Chip, ErrorCaja, Hoja, Tarjeta, useDatos } from '../ui';
 
 // Pagos: lo pendiente, desglosado por alumno, y el historial con su recibo.
 const METODO = { efectivo: 'Efectivo', transferencia: 'Transferencia', pasarela: 'En línea', saldo_favor: 'Saldo a favor' };
@@ -10,6 +11,7 @@ const METODO = { efectivo: 'Efectivo', transferencia: 'Transferencia', pasarela:
 export default function Pagos() {
   const datos = useDatos(() => api.get('/app/familia'), []);
   const [recibo, setRecibo] = useState(null);
+  const navegar = useNavigate();
   const d = datos.datos;
   if (datos.cargando && !d) return <Cargando />;
   if (datos.error) return <><Cabecera titulo="Pagos" /><ErrorCaja error={datos.error} reintentar={datos.recargar} /></>;
@@ -30,11 +32,12 @@ export default function Pagos() {
                 </div>
                 <div className="text-right">
                   <div className="font-black tabular-nums">{formato.dinero(l.precio)}</div>
-                  {l.estado === 'vencida' ? <Chip tono="peligro">Vencido</Chip> : <Chip tono="oro">Por pagar</Chip>}
+                  {l.en_linea ? <Chip tono="accion">En proceso</Chip> : l.estado === 'vencida' ? <Chip tono="peligro">Vencido</Chip> : <Chip tono="oro">Por pagar</Chip>}
                 </div>
               </li>
             ))}
           </ul>
+          {d.adeudos.length > 0 && d.pago_en_linea !== 'apagado' && <Boton tono="oro" icono={CreditCard} className="mt-3" onClick={() => navegar('/pagar')}>Pagar en línea</Boton>}
         </Tarjeta>
 
         <Tarjeta>
@@ -43,10 +46,10 @@ export default function Pagos() {
           <ul className="mt-2 divide-y-2 divide-line">
             {d.pagos.map((p) => (
               <li key={p.id}>
-                <button onClick={() => setRecibo(p.id)} className="w-full flex items-center gap-3 py-3 text-left cursor-pointer">
+                <button onClick={() => (p.estado === 'pendiente' && Number(p.en_linea) ? navegar(`/pago/${p.id}`) : setRecibo(p.id))} className="w-full flex items-center gap-3 py-3 text-left cursor-pointer">
                   <span className="grid place-items-center size-11 rounded-2xl bg-inset shrink-0"><Receipt className="size-5 text-action" /></span>
-                  <div className="flex-1 min-w-0"><div className="font-black">{formato.fecha(p.fecha)} · {METODO[p.metodo] || p.metodo}</div><div className="text-[13px] text-muted font-mono font-semibold">{p.folio}</div></div>
-                  <div className="text-right"><div className="font-black tabular-nums">{formato.dinero(p.total)}</div>{p.estado !== 'aprobado' && <Chip tono="peligro">{p.estado === 'reembolsado' ? 'Cancelado' : p.estado}</Chip>}</div>
+                  <div className="flex-1 min-w-0"><div className="font-black">{formato.fecha(p.fecha)} · {METODO[p.metodo] || p.metodo}{p.medio === 'ticket' ? ' (OXXO)' : p.medio === 'bank_transfer' ? ' (SPEI)' : ''}</div><div className="text-[13px] text-muted font-mono font-semibold">{p.folio || 'Esperando el pago'}</div></div>
+                  <div className="text-right"><div className="font-black tabular-nums">{formato.dinero(p.total)}</div>{p.estado === 'pendiente' ? <Chip tono="oro">Pendiente</Chip> : p.estado !== 'aprobado' && <Chip tono="peligro">{p.estado === 'reembolsado' ? 'Cancelado' : p.estado}</Chip>}</div>
                   <ChevronRight className="size-5 text-muted" />
                 </button>
               </li>
