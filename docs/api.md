@@ -182,3 +182,19 @@ Quién entra al panel, con qué rol y en qué sucursal. Solo se dan roles de **n
 | DELETE | /personal/{id}/roles/{rid} | roles.asignar | Desactiva el rol (queda en el historial) y cierra las sesiones con ese rol |
 | POST | /personal/{id}/contrasena | roles.asignar | Contraseña temporal nueva ("olvidé mi contraseña"); cierra sus sesiones y desbloquea la cuenta |
 
+## Endpoints · Tabletas de asistencia
+
+La tableta de la entrada se conecta con un código (como una tele con una app de video): abre `/tableta/vincular`, muestra 6 dígitos, el admin los escribe en Configuración → Tabletas y la tableta recibe su sesión. Por dentro usa una cuenta interna con rol `tableta` en la sucursal (sin contraseña con la que alguien pueda entrar). Su sesión **no se cierra por inactividad**; se corta con "Desconectar".
+
+| Método | Ruta | Permiso | Qué hace |
+|---|---|---|---|
+| POST | /dispositivos/solicitar | pública | → `{codigo (6 dígitos), clave (secreta), expira_en: 600}`. Máximo 10 códigos vivos por IP (429) |
+| POST | /dispositivos/estado | pública | `{clave}` → `{estado: esperando \| vinculado \| expirado}`; con `vinculado` trae `token` y `dispositivo {nombre, sucursal}` **una sola vez** |
+| GET | /dispositivos | roles.asignar | `{tabletas: [{id, nombre, sucursal, activo, conectada, en_linea (habló en los últimos 10 min), ultima_vez, creado_por}], cuentas_con_correo}` (las tabletas de antes, con correo y contraseña). El admin de sucursal solo ve las suyas |
+| POST | /dispositivos | roles.asignar | `{codigo, nombre, sucursal_id}`. Código inexistente, usado o vencido → 404 |
+| PUT | /dispositivos/{id} | roles.asignar | `{nombre?, activo: 0}`. Desconectar cierra su sesión al momento; se vuelve a conectar con código nuevo (activo: 1 → 422) |
+
+`POST /asistencias/qr` ya no exige `horario_id`: sin él, la clase se busca sola entre las de hoy en la sucursal de la tableta (desde 1 h antes hasta que terminan): la más cercana a esta hora en la que está inscrito y que no ha registrado; si no está inscrito en ninguna, una de su misma disciplina (visita); si tampoco, la más cercana (y se rechaza como no inscrito). Sin clases a esa hora → 409 con `resultado: sin_clase`. La respuesta trae `clase {id, disciplina, hora_inicio}`. Un rol global manda `sucursal_id`.
+
+`GET /marca/manifest/tableta`: manifiesto para "Agregar a pantalla de inicio" en la tableta (abre `/tableta` a pantalla completa).
+

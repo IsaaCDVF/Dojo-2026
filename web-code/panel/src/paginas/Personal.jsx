@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Check, Copy, KeyRound, MessageCircle, Plus, Power, Search, ShieldCheck, Trash2, UserCog, UserPlus } from 'lucide-react';
 import { api } from '../api';
 import { NOMBRE_ROL, useSesion } from '../auth/Sesion';
@@ -74,7 +75,7 @@ function Roles({ lista, onCambio, opciones }) {
         <div key={i} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
           <Selector etiqueta={i === 0 ? 'Rol' : undefined} value={r.rol} onChange={(e) => poner(i, 'rol', e.target.value)}>
             <option value="">Elige…</option>
-            {opciones.roles.map((o) => <option key={o.id} value={o.nombre}>{NOMBRE_ROL[o.nombre]}</option>)}
+            {opciones.roles.filter((o) => o.nombre !== 'tableta').map((o) => <option key={o.id} value={o.nombre}>{NOMBRE_ROL[o.nombre]}</option>)}
           </Selector>
           <Selector etiqueta={i === 0 ? 'Sucursal' : undefined} value={r.sucursal_id} onChange={(e) => poner(i, 'sucursal_id', e.target.value)}>
             <option value="">Elige…</option>
@@ -126,7 +127,8 @@ function Alta({ abierto, onCerrar, opciones, onListo }) {
             <Roles lista={roles} onCambio={setRoles} opciones={opciones} />
             {err.roles && <p className="mt-1.5 text-[13px] text-danger">{err.roles}</p>}
             <ul className="mt-3 text-[12px] text-muted space-y-0.5">
-              {opciones.roles.map((o) => <li key={o.id}><b className="text-soft">{NOMBRE_ROL[o.nombre]}:</b> {o.descripcion}</li>)}
+              {opciones.roles.filter((o) => o.nombre !== 'tableta').map((o) => <li key={o.id}><b className="text-soft">{NOMBRE_ROL[o.nombre]}:</b> {o.descripcion}</li>)}
+              <li>La <b className="text-soft">tableta de la entrada</b> no es una persona: se conecta con un código en <Link to="/configuracion/tabletas" className="text-action hover:underline">Configuración → Tabletas</Link>.</li>
             </ul>
           </div>
           <ErrorCaja error={error} />
@@ -227,7 +229,7 @@ function FichaPersona({ id, onCerrar, opciones, onCambio }) {
               <div className="mt-3 grid grid-cols-[1fr_1fr] gap-2">
                 <Selector value={nuevoRol.rol} onChange={(e) => setNuevoRol({ ...nuevoRol, rol: e.target.value })} aria-label="Rol">
                   <option value="">Rol…</option>
-                  {opciones.roles.map((o) => <option key={o.id} value={o.nombre}>{NOMBRE_ROL[o.nombre]}</option>)}
+                  {opciones.roles.filter((o) => o.nombre !== 'tableta').map((o) => <option key={o.id} value={o.nombre}>{NOMBRE_ROL[o.nombre]}</option>)}
                 </Selector>
                 <Selector value={nuevoRol.sucursal_id} onChange={(e) => setNuevoRol({ ...nuevoRol, sucursal_id: e.target.value })} aria-label="Sucursal">
                   <option value="">Sucursal…</option>

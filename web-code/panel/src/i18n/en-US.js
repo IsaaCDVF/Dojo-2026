@@ -11,7 +11,7 @@ export default {
   menu: {
     inicio: 'Home', miPerfil: 'My profile', alumnos: 'Students', inscripcion: 'Enrollment', caja: 'Front desk', horarios: 'Schedule',
     asistencia: 'Attendance', examenes: 'Belt testing', tarifas: 'Pricing & promotions', parametros: 'Settings', bitacora: 'Audit log',
-    configuracion: 'Setup', personal: 'Staff & access', apariencia: 'Branding & appearance',
+    configuracion: 'Setup', personal: 'Staff & access', tabletas: 'Check-in tablets', apariencia: 'Branding & appearance',
   },
   roles: {
     super_admin: 'Owner', admin_sucursal: 'Location manager', recepcion: 'Front desk', instructor: 'Instructor',
@@ -22,7 +22,7 @@ export default {
     etiqueta: 'Multi-location management', subtitulo: 'Sign in to your location', correo: 'Email', contrasena: 'Password',
     verContrasena: 'Show password', ocultarContrasena: 'Hide password', recordar: 'Keep me signed in on this device', entrar: 'Sign in',
     cifrada: 'Encrypted connection · you are signed out after a while without activity', faltaCorreo: 'Enter your email', correoInvalido: 'That email does not look right',
-    faltaContrasena: 'Enter your password',
+    esTableta: 'Is this the check-in tablet? Connect it with a code', faltaContrasena: 'Enter your password',
   },
   elegirRol: {
     hola: 'Hi, {{nombre}}', titulo: 'Which role will you work as?', entrando: 'Signing in…',

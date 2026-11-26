@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowRight, AtSign, Eye, EyeOff, Lock, ShieldCheck } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowRight, AtSign, Eye, EyeOff, Lock, ShieldCheck, Tablet } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useSesion } from '../auth/Sesion';
 import { useMarca } from '../marca/Marca';
@@ -52,7 +52,7 @@ export default function Login() {
         <BotonTema />
       </header>
 
-      <main className="relative flex-1 grid place-items-center px-4 pb-10">
+      <main className="relative flex-1 flex flex-col items-center justify-center px-4 pb-10">
         <form key={sacudir} onSubmit={enviar} noValidate
           className={`w-full max-w-[420px] bg-surface/95 backdrop-blur border border-line rounded-[14px] shadow-2xl overflow-hidden ${sacudir ? 'anim-sacudir' : 'anim-entrar'}`}>
           <div className="h-1" style={{ background: 'linear-gradient(90deg, var(--soft), var(--action))' }} />
@@ -94,6 +94,7 @@ export default function Login() {
             <ShieldCheck className="size-3.5 text-action" /> {t('login.cifrada')}
           </div>
         </form>
+        <Link to="/tableta/vincular" className="mt-5 inline-flex items-center gap-1.5 text-[13px] text-muted hover:text-text"><Tablet className="size-4" />{t('login.esTableta')}</Link>
       </main>
       <footer className="relative px-6 py-4 text-[12px] text-muted">© 2026 {nombrePlano(marca.nombre)}{marca.nombre !== 'Dojo OS' && ` · ${t('comun.hechoCon')}`}</footer>
     </div>

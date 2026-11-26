@@ -32,6 +32,7 @@ final class PersonalControlador
             $like = '%' . trim((string) $req->query['q']) . '%';
             $w[] = "(CONCAT_WS(' ', pe.nombre, pe.apellido_paterno, pe.apellido_materno) LIKE ? OR u.email LIKE ?)"; array_push($p, $like, $like);
         }
+        $w[] = 'NOT EXISTS (SELECT 1 FROM dispositivos d WHERE d.usuario_id = u.id)';   // las tabletas viven en Configuración → Tabletas
         $ids = array_column(Db::todos('SELECT DISTINCT u.id FROM usuarios u JOIN personas pe ON pe.id = u.persona_id
             JOIN usuario_roles ur ON ur.usuario_id = u.id JOIN roles r ON r.id = ur.rol_id WHERE ' . implode(' AND ', $w), $p), 'id');
         $lista = array_map(fn($id) => $this->ficha($req, (int) $id), $ids);

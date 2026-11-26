@@ -133,11 +133,12 @@ final class MarcaControlador
     /** GET /api/marca/manifest/{app} — manifest de la PWA con el nombre y el ícono de la empresa (app o panel) */
     public function manifest(Peticion $req): void
     {
-        $app = $req->params['app'] === 'app' ? 'app' : 'panel';
+        $app = in_array($req->params['app'], ['app', 'tableta'], true) ? $req->params['app'] : 'panel';
         $m = self::datos();
         $color = $m['tema'] === 'personalizado' && $m['color_fondo'] ? $m['color_fondo'] : (Temas::FONDOS[$m['tema']] ?? '#011c42');
         $ico = $m['imagenes']['icono'];
         $base = $app === 'app' ? '/app/' : '/';
+        $nombre = preg_replace('/\p{Mn}/u', '', $m['nombre']);   // sin rayas combinables: en el ícono del celular se ven mal
         $iconos = $ico
             ? [['src' => $ico, 'sizes' => 'any', 'type' => Db::uno('SELECT mime FROM marca_imagenes WHERE tipo = "icono"')['mime'], 'purpose' => 'any']]
             : [['src' => '/app/icono-192.png', 'sizes' => '192x192', 'type' => 'image/png'], ['src' => '/app/icono-512.png', 'sizes' => '512x512', 'type' => 'image/png'],
@@ -145,9 +146,10 @@ final class MarcaControlador
         header('Content-Type: application/manifest+json; charset=utf-8');
         header('Cache-Control: public, max-age=300');
         echo json_encode([
-            'name' => $app === 'app' ? $m['nombre'] : $m['nombre'] . ' · Panel', 'short_name' => mb_substr($m['nombre'], 0, 12),
-            'description' => $m['lema'] ?? '', 'lang' => $m['idioma'], 'start_url' => $base, 'scope' => $base,
-            'display' => 'standalone', 'background_color' => $color, 'theme_color' => $color, 'icons' => $iconos,
+            'name' => match ($app) { 'app' => $nombre, 'tableta' => "$nombre · Asistencia", default => "$nombre · Panel" },
+            'short_name' => $app === 'tableta' ? 'Asistencia' : mb_substr($nombre, 0, 12),
+            'description' => $m['lema'] ?? '', 'lang' => $m['idioma'], 'start_url' => $app === 'tableta' ? '/tableta' : $base, 'scope' => $base,
+            'display' => $app === 'tableta' ? 'fullscreen' : 'standalone', 'background_color' => $color, 'theme_color' => $color, 'icons' => $iconos,
         ] + ($app === 'app' ? ['orientation' => 'portrait'] : []), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 

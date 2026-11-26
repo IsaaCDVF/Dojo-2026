@@ -120,7 +120,7 @@ final class HorarioControlador
                 FROM instructores ins JOIN personas p ON p.id = ins.persona_id';
         $par = [];
         if ($s !== null) {
-            $sql .= ' JOIN usuarios u ON u.persona_id = p.id JOIN usuario_roles ur ON ur.usuario_id = u.id AND ur.activo = 1
+            $sql .= ' JOIN usuarios u ON u.persona_id = p.id AND u.activo = 1 JOIN usuario_roles ur ON ur.usuario_id = u.id AND ur.activo = 1
                       JOIN roles r ON r.id = ur.rol_id AND r.nombre = "instructor" WHERE ur.sucursal_id = ?';
             $par[] = $s;
         }

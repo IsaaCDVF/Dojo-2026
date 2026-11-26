@@ -33,7 +33,7 @@ curl -s "$API/api/horarios" -H "Authorization: Bearer $ADM" > /tmp/r.json
 for h in $(campo "implode(' ', array_column(array_filter(\$j['datos'], fn(\$h) => str_starts_with((string) \$h['nivel'], 'Prueba asistencia')), 'id'))"); do
   curl -s -o /dev/null -X PUT "$API/api/horarios/$h/desactivar" -H 'Content-Type: application/json' -H "Authorization: Bearer $ADM" -d '{"forzar":true}'; done
 prueba "Instructores de Centro"            200 GET  "/api/instructores?sucursal_id=1" "$ADM"
-INS=$(campo "['datos'][0]['id']")
+INS=$(campo "array_column(\$j['datos'], 'id', 'nombre')['Laura Méndez']")   # Laura: así "Marca la suya" no depende de quién más dé clases
 prueba "Clase de hoy ($INI-$FIN)"          201 POST /api/horarios "$ADM" "{\"sucursal_id\":1,\"disciplina_id\":1,\"instructor_id\":$INS,\"dia_semana\":$HOY,\"hora_inicio\":\"$INI\",\"hora_fin\":\"$FIN\",\"nivel\":\"Prueba asistencia $R\"}"
 HOR=$(campo "['datos']['id']")
 prueba "Clase de mañana en Norte"          201 POST /api/horarios "$ADM" "{\"sucursal_id\":2,\"disciplina_id\":1,\"instructor_id\":$INS,\"dia_semana\":$MANANA,\"hora_inicio\":\"06:00\",\"hora_fin\":\"06:45\",\"nivel\":\"Prueba asistencia Norte $R\"}"

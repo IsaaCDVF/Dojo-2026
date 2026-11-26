@@ -16,7 +16,7 @@ use Dojo\Modulos\Inicio\InicioControlador;
 use Dojo\Modulos\App\AccesoControlador;
 use Dojo\Modulos\App\AppControlador;
 use Dojo\Modulos\Personas\ImportacionControlador;
-use Dojo\Modulos\Personal\PersonalControlador;
+use Dojo\Modulos\Personal\{PersonalControlador, DispositivoControlador};
 
 /** @var Dojo\Nucleo\Router $router */
 $router->get('/api/salud',                       [SaludControlador::class, 'ver'],             null);
@@ -40,6 +40,11 @@ $router->post('/api/personal',                   [PersonalControlador::class, 'c
 $router->put('/api/personal/{id}',               [PersonalControlador::class, 'editar'],       'roles.asignar');
 $router->post('/api/personal/{id}/roles',        [PersonalControlador::class, 'darRol'],       'roles.asignar');
 $router->delete('/api/personal/{id}/roles/{rid}',[PersonalControlador::class, 'quitarRol'],    'roles.asignar');
+$router->post('/api/dispositivos/solicitar',      [DispositivoControlador::class, 'solicitar'], null);
+$router->post('/api/dispositivos/estado',         [DispositivoControlador::class, 'estado'],    null);
+$router->get('/api/dispositivos',                 [DispositivoControlador::class, 'listar'],    'roles.asignar');
+$router->post('/api/dispositivos',                [DispositivoControlador::class, 'vincular'],  'roles.asignar');
+$router->put('/api/dispositivos/{id}',            [DispositivoControlador::class, 'editar'],    'roles.asignar');
 $router->post('/api/personal/{id}/contrasena',   [PersonalControlador::class, 'restablecer'],  'roles.asignar');
 
 $router->get('/api/disciplinas',                 [DisciplinaControlador::class, 'listar'],     'horarios.ver');

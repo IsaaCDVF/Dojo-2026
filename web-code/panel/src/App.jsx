@@ -25,6 +25,8 @@ import Importar from './paginas/Importar';
 import Apariencia from './paginas/Apariencia';
 import Personal from './paginas/Personal';
 import CambiarContrasena from './paginas/CambiarContrasena';
+import VincularTableta from './paginas/VincularTableta';
+import Tabletas from './paginas/Tabletas';
 
 /** La cuenta de la tableta (o del celular que hace de tableta) va directo a leer credenciales */
 function InicioSegunRol() {
@@ -57,6 +59,7 @@ export default function App() {
       <Route path="/login" element={yo && !cargando ? <Navigate to="/" replace /> : <Login />} />
       <Route path="/cambiar-contrasena" element={yo ? (yo.usuario?.debe_cambiar_password ? <CambiarContrasena /> : <Navigate to="/" replace />) : <Navigate to="/login" replace />} />
       <Route path="/elegir-rol" element={yo ? <ElegirRol /> : <Navigate to="/login" replace />} />
+      <Route path="/tableta/vincular" element={yo && !cargando ? <Navigate to="/tableta" replace /> : <VincularTableta />} />
       <Route path="/tableta" element={<Protegida><Tableta /></Protegida>} />
       <Route element={<Protegida><Panel /></Protegida>}>
         <Route index element={<InicioSegunRol />} />
@@ -76,6 +79,7 @@ export default function App() {
         <Route path="configuracion" element={<Configuracion />} />
         <Route path="configuracion/apariencia" element={<Apariencia />} />
         <Route path="configuracion/personal" element={<Personal />} />
+        <Route path="configuracion/tabletas" element={<Tabletas />} />
         <Route path="*" element={<Pronto titulo="Página no encontrada" />} />
       </Route>
     </Routes>

@@ -8,6 +8,9 @@ Tipos: **Agregado** (nuevo), **Cambiado** (cambia algo que ya existía), **Corre
 ## [Sin publicar]
 
 ### Agregado
+- Tabletas de asistencia (Configuración → Tabletas): la tableta de la entrada se conecta con un código de 6 dígitos que muestra en pantalla (`/tableta/vincular`, también desde el login), sin correo ni contraseña. Se queda conectada (no se cierra por inactividad) hasta que la desconectan desde el panel; la lista muestra si está en línea. Las cuentas de tableta con correo de antes siguen funcionando y se listan aparte. — Kevin
+- La tableta ya no pide elegir la clase: el alumno acerca su QR y el sistema busca la clase de ahorita en la que está inscrito (si tiene dos seguidas, la más cercana y luego la siguiente; si viene de otra sucursal, una de su disciplina como visita). Muestra las clases de ahora y en el resultado de qué clase quedó. Elegir una clase a mano sigue disponible. Se puede agregar a la pantalla de inicio y abre a pantalla completa. — Kevin
+- `pruebas/tabletas.sh` (81). — Kevin
 - App: modo claro, además del oscuro. En Mi cuenta se elige "Como mi celular" (la que viene puesta), Claro u Oscuro, y en la cabecera hay un botón de sol/luna. Se guarda en el celular y en su cuenta. Los colores de la marca se respetan en los dos; los que se usan como letra se oscurecen solos para leerse sobre blanco. — Kevin
 - App: Mi cuenta. El alumno o el responsable cambia su teléfono, correo y domicilio sin ir a recepción (teléfono y correo piden su contraseña porque sirven para entrar), y su contraseña. Nombre, fecha de nacimiento y CURP siguen en recepción. Los cambios quedan en bitácora y el domicilio se ve en la ficha del alumno. — Kevin
 - Personal y accesos (Configuración → Personal y accesos): el súper admin da de alta a cada persona y le da uno o varios roles por sucursal (admin de sucursal, recepción, instructor, tableta); el admin de sucursal da recepción, instructor y tableta en la suya. Quitar roles, desactivar y generar contraseña temporal nueva; todo cierra las sesiones al momento y queda en bitácora. — Kevin
@@ -50,6 +53,7 @@ Tipos: **Agregado** (nuevo), **Cambiado** (cambia algo que ya existía), **Corre
 - `pruebas/tarifas.sh` con 42 pruebas de tarifas y promociones. — Kevin
 
 ### Cambiado
+- Personal y accesos ya no ofrece el rol de tableta para personas (la tableta se conecta en Configuración → Tabletas) ni lista las tabletas conectadas. — Kevin
 - App: el login ya no muestra un avatar de ejemplo; ahora es la portada de la empresa: su símbolo en grande, el nombre con su letra y el lema. — Kevin
 - La sesión de alumnos y responsables dura `dias_sesion_app` días (para no pedir la contraseña cada vez que abren la app); el personal sigue con `minutos_inactividad_sesion`. Ficha del alumno: tarjeta "App Dojo OS". — Kevin
 - `EstadoCuenta`: el cálculo de mensualidades por periodo es una sola función que usan la caja, la tableta y el Inicio. — Kevin
@@ -60,12 +64,14 @@ Tipos: **Agregado** (nuevo), **Cambiado** (cambia algo que ya existía), **Corre
 - Los roles de alcance propio (alumno, responsable) solo ven sus alumnos, su estado de cuenta y sus recibos (`Permiso::alumnosPropios`, `exigirAlumno`, `exigirResponsable`). — Kevin
 
 ### Corregido
+- La lista de instructores para horarios ya no muestra a personal desactivado. `pruebas/asistencia.sh` usa a Laura como instructora (antes tomaba el primero de la lista y fallaba si había más instructores). — Kevin
 - Las ventanas del panel mandaban el cursor a la X al escribir la primera letra (no dejaba escribir); ahora al abrir el cursor va directo al primer campo. Pasaba en todas las ventanas. — Kevin
 - Login del panel: con un logo cuadrado (solo el símbolo) no se veía el nombre de la empresa; ahora va abajo con su letra. — Kevin
 - Semillas: las fechas de vigencia iniciales eran `NOW()` en la zona del contenedor (UTC) y quedaban "en el futuro" frente a la API (hora de México); ahora son una fecha fija. — Kevin
 - Panel: las fechas sin hora (`2026-11-28`) se mostraban un día antes. — Kevin
 
 ### Base de datos
+- `013_dispositivos.sql`: tablas `dispositivos` y `dispositivo_vinculos`. Para una base que ya existe: `parches/2026-11-26_dispositivos.sql` (**obligatorio**: sin estas tablas la API no deja entrar a nadie; se puede correr dos veces). — Kevin
 - `012_sucursal_completa_personal.sql`: `sucursales.telefono` y `usuarios.debe_cambiar_password`. Para una base que ya existe: `parches/2026-11-26_sucursal_personal.sql` (se puede correr dos veces). — Kevin
 - `011_marca_fuente_nombre.sql`: columna `marca.fuente_nombre` (letra del nombre comercial). Para una base que ya existe: `parches/2026-11-26_marca_nombre.sql` (se puede correr dos veces). — Kevin
 - `010_marca_preferencias`: tablas `marca`, `marca_imagenes` y `usuario_preferencias`; permiso `marca.editar` para el súper administrador. Para una base que ya existe: `database-code/parches/2026-11-26_marca.sql`. — Kevin

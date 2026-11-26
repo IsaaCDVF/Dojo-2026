@@ -12,7 +12,7 @@ export default {
   menu: {
     inicio: 'Inicio', miPerfil: 'Mi perfil', alumnos: 'Alumnos', inscripcion: 'Inscripción', caja: 'Caja', horarios: 'Horarios',
     asistencia: 'Asistencia', examenes: 'Exámenes', tarifas: 'Precios y promociones', parametros: 'Parámetros', bitacora: 'Bitácora',
-    configuracion: 'Configuración', personal: 'Personal y accesos', apariencia: 'Apariencia y marca',
+    configuracion: 'Configuración', personal: 'Personal y accesos', tabletas: 'Tabletas de asistencia', apariencia: 'Apariencia y marca',
   },
   roles: {
     super_admin: 'Súper administrador', admin_sucursal: 'Administrador de sucursal', recepcion: 'Recepción', instructor: 'Instructor',
@@ -23,7 +23,7 @@ export default {
     etiqueta: 'Gestión multisucursal', subtitulo: 'Inicia sesión para entrar a tu sucursal', correo: 'Correo electrónico', contrasena: 'Contraseña',
     verContrasena: 'Ver contraseña', ocultarContrasena: 'Ocultar contraseña', recordar: 'Mantener la sesión en este equipo', entrar: 'Entrar',
     cifrada: 'Conexión cifrada · la sesión se cierra tras un tiempo sin uso', faltaCorreo: 'Escribe tu correo', correoInvalido: 'Ese correo no parece válido',
-    faltaContrasena: 'Escribe tu contraseña',
+    faltaContrasena: 'Escribe tu contraseña', esTableta: '¿Es la tableta de la entrada? Conéctala con un código',
   },
   elegirRol: {
     hola: 'Hola, {{nombre}}', titulo: '¿Con qué rol vas a trabajar?', entrando: 'Entrando…',
