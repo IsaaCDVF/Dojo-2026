@@ -6,11 +6,17 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>Dojo OS</title>
     <script>
-      // Aplica el tema guardado antes de pintar, para que no parpadee
-      try { var t = localStorage.getItem('dojo-tema'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+      // Aplica tema, colores de la marca y tamaño de letra guardados antes de pintar, para que no parpadee
+      try {
+        var h = document.documentElement, t = localStorage.getItem('dojo-tema'); if (t) h.dataset.theme = t;
+        var c = localStorage.getItem('dojo-marca-css');
+        if (c) { var s = document.createElement('style'); s.id = 'marca-tema'; s.textContent = c; document.head.appendChild(s); }
+        var p = JSON.parse(localStorage.getItem('dojo-pref') || '{}'), z = { grande: 1.1, muy_grande: 1.2 }[p.letra]; if (z) h.style.zoom = z;
+        var m = JSON.parse(localStorage.getItem('dojo-marca') || '{}'); if (m.nombre) document.title = m.nombre;
+      } catch (e) {}
     </script>
-    <script type="module" crossorigin src="/assets/index-DgsS3Wvv.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-ByQjOIth.css">
+    <script type="module" crossorigin src="/assets/index-DwKfw0Fc.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-CB2nLwoN.css">
   </head>
   <body>
     <div id="root"></div>
