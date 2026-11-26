@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Ban, Printer } from 'lucide-react';
 import { api, formato } from '../api';
 import { useSesion } from '../auth/Sesion';
-import { AreaTexto, Boton, Cargando, Chip, ErrorCaja, Isotipo, Modal, useAvisos, useDatos } from '../ui';
+import { AreaTexto, Boton, Cargando, Chip, ErrorCaja, MarcaImpresa, Modal, useAvisos, useDatos } from '../ui';
 
 export const METODOS = { efectivo: 'Efectivo', transferencia: 'Transferencia', pasarela: 'En línea', saldo_favor: 'Saldo a favor' };
 
@@ -37,9 +37,9 @@ export default function Recibo({ id, onCerrar, onCambio }) {
         <>
           <div className="imprimible rounded-[10px] border border-line bg-white text-[#0b1220] p-5 font-[Inter] text-sm">
             <div className="flex items-start justify-between gap-4 pb-3 border-b border-dashed border-black/20">
-              <div className="flex items-center gap-2">
-                <Isotipo className="size-7 text-[#011c42]" />
-                <div><div className="font-semibold">Dojo OS</div><div className="text-[12px] text-black/60">{p.sucursal}</div></div>
+              <div>
+                <MarcaImpresa />
+                <div className="text-[12px] text-black/60 mt-1">{p.sucursal}</div>
               </div>
               <div className="text-right">
                 <div className="font-mono text-[13px] font-semibold">{p.folio}</div>

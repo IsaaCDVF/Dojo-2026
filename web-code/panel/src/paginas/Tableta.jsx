@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Camera, CameraOff, Clock, Keyboard, LayoutDashboard, LogOut, RefreshCw, SwitchCamera, Users } from 'lucide-react';
-import { api, ErrorApi } from '../api';
+import { api, ErrorApi, regional } from '../api';
 import { useSesion } from '../auth/Sesion';
 import { BotonIcono, BotonTema, Cargando, Cinta, ErrorCaja, FotoAlumno, Logo, Pestanas, useDatos } from '../ui';
 
@@ -45,7 +45,7 @@ export default function Tableta() {
 function Reloj() {
   const [ahora, setAhora] = useState(new Date());
   useEffect(() => { const t = setInterval(() => setAhora(new Date()), 15000); return () => clearInterval(t); }, []);
-  return <span className="font-mono text-[15px] tabular-nums">{ahora.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}</span>;
+  return <span className="font-mono text-[15px] tabular-nums">{ahora.toLocaleTimeString(regional.locale, { hour: '2-digit', minute: '2-digit' })}</span>;
 }
 
 /* ---------------- Paso 1: elegir la clase ---------------- */
@@ -54,7 +54,7 @@ function ElegirClase({ sucursal, global, sucursales, onSucursal, onElegir }) {
   const datos = useDatos(() => (sucursal ? api.get('/asistencias/clases', { sucursal_id: sucursal }) : Promise.resolve(null)), [sucursal]);
   useEffect(() => { const t = setInterval(datos.recargar, 60000); return () => clearInterval(t); }, [datos.recargar]);
   const clases = datos.datos?.clases || [];
-  const hoy = new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
+  const hoy = new Date().toLocaleDateString(regional.locale, { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
     <>
@@ -161,7 +161,7 @@ function Escanear({ clase, onSalir }) {
     }
     sonar(r.tipo);
     setResultado(r);
-    if (r.alumno) setRecientes((l) => [{ ...r, hora: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }), k: Date.now() }, ...l].slice(0, 6));
+    if (r.alumno) setRecientes((l) => [{ ...r, hora: new Date().toLocaleTimeString(regional.locale, { hour: '2-digit', minute: '2-digit' }), k: Date.now() }, ...l].slice(0, 6));
     setTimeout(() => { setResultado((x) => (x === r ? null : x)); ocupado.current = false; }, r.tipo === 'bienvenido' ? 2500 : 4500);
   }, [clase.id]);
 

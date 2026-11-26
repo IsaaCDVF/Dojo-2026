@@ -22,6 +22,7 @@ import Examenes, { ExamenDetalle } from './paginas/Examenes';
 import Asistencia from './paginas/Asistencia';
 import Tableta from './paginas/Tableta';
 import Importar from './paginas/Importar';
+import Apariencia from './paginas/Apariencia';
 
 /** La cuenta de la tableta (o del celular que hace de tableta) va directo a leer credenciales */
 function InicioSegunRol() {
@@ -69,6 +70,7 @@ export default function App() {
         <Route path="parametros" element={<Parametros />} />
         <Route path="bitacora" element={<Bitacora />} />
         <Route path="configuracion" element={<Configuracion />} />
+        <Route path="configuracion/apariencia" element={<Apariencia />} />
         <Route path="*" element={<Pronto titulo="Página no encontrada" />} />
       </Route>
     </Routes>

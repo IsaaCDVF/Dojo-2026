@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertTriangle, ArrowRight, Building2, CalendarCheck, CalendarDays, ClipboardList, Clock, FileSpreadsheet, Medal, SlidersHorizontal, Tags, UserPlus, Users, Wallet } from 'lucide-react';
 import { useSesion, NOMBRE_ROL } from '../auth/Sesion';
-import { api, formato } from '../api';
+import { api, formato, regional } from '../api';
 import { Boton, Cargando, Chip, Encabezado, ErrorCaja, FotoAlumno, Kpi, Pestanas, Tarjeta, Vacio, useDatos } from '../ui';
 
 // S-02 · Inicio: los números del día según el rol (GET /api/inicio). Cada bloque aparece solo si el rol tiene ese permiso.
@@ -16,7 +16,7 @@ export default function Inicio() {
   const datos = useDatos(() => api.get('/inicio', { sucursal_id: suc }), [rol?.usuario_rol_id, suc]);
   const bitacora = useDatos(() => (tiene('bitacora.ver') ? api.get('/bitacora') : Promise.resolve([])), [rol?.usuario_rol_id]);
   const d = datos.datos;
-  const hoy = new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
+  const hoy = new Date().toLocaleDateString(regional.locale, { weekday: 'long', day: 'numeric', month: 'long' });
 
   const accesos = [
     { a: '/caja', t: 'Cobrar', icono: Wallet, p: ['pagos.cobrar'] },

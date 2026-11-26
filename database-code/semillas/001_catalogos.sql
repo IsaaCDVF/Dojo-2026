@@ -48,10 +48,11 @@ INSERT INTO permisos (clave, modulo, descripcion, nivel_minimo) VALUES
   ('examenes.resultados','examenes','Capturar resultados',3),
   ('facturas.emitir','facturacion','Emitir facturas',3),
   ('facturas.ver','facturacion','Consultar y descargar facturas',2),
-  ('avatar.editar','portal','Vestir su avatar',1);
+  ('avatar.editar','portal','Vestir su avatar',1),
+  ('marca.editar','sistema','Cambiar logo, colores, letra e idioma del sistema',5);
 
 INSERT INTO rol_permisos (rol_id, permiso_id)
-  SELECT r.id, p.id FROM roles r JOIN permisos p ON p.clave IN ('sucursales.gestionar','roles.asignar','parametros.ver','parametros.editar','bitacora.ver','reportes.ver','disciplinas.gestionar','grados.gestionar','horarios.gestionar','horarios.ver','precios.gestionar','promociones.gestionar','alumnos.ver','alumnos.crear','alumnos.editar','alumnos.baja','alumnos.importar','responsables.gestionar','perfil.ver','inscripciones.crear','asistencia.registrar','asistencia.manual','asistencia.validar','asistencia.ver','pagos.cobrar','pagos.ver','pagos.en_linea','pagos.cancelar','caja.corte','examenes.programar','examenes.solicitar','examenes.validar','examenes.excepcion','examenes.resultados','facturas.emitir','facturas.ver','avatar.editar') WHERE r.nombre='super_admin';
+  SELECT r.id, p.id FROM roles r JOIN permisos p ON p.clave IN ('sucursales.gestionar','roles.asignar','parametros.ver','parametros.editar','bitacora.ver','reportes.ver','disciplinas.gestionar','grados.gestionar','horarios.gestionar','horarios.ver','precios.gestionar','promociones.gestionar','alumnos.ver','alumnos.crear','alumnos.editar','alumnos.baja','alumnos.importar','responsables.gestionar','perfil.ver','inscripciones.crear','asistencia.registrar','asistencia.manual','asistencia.validar','asistencia.ver','pagos.cobrar','pagos.ver','pagos.en_linea','pagos.cancelar','caja.corte','examenes.programar','examenes.solicitar','examenes.validar','examenes.excepcion','examenes.resultados','facturas.emitir','facturas.ver','avatar.editar','marca.editar') WHERE r.nombre='super_admin';
 INSERT INTO rol_permisos (rol_id, permiso_id)
   SELECT r.id, p.id FROM roles r JOIN permisos p ON p.clave IN ('roles.asignar','parametros.ver','bitacora.ver','reportes.ver','horarios.gestionar','horarios.ver','promociones.gestionar','alumnos.ver','alumnos.crear','alumnos.editar','alumnos.baja','alumnos.importar','responsables.gestionar','perfil.ver','inscripciones.crear','asistencia.manual','asistencia.validar','asistencia.ver','pagos.cobrar','pagos.ver','pagos.cancelar','caja.corte','examenes.programar','examenes.validar','examenes.excepcion','examenes.resultados','facturas.emitir','facturas.ver') WHERE r.nombre='admin_sucursal';
 INSERT INTO rol_permisos (rol_id, permiso_id)

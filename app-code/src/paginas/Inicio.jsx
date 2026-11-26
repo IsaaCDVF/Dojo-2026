@@ -23,7 +23,7 @@ export default function Inicio() {
     <>
       <Cabecera titulo="Dojo OS" racha={d.racha} alumnoId={id} />
       <div className="space-y-4">
-        <Tarjeta className="!p-0 overflow-hidden bg-gradient-to-br from-surface to-[#13306a]">
+        <Tarjeta className="!p-0 overflow-hidden bg-gradient-to-br from-surface to-inset">
           <div className="flex items-center">
             <div className="flex-1 p-5 pr-0">
               <div className="etiqueta">{hoy}</div>
@@ -105,7 +105,7 @@ export default function Inicio() {
 }
 
 const DIA = {
-  asistio: 'bg-action text-on-action', retardo: 'bg-gold text-[#2b1d00]', falta: 'bg-danger/80 text-white',
+  asistio: 'bg-ok text-[#05301a]', retardo: 'bg-gold text-[#2b1d00]', falta: 'bg-danger/80 text-white',
   hoy: 'border-2 border-dashed border-action text-action', proxima: 'bg-inset text-soft', sin_clase: 'bg-deep text-muted/60',
 };
 function Dia({ s }) {

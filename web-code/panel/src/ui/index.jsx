@@ -1,8 +1,10 @@
+import { useTranslation } from 'react-i18next';
+import { useMarca } from '../marca/Marca';
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertTriangle, CheckCircle2, Info, Loader2, Moon, Sun, X, XCircle } from 'lucide-react';
 
-export { Isotipo, Logo } from './Logo';
+export { Isotipo, Logo, MarcaImpresa } from './Logo';
 
 const cx = (...c) => c.filter(Boolean).join(' ');
 
@@ -259,20 +261,15 @@ export function AvisosProvider({ children }) {
   );
 }
 
-/* ---------- Tema oscuro / claro ---------- */
+/* ---------- Tema oscuro / claro (lo maneja la marca: src/marca/Marca.jsx) ---------- */
 export function useTema() {
-  const [tema, setTema] = useState(() => document.documentElement.dataset.theme || 'dark');
-  const cambiar = () => {
-    const nuevo = tema === 'dark' ? 'light' : 'dark';
-    document.documentElement.dataset.theme = nuevo;
-    try { localStorage.setItem('dojo-tema', nuevo); } catch { /* nada */ }
-    setTema(nuevo);
-  };
-  return [tema, cambiar];
+  const { modo, alternarModo } = useMarca();
+  return [modo, alternarModo];
 }
 export function BotonTema({ className }) {
   const [tema, cambiar] = useTema();
-  return <BotonIcono icono={tema === 'dark' ? Sun : Moon} etiqueta={tema === 'dark' ? 'Modo claro' : 'Modo oscuro'} onClick={cambiar} className={className} />;
+  const { t } = useTranslation();
+  return <BotonIcono icono={tema === 'dark' ? Sun : Moon} etiqueta={tema === 'dark' ? t('comun.modoClaro') : t('comun.modoOscuro')} onClick={cambiar} className={className} />;
 }
 
 /* ---------- Tabla ---------- */

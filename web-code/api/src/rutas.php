@@ -1,7 +1,7 @@
 <?php
 // Tabla de rutas de la API. Cada ruta indica el permiso que exige (null = pública,
 // '' = solo requiere sesión). Al agregar una ruta, actualizar docs/api.md.
-use Dojo\Modulos\Sistema\SaludControlador;
+use Dojo\Modulos\Sistema\{SaludControlador, MarcaControlador, PreferenciasControlador};
 use Dojo\Modulos\Auth\AuthControlador;
 use Dojo\Modulos\Catalogos\{SucursalControlador, DisciplinaControlador, ParametroControlador,
     ConceptoControlador, PrecioControlador, PromocionControlador};
@@ -119,3 +119,13 @@ $router->put('/api/solicitudes-examen/{id}/resultado', [ExamenControlador::class
 $router->put('/api/solicitudes-examen/{id}/cancelar',  [ExamenControlador::class, 'cancelar'],  'examenes.programar,examenes.solicitar');
 
 $router->get('/api/bitacora',                    [BitacoraControlador::class, 'buscar'],       'bitacora.ver');
+
+// Marca blanca y preferencias: cada empresa pone su logo, colores, letra e idioma; cada usuario su tema y letra
+$router->get('/api/marca',                       [MarcaControlador::class, 'ver'],             null);
+$router->put('/api/marca',                       [MarcaControlador::class, 'guardar'],         'marca.editar');
+$router->get('/api/marca/imagen/{tipo:texto}',   [MarcaControlador::class, 'imagen'],          null);
+$router->put('/api/marca/imagen/{tipo:texto}',   [MarcaControlador::class, 'subirImagen'],     'marca.editar');
+$router->delete('/api/marca/imagen/{tipo:texto}', [MarcaControlador::class, 'quitarImagen'],   'marca.editar');
+$router->get('/api/marca/manifest/{app:texto}',  [MarcaControlador::class, 'manifest'],        null);
+$router->get('/api/preferencias',                [PreferenciasControlador::class, 'ver'],      '');
+$router->put('/api/preferencias',                [PreferenciasControlador::class, 'guardar'],  '');

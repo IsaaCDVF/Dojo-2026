@@ -3,8 +3,21 @@
 @import "@fontsource-variable/inter";
 @import "@fontsource/dm-mono/400.css";
 @import "@fontsource/dm-mono/500.css";
+/* Letras que puede elegir la empresa en Apariencia (solo se descarga la que se usa) */
+@import "@fontsource-variable/nunito";
+@import "@fontsource-variable/montserrat";
+@import "@fontsource-variable/source-sans-3";
+@import "@fontsource-variable/lora";
+@import "@fontsource/poppins/400.css";
+@import "@fontsource/poppins/500.css";
+@import "@fontsource/poppins/600.css";
+@import "@fontsource/poppins/700.css";
 
-/* Tokens Dojo OS (docs/DESIGN_DojoOS.md). Oscuro por defecto; claro con data-theme="light". */
+/* Tokens Dojo OS (docs/DESIGN_DojoOS.md). Oscuro por defecto; claro con data-theme="light".
+   Estos son los del tema Océano; la marca de la empresa los reemplaza (src/marca/temas.js). */
+:root {
+  --fuente: 'DM Sans Variable', system-ui, sans-serif; --fuente-titulos: 'Inter Variable', system-ui, sans-serif; --peso-titulos: 300;
+}
 :root, [data-theme="dark"] {
   --canvas: #011c42; --surface: #0a2852; --inset: #10335f; --sidebar: #00132e;
   --line: rgba(255,255,255,.10); --line-strong: rgba(255,255,255,.18);
@@ -47,17 +60,19 @@
   --color-warn-bg: var(--warn-bg);
   --color-danger: var(--danger);
   --color-danger-bg: var(--danger-bg);
-  --font-sans: 'DM Sans Variable', system-ui, sans-serif;
-  --font-display: 'Inter Variable', system-ui, sans-serif;
+  --font-sans: var(--fuente);
+  --font-display: var(--fuente-titulos);
   --font-mono: 'DM Mono', ui-monospace, monospace;
   --radius-card: 10px;
 }
 
 html, body, #root { height: 100%; }
-body { background: var(--canvas); color: var(--text); font-family: var(--font-sans); letter-spacing: -0.01em; -webkit-font-smoothing: antialiased; }
-h1, h2 { font-family: var(--font-display); font-weight: 300; letter-spacing: -0.025em; }
+body { background: var(--canvas); color: var(--text); font-family: var(--fuente); letter-spacing: -0.01em; -webkit-font-smoothing: antialiased; }
+h1, h2 { font-family: var(--fuente-titulos); font-weight: var(--peso-titulos); letter-spacing: -0.025em; }
 ::selection { background: color-mix(in srgb, var(--action) 35%, transparent); }
 :focus-visible { outline: 2px solid var(--action); outline-offset: 2px; }
+/* Los campos ya marcan el foco con su borde: sin doble contorno */
+input:focus-visible, select:focus-visible, textarea:focus-visible { outline: none; }
 
 /* Etiqueta en mayúsculas con letra mono: matrículas, folios, encabezados de tabla */
 .etiqueta { font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .06em; font-size: 11px; color: var(--muted); }

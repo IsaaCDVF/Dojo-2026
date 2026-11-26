@@ -3,12 +3,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
 import { useSesion } from '../sesion';
 import { Isotipo } from '../Logo';
+import { MarcaLogo, useMarca } from '../marca';
 import Avatar from '../Avatar';
 import { Boton, Campo, ErrorCaja } from '../ui';
 
 // Entrar: el alumno con su matrícula, el responsable con su teléfono (o el correo si lo tiene).
 export default function Entrar() {
   const { entrar, aviso } = useSesion();
+  const marca = useMarca();
   const navegar = useNavigate();
   const [usuario, setUsuario] = useState('');
   const [pass, setPass] = useState('');
@@ -25,12 +27,12 @@ export default function Entrar() {
   return (
     <div className="min-h-full bg-canvas">
       <div className="mx-auto max-w-md px-5 pt-8 pb-10">
-        <div className="flex items-center gap-2.5"><Isotipo className="size-10 text-white" /><span className="text-[22px] font-black">Dojo <span className="text-gold">OS</span></span></div>
+        <MarcaLogo Isotipo={Isotipo} />
         <div className="mt-6 mx-auto size-60 rounded-[36px] overflow-hidden border-2 border-line">
           <Avatar equipo={[{ tipo: 'cabeza', imagen: 'banda-roja' }, { tipo: 'fondo', imagen: 'fondo-atardecer' }]} cinta="Amarilla" className="size-full" animado interactivo demostracion />
         </div>
         <h1 className="text-[30px] font-black leading-tight mt-6">Entra a tu dojo</h1>
-        <p className="text-muted font-semibold mt-1">Tu credencial, tu camino de cintas y tu avatar.</p>
+        <p className="text-muted font-semibold mt-1">{marca.lema || 'Tu credencial, tu camino de cintas y tu avatar.'}</p>
         <form onSubmit={enviar} className="mt-6 space-y-4">
           <Campo etiqueta="Matrícula o teléfono" value={usuario} onChange={(e) => setUsuario(e.target.value)} placeholder="CENT-26-0013 o 2221234567" autoComplete="username" autoCapitalize="characters" required />
           <div className="relative">

@@ -1,3 +1,4 @@
+import { useMarca } from '../marca/Marca';
 // Isotipo Dojo OS (mismo trazo que Logo/dojo-os-isotipo.svg). El anillo usa currentColor
 // para verse en fondo oscuro o claro; el cinturón siempre va en oro.
 export function Isotipo({ className = 'size-9' }) {
@@ -12,14 +13,44 @@ export function Isotipo({ className = 'size-9' }) {
   );
 }
 
-export function Logo({ subtitulo = 'Gestión de dojos' }) {
+/** Logo de la empresa (marca blanca). Sin logo propio: su ícono o el isotipo de Dojo OS, con su nombre.
+ *  oscuro = se pinta sobre fondo oscuro (el menú lateral siempre lo es). */
+export function Logo({ subtitulo, oscuro = false }) {
+  const { marca, modo } = useMarca();
+  const im = marca.imagenes || {};
+  const fondoOscuro = oscuro || modo === 'dark';
+  const img = fondoOscuro ? (im.logo_oscuro || im.logo) : (im.logo || im.logo_oscuro);
+  if (img) {
+    return (
+      <div className="flex items-center gap-2.5 min-w-0">
+        <img src={img} alt={marca.nombre} className="h-9 max-w-[170px] object-contain object-left" />
+        {subtitulo && <div className="etiqueta !text-[9.5px] hidden xl:block">{subtitulo}</div>}
+      </div>
+    );
+  }
+  const deFabrica = marca.nombre === 'Dojo OS';
   return (
-    <div className="flex items-center gap-2.5">
-      <Isotipo />
-      <div className="leading-tight">
-        <div className="font-semibold tracking-tight text-[17px]">Dojo <span className="text-gold">OS</span></div>
-        <div className="etiqueta !text-[9.5px]">{subtitulo}</div>
+    <div className="flex items-center gap-2.5 min-w-0">
+      {im.icono ? <img src={im.icono} alt="" className="size-9 rounded-md object-contain shrink-0" /> : <Isotipo />}
+      <div className="leading-tight min-w-0">
+        <div className="font-semibold tracking-tight text-[17px] truncate">{deFabrica ? <>Dojo <span className="text-gold">OS</span></> : marca.nombre}</div>
+        {(subtitulo || marca.lema) && <div className="etiqueta !text-[9.5px] truncate">{subtitulo || marca.lema}</div>}
       </div>
     </div>
+  );
+}
+
+/** Nombre y logo para recibos y credenciales impresos. fondo: 'claro' (recibo) u 'oscuro' (franja de la credencial) */
+export function MarcaImpresa({ fondo = 'claro', className = '' }) {
+  const { marca } = useMarca();
+  const im = marca.imagenes || {};
+  const logo = fondo === 'oscuro' ? (im.logo_oscuro || null) : (im.logo || null);
+  if (logo) return <img src={logo} alt={marca.nombre} className={`h-8 max-w-[160px] object-contain object-left ${className}`} />;
+  const deFabrica = marca.nombre === 'Dojo OS';
+  return (
+    <span className={`inline-flex items-center gap-2 font-semibold ${className}`}>
+      {im.icono ? <img src={im.icono} alt="" className="size-7 rounded object-contain" /> : fondo === 'claro' && <Isotipo className="size-7 text-[#011c42]" />}
+      {deFabrica ? <span>Dojo <span className="text-[#f2a900]">OS</span></span> : <span>{marca.nombre}</span>}
+    </span>
   );
 }

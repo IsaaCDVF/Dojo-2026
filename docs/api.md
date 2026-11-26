@@ -143,3 +143,19 @@ El acceso a la app lo da recepción (no hay registro abierto). El alumno entra c
 `apariencia` viene en inicio, camino, avatar, exámenes y en cada alumno de familia: `{piel 1-6, peinado (rapado, corto, despeinado, rizado, coleta, chongo, largo), color_pelo, vello (ninguno, bigote, candado, barba), complexion (delgada, media, robusta), etapa (nino < 12, joven < 18, adulto), disciplina}`. Un niño nunca lleva vello facial; la disciplina decide el uniforme y los movimientos.
 
 En `/app/alumnos/{id}/…` el alumno solo se ve a sí mismo y el responsable a los alumnos por los que paga (403 "Ese alumno no está en tu cuenta").
+
+## Endpoints · Marca blanca y preferencias
+
+Cada instalación guarda su marca en la tabla `marca` (una fila). Todo lo de la empresa vive en la base de datos, no en el código ni en el `.env`: el mismo sistema sirve a cualquier cliente y, para pasar a SaaS, la fila única se cambia por una por empresa.
+
+| Método | Ruta | Permiso | Qué hace |
+|---|---|---|---|
+| GET | /marca | (pública) | `{nombre, lema, tema, color_primario, color_fondo, fuente, idioma, moneda, zona_horaria, pais, imagenes: {logo, logo_oscuro, icono}}`. Las imágenes son direcciones con `?v=` para que el navegador las vuelva a pedir cuando cambian |
+| PUT | /marca | marca.editar | Cambia solo lo que se manda. `tema`: oceano, dojo, bosque, grafito, ciruela, atardecer o personalizado (requiere `color_primario`). `fuente`: dm-sans, inter, nunito, montserrat, poppins, source-sans, lora, sistema. `idioma`: es-MX, en-US. Queda en bitácora |
+| GET | /marca/imagen/{tipo} | (pública) | `logo`, `logo_oscuro` o `icono`. Se sirve con `Content-Security-Policy` que no deja ejecutar nada (por los SVG) |
+| PUT | /marca/imagen/{tipo} | marca.editar | `{imagen: dataURL}` PNG, JPG, WEBP o SVG hasta 512 KB. Un SVG con scripts, eventos o enlaces externos se rechaza (422) |
+| DELETE | /marca/imagen/{tipo} | marca.editar | Vuelve al logo de Dojo OS |
+| GET | /marca/manifest/{app} | (pública) | Manifest de la PWA (`app` o `panel`) con el nombre, ícono y color de la empresa |
+| GET / PUT | /preferencias | (sesión) | `{idioma (null = el de la empresa), tema: sistema\|claro\|oscuro, letra: normal\|grande\|muy_grande}`. También vienen en `GET /auth/yo` como `preferencias` |
+
+El router acepta parámetros de texto con `{nombre:texto}` (letras minúsculas y guion bajo); `{id}` sigue siendo solo número.

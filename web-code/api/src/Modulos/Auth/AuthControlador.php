@@ -51,7 +51,8 @@ final class AuthControlador
         $rol = $req->ctx['rol'];
         $permisos = $rol ? array_column(Db::todos('SELECT p.clave FROM rol_permisos rp JOIN permisos p ON p.id = rp.permiso_id
                                                     WHERE rp.rol_id = ? ORDER BY p.clave', [$rol['rol_id']]), 'clave') : [];
-        Respuesta::ok(['usuario' => $p, 'rol_activo' => $rol, 'roles' => $this->roles($req->ctx['usuario_id']), 'permisos' => $permisos]);
+        Respuesta::ok(['usuario' => $p, 'rol_activo' => $rol, 'roles' => $this->roles($req->ctx['usuario_id']), 'permisos' => $permisos,
+                       'preferencias' => \Dojo\Modulos\Sistema\PreferenciasControlador::de((int) $req->ctx['usuario_id'])]);
     }
 
     /** POST /api/auth/logout */

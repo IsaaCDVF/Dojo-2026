@@ -4,7 +4,7 @@ import QRCode from 'qrcode';
 import { ArrowLeft, CalendarCheck, CalendarPlus, IdCard, Mail, Phone, Printer, RefreshCw, UserCheck, UserX, Users } from 'lucide-react';
 import { api, DIAS, formato, nombreCompleto } from '../api';
 import { useSesion } from '../auth/Sesion';
-import { Boton, Cargando, Chip, Cinta, ErrorCaja, FotoAlumno, Modal, Selector, Tarjeta, Vacio, useAvisos, useConfirmar, useDatos } from '../ui';
+import { Boton, Cargando, Chip, Cinta, ErrorCaja, FotoAlumno, Modal, Selector, Tarjeta, Vacio, useAvisos, useConfirmar, useDatos, MarcaImpresa } from '../ui';
 import { inscribir } from './inscribir';
 import { MOTIVOS } from './Asistencia';
 import AccesoApp from './AccesoApp';
@@ -15,8 +15,8 @@ function Credencial({ a }) {
   useEffect(() => { QRCode.toDataURL(a.codigo_qr, { margin: 1, width: 280, color: { dark: '#011c42', light: '#ffffff' } }).then(setQr); }, [a.codigo_qr]);
   return (
     <div className="imprimible rounded-[14px] overflow-hidden border border-line" id="credencial">
-      <div className="px-4 py-3 text-white flex items-center justify-between" style={{ background: 'linear-gradient(120deg,#011c42,#0a2852 60%,#006aff)' }}>
-        <span className="font-semibold">Dojo <span className="text-[#f2a900]">OS</span></span>
+      <div className="px-4 py-3 text-white flex items-center justify-between" style={{ background: 'linear-gradient(120deg, var(--sidebar), var(--sidebar) 55%, var(--action))' }}>
+        <MarcaImpresa fondo="oscuro" />
         <span className="font-mono text-[11px] tracking-wider opacity-80">CREDENCIAL</span>
       </div>
       <div className="bg-white text-[#0b1b33] p-4 flex gap-4 items-center">

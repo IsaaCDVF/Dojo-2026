@@ -8,6 +8,10 @@ Tipos: **Agregado** (nuevo), **Cambiado** (cambia algo que ya existía), **Corre
 ## [Sin publicar]
 
 ### Agregado
+- Marca blanca (Configuración → Apariencia y marca): nombre comercial y lema, logo para fondo claro, para fondo oscuro e ícono; 6 temas de color listos o uno personalizado con revisión automática de contraste; 8 tipos de letra incluidos en el sistema; idioma, moneda, zona horaria y país. Vista previa en vivo en modo claro y oscuro. La marca aparece en el panel, el login, los recibos, las credenciales y la app de alumnos (nombre, logo, colores e ícono al instalarla). — Kevin
+- Preferencias por usuario en Mi perfil: idioma (o el de la empresa), tema claro/oscuro/como mi equipo y tamaño de letra. — Kevin
+- Traducción con i18next (`web-code/panel/src/i18n`): español e inglés en el menú, la barra superior, el login, elegir rol, Mi perfil y Apariencia. Las demás pantallas siguen en español por ahora. Dinero y fechas con el formato del idioma y la moneda de la empresa. — Kevin
+- `pruebas/marca.sh` (53). — Kevin
 - Fase 6 · App móvil para alumnos y responsables (`app-code`, PWA en `/app/`): inicio con credencial QR, rumbo a la siguiente cinta, semana de asistencia y racha; Mi camino de cintas; avatar en SVG con accesorios que se desbloquean por grado e insignias; solicitar examen; Mi familia con lo que se debe, pagos y recibos. Se instala en el celular desde el navegador. — Kevin
 - Acceso a la app desde la ficha del alumno (tarjeta "App Dojo OS"): recepción genera un código de 6 dígitos (72 h) y lo manda por WhatsApp; la persona activa su cuenta y crea su contraseña. Volver a generar el código sirve para "olvidé mi contraseña". — Kevin
 - API `Modulos/App` (`AccesoControlador`, `AppControlador`); el inicio de sesión acepta matrícula o teléfono. — Kevin
@@ -50,6 +54,7 @@ Tipos: **Agregado** (nuevo), **Cambiado** (cambia algo que ya existía), **Corre
 - Panel: las fechas sin hora (`2026-11-28`) se mostraban un día antes. — Kevin
 
 ### Base de datos
+- `010_marca_preferencias`: tablas `marca`, `marca_imagenes` y `usuario_preferencias`; permiso `marca.editar` para el súper administrador. Para una base que ya existe: `database-code/parches/2026-11-26_marca.sql`. — Kevin
 - `008_app_movil`: tabla `activaciones`. Semilla `003_app_demo`: parámetro `dias_sesion_app`, insignias por grado y 16 accesorios de Taekwondo. Para una base que ya existe: `database-code/parches/2026-11-25_app_movil.sql`. `009_avatar_apariencia`: tabla `avatar_apariencia` (parche `2026-11-25_avatar_apariencia.sql`). — Kevin
 - Semilla demo: usuario de la tableta de Centro (`tableta.centro@dojoos.mx`). Para una base que ya existe: `database-code/parches/2026-11-24_usuario_tableta.sql`. — Kevin
 - Semilla demo: precios base de examen (450), pase de un día (150) y recargo (100). Solo aplica al crear la base desde cero. — Kevin

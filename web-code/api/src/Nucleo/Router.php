@@ -19,7 +19,8 @@ final class Router
 
     private function agregar(string $m, string $patron, array $h, ?string $permiso): void
     {
-        $regex = '#^' . preg_replace('#\{(\w+)\}#', '(?P<$1>[0-9]+)', $patron) . '$#';
+        // {id} = número; {tipo:texto} = palabra en minúsculas (logo, logo_oscuro, app…)
+        $regex = '#^' . preg_replace(['#\{(\w+):texto\}#', '#\{(\w+)\}#'], ['(?P<$1>[a-z_]+)', '(?P<$1>[0-9]+)'], $patron) . '$#';
         $this->rutas[] = compact('m', 'regex', 'h', 'permiso');
     }
 
@@ -30,7 +31,7 @@ final class Router
             if (!preg_match($r['regex'], $req->ruta, $mm)) continue;
             $metodoValido = true;
             if ($r['m'] !== $req->metodo) continue;
-            $req->params = array_map('intval', array_filter($mm, 'is_string', ARRAY_FILTER_USE_KEY));
+            $req->params = array_map(fn($v) => ctype_digit($v) ? (int) $v : $v, array_filter($mm, 'is_string', ARRAY_FILTER_USE_KEY));
             if ($r['permiso'] !== null) {
                 Autenticacion::verificar($req);
                 if ($r['permiso'] !== '') Permiso::exigir($req, $r['permiso']);
