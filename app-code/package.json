@@ -11,6 +11,12 @@
   },
   "dependencies": {
     "@fontsource-variable/nunito": "5.2.5",
+    "@fontsource-variable/oswald": "5.2.5",
+    "@fontsource-variable/playfair-display": "5.2.5",
+    "@fontsource/archivo-black": "5.2.5",
+    "@fontsource/bebas-neue": "5.2.5",
+    "@fontsource/permanent-marker": "5.2.5",
+    "@fontsource/russo-one": "5.2.5",
     "lucide-react": "0.460.0",
     "qrcode": "1.5.4",
     "react": "18.3.1",

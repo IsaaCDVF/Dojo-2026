@@ -11,6 +11,7 @@ import Examen from './paginas/Examen';
 import Familia from './paginas/Familia';
 import Pagos from './paginas/Pagos';
 import SinAlumnos from './paginas/SinAlumnos';
+import CrearAvatar from './paginas/CrearAvatar';
 
 function Protegida({ children }) {
   const { yo, cargando } = useSesion();
@@ -34,6 +35,7 @@ export default function App() {
     <Routes>
       <Route path="/entrar" element={yo && !cargando ? <Navigate to="/" replace /> : <Entrar />} />
       <Route path="/activar" element={yo && !cargando ? <Navigate to="/" replace /> : <Activar />} />
+      <Route path="/a/:id/crear-avatar" element={<Protegida><CrearAvatar /></Protegida>} />
       <Route element={<Protegida><Marco /></Protegida>}>
         <Route index element={<Raiz />} />
         <Route path="a/:id" element={<Inicio />} />

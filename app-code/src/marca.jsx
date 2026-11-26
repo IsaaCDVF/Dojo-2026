@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
+import { NombreMarca, nombrePlano } from './NombreMarca';
 
 // Marca de la empresa en la app: nombre, logos y colores (los mismos temas del panel, ver
 // web-code/panel/src/marca/temas.js). La app siempre es oscura: usa el color de acción y los fondos del tema.
@@ -41,7 +42,7 @@ function aplicar(m) {
   if (!el) { el = document.createElement('style'); el.id = 'marca-tema'; document.head.appendChild(el); }
   el.textContent = `html:root{${Object.entries(v).map(([k, x]) => `--${k}:${x};`).join('')}}`;
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', b.menu);
-  document.title = m.nombre || 'Dojo OS';
+  document.title = nombrePlano(m.nombre) || 'Dojo OS';
   if (m.imagenes?.icono) document.querySelector('link[rel="icon"]')?.setAttribute('href', m.imagenes.icono);
 }
 
@@ -56,14 +57,29 @@ export function MarcaProvider({ children }) {
   return <Ctx.Provider value={m}>{children}</Ctx.Provider>;
 }
 
-/** Logo para fondo oscuro, o ícono + nombre, o el de Dojo OS */
-export function MarcaLogo({ Isotipo, tam = 'size-10', texto = 'text-[22px]' }) {
+/** Nombre de la empresa con su letra y decoraciones (o "Dojo OS" con su estilo) */
+export function Nombre({ className = '' }) {
+  const m = useMarca();
+  return m.nombre === 'Dojo OS' ? <span className={className}>Dojo <span className="text-gold">OS</span></span>
+    : <NombreMarca nombre={m.nombre} fuente={m.fuente_nombre} className={className} />;
+}
+
+/**
+ * Portada del login: el símbolo grande y el nombre de la empresa con su letra.
+ * Si solo subieron el logo ancho (que ya trae el nombre escrito) va ese solo; si es cuadrado, con el nombre abajo.
+ */
+export function MarcaPortada({ Isotipo }) {
   const m = useMarca(); const im = m.imagenes || {};
-  if (im.logo_oscuro) return <img src={im.logo_oscuro} alt={m.nombre} className="h-10 max-w-[200px] object-contain object-left" />;
+  const img = im.icono || im.logo_oscuro;
+  const [ancho, setAncho] = useState(false);
   return (
-    <div className="flex items-center gap-2.5 min-w-0">
-      {im.icono ? <img src={im.icono} alt="" className={`${tam} rounded-xl object-contain`} /> : <Isotipo className={`${tam} text-white`} />}
-      <span className={`${texto} font-black truncate`}>{m.nombre === 'Dojo OS' ? <>Dojo <span className="text-gold">OS</span></> : m.nombre}</span>
+    <div className="text-center anim-entrar">
+      {img
+        ? <img src={img} alt="" onLoad={(e) => setAncho(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight >= 1.8)}
+            className={ancho ? 'h-20 max-w-[85%] mx-auto object-contain' : 'size-28 mx-auto object-contain rounded-[26px]'} />
+        : <Isotipo className="size-24 mx-auto text-white" />}
+      {(!img || !ancho) && <Nombre className="block text-[32px] font-black leading-tight mt-4" />}
+      {m.lema && <p className="text-soft font-bold mt-1.5">{m.lema}</p>}
     </div>
   );
 }

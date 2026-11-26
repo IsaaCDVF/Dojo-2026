@@ -41,6 +41,8 @@ export default {
   apariencia: {
     titulo: 'Branding & appearance', descripcion: 'This is how everyone sees the system: dashboard, student app, receipts and ID cards.',
     identidad: 'Identity', nombre: 'Business name', nombreAyuda: 'Shown on sign-in, the menu, receipts and the app',
+    letraNombre: 'Business name font', letraIgual: 'Same as the system', decorar: 'Decorate letters:', rayaArriba: 'Overline', subrayado: 'Underline', tachado: 'Strikethrough', sinDecorar: 'Clear',
+    decorarAyuda: 'Select letters in the name and pick a decoration (e.g. ST̅O̅R̅E̅). It is drawn as one continuous line.',
     lema: 'Tagline (optional)', lemaEjemplo: 'Discipline, respect and perseverance',
     logos: 'Logos', logo: 'Logo for light backgrounds', logoOscuro: 'Logo for dark backgrounds', icono: 'Square icon',
     logoAyuda: 'Sign-in in light mode, receipts and printed ID cards', logoOscuroAyuda: 'The side menu (always dark) and sign-in in dark mode',

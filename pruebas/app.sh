@@ -93,10 +93,12 @@ echo "Apariencia del avatar"
 prueba "Apariencia de Ana"                 200 GET  "/api/app/alumnos/$ANA/avatar" "$TA"
 igual  "Ana tiene 12 o más: joven"         "['datos']['apariencia']['etapa']" "joven"
 igual  "Uniforme de Taekwondo"             "['datos']['apariencia']['disciplina']" "Taekwondo"
+igual  "Ana es nueva: debe crear su avatar" "var_export(\$j['datos']['apariencia']['personalizada'], true)" "false"
 prueba "Peinado que no existe"             422 PUT  "/api/app/alumnos/$ANA/avatar" "$TA" '{"apariencia":{"peinado":"afro-arcoiris"}}'
 prueba "Cabello rizado castaño, piel 4"    200 PUT  "/api/app/alumnos/$ANA/avatar" "$TA" '{"apariencia":{"peinado":"rizado","color_pelo":"castano","piel":"4"}}'
 igual  "Se guardó"                         "\$j['datos']['apariencia']['peinado'] . ',' . \$j['datos']['apariencia']['color_pelo'] . ',' . \$j['datos']['apariencia']['piel']" "rizado,castano,4"
 igual  "Sin mandar equipo, no se lo quita" "count(\$j['datos']['equipo'])" "3"
+igual  "Ya lo personalizó"                 "var_export(\$j['datos']['apariencia']['personalizada'], true)" "true"
 prueba "Leo (10 años)"                     200 GET  "/api/app/alumnos/$LEO/inicio" "$TM"
 igual  "Es niño"                           "['datos']['apariencia']['etapa']" "nino"
 prueba "Un niño no lleva barba"            200 PUT  "/api/app/alumnos/$LEO/avatar" "$TM" '{"apariencia":{"vello":"barba"}}'

@@ -6,6 +6,7 @@ import { useSesion } from '../auth/Sesion';
 import { useMarca } from '../marca/Marca';
 import { TEMAS, base, estiloVista, variables } from '../marca/temas';
 import { FUENTES, fuenteDe } from '../marca/fuentes';
+import { FUENTES_NOMBRE, NombreMarca, decorar } from '../marca/NombreMarca';
 import { IDIOMAS } from '../i18n';
 import { Boton, Campo, Encabezado, Isotipo, Selector, Tarjeta, Vacio, useAvisos } from '../ui';
 import AsistenteLogo from './AsistenteLogo';
@@ -14,7 +15,7 @@ import AsistenteLogo from './AsistenteLogo';
 // se guarda con "Guardar cambios". Los logos se guardan en cuanto se suben.
 
 const cx = (...c) => c.filter(Boolean).join(' ');
-const CAMPOS = ['nombre', 'lema', 'tema', 'color_primario', 'color_fondo', 'fuente', 'idioma', 'moneda', 'zona_horaria', 'pais'];
+const CAMPOS = ['nombre', 'lema', 'tema', 'color_primario', 'color_fondo', 'fuente', 'fuente_nombre', 'idioma', 'moneda', 'zona_horaria', 'pais'];
 const MONEDAS = ['MXN', 'USD', 'EUR', 'CAD', 'COP', 'ARS', 'CLP', 'PEN', 'GTQ'];
 const PAISES = ['MX', 'US', 'CA', 'ES', 'CO', 'AR', 'CL', 'PE', 'GT', 'CR', 'DO', 'EC', 'PA', 'UY', 'BO', 'PY', 'SV', 'HN', 'NI', 'PR', 'BR', 'GB'];
 const ZONAS_BASE = ['America/Mexico_City', 'America/Monterrey', 'America/Cancun', 'America/Chihuahua', 'America/Hermosillo', 'America/Mazatlan', 'America/Tijuana',
@@ -62,6 +63,14 @@ export default function Apariencia() {
       avisar(e.message, 'error');
     } finally { setGuardando(false); }
   }
+  /** Pone una raya (arriba, abajo o tachado) a las letras seleccionadas del nombre; sin selección, a todo */
+  function decorarSeleccion(marca) {
+    const el = document.getElementById('nombre-comercial');
+    const v = f.nombre || ''; let a = el?.selectionStart ?? 0; let b = el?.selectionEnd ?? v.length;
+    if (a === b) { a = 0; b = v.length; }
+    const nuevo = v.slice(0, a) + decorar(v.slice(a, b), marca) + v.slice(b);
+    setF((x) => ({ ...x, nombre: nuevo.slice(0, 80) }));
+  }
   const descartar = () => setF(Object.fromEntries(CAMPOS.map((k) => [k, guardada[k] ?? ''])));
 
   const marcaVista = { ...guardada, ...Object.fromEntries(Object.entries(f).map(([k, v]) => [k, v === '' ? null : v])) };
@@ -78,9 +87,30 @@ export default function Apariencia() {
         <div className="space-y-5 min-w-0">
           <Tarjeta titulo={t('apariencia.identidad')}>
             <div className="grid md:grid-cols-2 gap-4">
-              <Campo etiqueta={t('apariencia.nombre')} value={f.nombre} onChange={poner('nombre')} maxLength={80} ayuda={t('apariencia.nombreAyuda')} error={error.nombre} />
+              <div>
+                <Campo id="nombre-comercial" etiqueta={t('apariencia.nombre')} value={f.nombre} onChange={poner('nombre')} maxLength={80} error={error.nombre} />
+                <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                  <span className="text-[12px] text-muted mr-1">{t('apariencia.decorar')}</span>
+                  {[['\u0305', t('apariencia.rayaArriba'), { textDecorationLine: 'overline' }], ['\u0332', t('apariencia.subrayado'), { textDecorationLine: 'underline' }], ['\u0336', t('apariencia.tachado'), { textDecorationLine: 'line-through' }], [null, t('apariencia.sinDecorar'), {}]].map(([m, n, st]) => (
+                    <button key={n} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => decorarSeleccion(m)}
+                      className="h-7 px-2.5 rounded-md border border-line text-[12px] font-semibold hover:border-action cursor-pointer"><span style={st}>{n}</span></button>
+                  ))}
+                </div>
+                <p className="text-[12px] text-muted mt-1.5">{t('apariencia.decorarAyuda')}</p>
+              </div>
               <Campo etiqueta={t('apariencia.lema')} value={f.lema || ''} onChange={poner('lema')} maxLength={120} placeholder={t('apariencia.lemaEjemplo')} error={error.lema} />
             </div>
+            <div className="etiqueta mt-5 mb-2">{t('apariencia.letraNombre')}</div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {Object.entries(FUENTES_NOMBRE).map(([k, fn]) => (
+                <button key={k} type="button" onClick={() => poner('fuente_nombre')(k)} aria-pressed={f.fuente_nombre === k}
+                  className={cx('rounded-[10px] border p-3 text-left cursor-pointer min-w-0', f.fuente_nombre === k ? 'border-action bg-action/8' : 'border-line hover:border-line-strong')}>
+                  <NombreMarca nombre={f.nombre || 'Mi dojo'} fuente={k} className="block text-[19px] leading-tight truncate" style={k === 'igual' ? { fontFamily: fuente.titulos } : undefined} />
+                  <div className="text-[11px] text-muted mt-1 truncate">{k === 'igual' ? t('apariencia.letraIgual') : fn.estilo}</div>
+                </button>
+              ))}
+            </div>
+            <p className="text-[12px] text-muted mt-2">{t('apariencia.nombreAyuda')}</p>
           </Tarjeta>
 
           <Tarjeta titulo={t('apariencia.logos')} subtitulo={t('apariencia.formatos')}>
@@ -287,7 +317,7 @@ function MiniPanel({ vars, fuente, marca, modo, etiqueta }) {
         <div className="w-[34%] p-2.5 space-y-1 text-white" style={{ background: 'var(--sidebar)' }}>
           <div className="flex items-center gap-1.5 h-7 mb-2 min-w-0">
             {logoMenu ? <img src={logoMenu} alt="" className="h-6 max-w-full object-contain" />
-              : <>{im.icono ? <img src={im.icono} alt="" className="size-5 rounded object-contain" /> : <Isotipo className="size-5" />}<span className="font-semibold truncate">{marca.nombre}</span></>}
+              : <>{im.icono ? <img src={im.icono} alt="" className="size-5 rounded object-contain" /> : <Isotipo className="size-5" />}<NombreMarca nombre={marca.nombre} fuente={marca.fuente_nombre} className="font-semibold truncate" /></>}
           </div>
           <div className="flex items-center gap-1.5 h-6 px-2 rounded-full text-white/70"><Home className="size-3" />{t('menu.inicio')}</div>
           <div className="flex items-center gap-1.5 h-6 px-2 rounded-full font-semibold" style={{ background: 'var(--action)', color: 'var(--on-action)' }}><Users className="size-3" />{t('apariencia.ejemplo.alumnos')}</div>

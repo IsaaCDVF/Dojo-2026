@@ -18,7 +18,7 @@ echo "Marca pública"
 prueba "Sin sesión se puede leer"          200 GET  /api/marca
 igual  "Trae nombre y tema"                "(\$j['datos']['nombre'] !== '' && \$j['datos']['tema'] !== '') ? 'si' : 'no'" "si"
 # Respaldo de la marca actual para dejarla igual al final
-php -r '$j=json_decode(file_get_contents("/tmp/r.json"),true)["datos"]; $c=array_intersect_key($j, array_flip(["nombre","lema","tema","color_primario","color_fondo","fuente","idioma","moneda","zona_horaria","pais"])); file_put_contents("/tmp/marca_antes.json", json_encode($c, JSON_UNESCAPED_UNICODE)); foreach ($j["imagenes"] as $t => $u) echo $t, " ", $u ? 1 : 0, "\n";' > /tmp/marca_imgs.txt
+php -r '$j=json_decode(file_get_contents("/tmp/r.json"),true)["datos"]; $c=array_intersect_key($j, array_flip(["nombre","lema","tema","color_primario","color_fondo","fuente","fuente_nombre","idioma","moneda","zona_horaria","pais"])); file_put_contents("/tmp/marca_antes.json", json_encode($c, JSON_UNESCAPED_UNICODE)); foreach ($j["imagenes"] as $t => $u) echo $t, " ", $u ? 1 : 0, "\n";' > /tmp/marca_imgs.txt
 while read -r t hay; do
   rm -f "/tmp/marca_$t.json"
   if [ "$hay" = "1" ]; then
@@ -42,6 +42,10 @@ prueba "Tema que no existe"                422 PUT  /api/marca "$ADM" '{"tema":"
 prueba "Personalizado sin color"           422 PUT  /api/marca "$ADM" '{"tema":"personalizado","color_primario":null}'
 prueba "Color mal escrito"                 422 PUT  /api/marca "$ADM" '{"tema":"personalizado","color_primario":"rojo"}'
 prueba "Fuente que no existe"              422 PUT  /api/marca "$ADM" '{"fuente":"comic-sans"}'
+prueba "Letra de nombre que no existe"     422 PUT  /api/marca "$ADM" '{"fuente_nombre":"wingdings"}'
+prueba "Nombre con raya y letra condensada" 200 PUT /api/marca "$ADM" '{"nombre":"KEMMA ST\u0305O\u0305R\u0305E\u0305","fuente_nombre":"oswald"}'
+igual  "Guarda la letra del nombre"        "['datos']['fuente_nombre']" "oswald"
+igual  "Guarda las rayas tal cual"         "mb_strlen(\$j['datos']['nombre'])" "15"
 prueba "Zona horaria inventada"            422 PUT  /api/marca "$ADM" '{"zona_horaria":"Marte/Olympus"}'
 prueba "Moneda que no se maneja"           422 PUT  /api/marca "$ADM" '{"moneda":"BTC"}'
 prueba "Dojo Águilas en rojo, Montserrat"  200 PUT  /api/marca "$ADM" '{"nombre":"Dojo Águilas","lema":"Disciplina y respeto","tema":"personalizado","color_primario":"#D62828","color_fondo":"#1a1a2e","fuente":"montserrat"}'

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useMarca } from '../marca/Marca';
+import { NombreMarca } from '../marca/NombreMarca';
 // Isotipo Dojo OS (mismo trazo que Logo/dojo-os-isotipo.svg). El anillo usa currentColor
 // para verse en fondo oscuro o claro; el cinturón siempre va en oro.
 export function Isotipo({ className = 'size-9' }) {
@@ -26,7 +27,7 @@ export function Logo({ subtitulo, oscuro = false }) {
     return (
       <div className="flex items-center gap-2.5 min-w-0">
         <img src={img} alt="" className="size-9 object-contain shrink-0" />
-        <div className="font-semibold tracking-tight text-[16px] truncate">{marca.nombre}</div>
+        <NombreMarca nombre={marca.nombre} fuente={marca.fuente_nombre} className="font-semibold tracking-tight text-[17px] truncate" />
       </div>
     );
   }
@@ -43,7 +44,7 @@ export function Logo({ subtitulo, oscuro = false }) {
     <div className="flex items-center gap-2.5 min-w-0">
       {im.icono ? <img src={im.icono} alt="" className="size-9 rounded-md object-contain shrink-0" /> : <Isotipo />}
       <div className="leading-tight min-w-0">
-        <div className="font-semibold tracking-tight text-[17px] truncate">{deFabrica ? <>Dojo <span className="text-gold">OS</span></> : marca.nombre}</div>
+        <div className="font-semibold tracking-tight text-[17px] truncate">{deFabrica ? <>Dojo <span className="text-gold">OS</span></> : <NombreMarca nombre={marca.nombre} fuente={marca.fuente_nombre} />}</div>
         {(subtitulo || marca.lema) && <div className="etiqueta !text-[9.5px] truncate">{subtitulo || marca.lema}</div>}
       </div>
     </div>
@@ -60,7 +61,7 @@ export function MarcaImpresa({ fondo = 'claro', className = '' }) {
   return (
     <span className={`inline-flex items-center gap-2 font-semibold ${className}`}>
       {im.icono ? <img src={im.icono} alt="" className="size-7 rounded object-contain" /> : fondo === 'claro' && <Isotipo className="size-7 text-[#011c42]" />}
-      {deFabrica ? <span>Dojo <span className="text-[#f2a900]">OS</span></span> : <span>{marca.nombre}</span>}
+      {deFabrica ? <span>Dojo <span className="text-[#f2a900]">OS</span></span> : <NombreMarca nombre={marca.nombre} fuente={marca.fuente_nombre} />}
     </span>
   );
 }

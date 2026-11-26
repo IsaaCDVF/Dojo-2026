@@ -42,6 +42,8 @@ export default {
   apariencia: {
     titulo: 'Apariencia y marca', descripcion: 'Así se ve el sistema para todos: panel, app de alumnos, recibos y credenciales.',
     identidad: 'Identidad', nombre: 'Nombre comercial', nombreAyuda: 'Aparece en el login, el menú, los recibos y la app',
+    letraNombre: 'Letra del nombre', letraIgual: 'Igual que el sistema', decorar: 'Decorar letras:', rayaArriba: 'Raya arriba', subrayado: 'Subrayado', tachado: 'Tachado', sinDecorar: 'Quitar',
+    decorarAyuda: 'Selecciona letras del nombre y elige una decoración (por ejemplo, ST̅O̅R̅E̅). Se dibuja como una línea continua.',
     lema: 'Lema (opcional)', lemaEjemplo: 'Disciplina, respeto y constancia',
     logos: 'Logos', logo: 'Logo para fondo claro', logoOscuro: 'Logo para fondo oscuro', icono: 'Ícono cuadrado',
     logoAyuda: 'Login en modo claro, recibos y credenciales impresas', logoOscuroAyuda: 'El menú lateral (siempre es oscuro) y el login en modo oscuro',

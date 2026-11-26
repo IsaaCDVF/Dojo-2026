@@ -2,7 +2,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-do
 import { ChevronLeft, Flame, Home, LogOut, MapPin, Smile, Trophy, Users, Wallet } from 'lucide-react';
 import { useSesion } from './sesion';
 import { Isotipo } from './Logo';
-import { MarcaIcono, useMarca } from './marca';
+import { MarcaIcono, Nombre, useMarca } from './marca';
 import { cx } from './ui';
 
 /** Columna de celular + barra de pestañas abajo. Las pestañas cambian si estás viendo a un alumno o a tu familia */
@@ -57,7 +57,7 @@ export function Cabecera({ titulo, racha, alumnoId }) {
       {ajeno
         ? <Link to="/familia" className="grid place-items-center size-10 -ml-1 rounded-full bg-surface" aria-label="Mi familia"><ChevronLeft className="size-6" /></Link>
         : <MarcaIcono Isotipo={Isotipo} />}
-      <h1 className="flex-1 text-[22px] font-black truncate">{titulo === 'Dojo OS' ? marca.nombre : titulo}</h1>
+      <h1 className="flex-1 text-[22px] font-black truncate">{titulo === 'Dojo OS' ? <Nombre /> : titulo}</h1>
       {racha > 0 && <span className="inline-flex items-center gap-1 font-black text-gold text-[18px]" title={`${racha} clases seguidas`}><Flame className="size-6 fill-gold" />{racha}</span>}
       <button onClick={async () => { await salir(); navegar('/entrar'); }} aria-label="Salir" className="grid place-items-center size-10 rounded-full text-muted hover:text-text cursor-pointer"><LogOut className="size-5" /></button>
     </header>

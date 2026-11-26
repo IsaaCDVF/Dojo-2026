@@ -156,7 +156,7 @@ final class AppControlador
         }
         $ap = null;
         if (isset($req->cuerpo['apariencia'])) {
-            $ap = array_intersect_key($this->apariencia($aid), self::APARIENCIA);
+            $ap = array_intersect_key($this->apariencia($aid), self::APARIENCIA);   // parte de lo actual (o lo básico)
             foreach ((array) $req->cuerpo['apariencia'] as $k => $v) {
                 if (!isset(self::APARIENCIA[$k])) continue;
                 if (!in_array((string) $v, self::APARIENCIA[$k], true)) throw new ErrorApi("Ese valor no existe para $k", 422, ['campo' => $k]);
@@ -329,13 +329,14 @@ final class AppControlador
     private function apariencia(int $aid): array
     {
         $r = Db::uno('SELECT piel, peinado, color_pelo, vello, complexion FROM avatar_apariencia WHERE alumno_id = ?', [$aid]);
+        $personalizada = (bool) $r;   // false = alumno nuevo: la app le pide crear su avatar
         if (!$r) {
             $sexo = Db::uno('SELECT p.sexo FROM alumnos a JOIN personas p ON p.id = a.persona_id WHERE a.id = ?', [$aid])['sexo'] ?? null;
             $r = ['piel' => '2', 'peinado' => $sexo === 'F' ? 'coleta' : 'corto', 'color_pelo' => 'negro', 'vello' => 'ninguno', 'complexion' => 'media'];
         }
         $etapa = $this->etapa($aid);
         if ($etapa === 'nino') $r['vello'] = 'ninguno';
-        return $r + ['etapa' => $etapa, 'disciplina' => $this->gradoPrincipal($aid)['disciplina'] ?? null];
+        return $r + ['etapa' => $etapa, 'disciplina' => $this->gradoPrincipal($aid)['disciplina'] ?? null, 'personalizada' => $personalizada];
     }
 
     /** Lo que trae puesto; si nunca ha elegido, lo básico */

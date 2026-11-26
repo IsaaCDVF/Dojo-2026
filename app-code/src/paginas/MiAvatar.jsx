@@ -5,6 +5,7 @@ import { api } from '../api';
 import { Cabecera } from '../Marco';
 import Avatar, { Insignia, PELOS, PIELES } from '../Avatar';
 import { disciplinaDe } from '../avatar/esqueleto';
+import { COLORES, COMPLEXIONES, PEINADOS, VELLOS } from '../avatar/opciones';
 import { Cargando, ErrorCaja, Tarjeta, cx, useDatos } from '../ui';
 
 // Mi avatar: se parece a ti (apariencia) y se viste con lo que ganas al subir de grado.
@@ -13,10 +14,6 @@ const PESTANAS = [
   { t: 'apariencia', n: 'Tú' }, { t: 'cabeza', n: 'Banda', opcional: true, cerca: true }, { t: 'torso', n: 'Dobok' },
   { t: 'mano', n: 'Guantes', opcional: true }, { t: 'pies', n: 'Pies', opcional: true }, { t: 'fondo', n: 'Fondo' },
 ];
-const PEINADOS = [['corto', 'Corto'], ['rapado', 'Rapado'], ['despeinado', 'Picos'], ['rizado', 'Rizado'], ['coleta', 'Coleta'], ['chongo', 'Chongo'], ['largo', 'Largo']];
-const COLORES = [['negro', 'Negro'], ['castano_oscuro', 'Castaño oscuro'], ['castano', 'Castaño'], ['rubio', 'Rubio'], ['pelirrojo', 'Pelirrojo'], ['canoso', 'Canoso'], ['azul', 'Azul'], ['rosa', 'Rosa']];
-const VELLOS = [['ninguno', 'Sin vello'], ['bigote', 'Bigote'], ['candado', 'Candado'], ['barba', 'Barba']];
-const COMPLEXIONES = [['delgada', 'Delgada'], ['media', 'Media'], ['robusta', 'Robusta']];
 
 export default function MiAvatar() {
   const { id } = useParams();

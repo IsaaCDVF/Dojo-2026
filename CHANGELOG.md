@@ -8,16 +8,18 @@ Tipos: **Agregado** (nuevo), **Cambiado** (cambia algo que ya existía), **Corre
 ## [Sin publicar]
 
 ### Agregado
+- Letra propia para el nombre comercial (Apariencia y marca → Letra del nombre): condensada, titular, gruesa, deportiva, elegante o pincel, además de la del sistema. Botones para decorar letras del nombre con raya arriba, subrayado o tachado (por ejemplo, KEMMA ST̅O̅R̅E̅): se dibuja como una línea continua en el panel, el login, los recibos y la app, aunque el nombre venga de copiar y pegar. — Kevin
+- App: el alumno que entra por primera vez arma su avatar en 5 pasos (tono de piel, peinado, color de cabello, barba o bigote si no es niño, y complexión) con vista previa animada; puede dejarlo para después y cambiarlo cuando quiera en Mi avatar → Tú. — Kevin
 - Marca blanca (Configuración → Apariencia y marca): nombre comercial y lema, logo para fondo claro, para fondo oscuro e ícono; 6 temas de color listos o uno personalizado con revisión automática de contraste; 8 tipos de letra incluidos en el sistema; idioma, moneda, zona horaria y país. Vista previa en vivo en modo claro y oscuro. La marca aparece en el panel, el login, los recibos, las credenciales y la app de alumnos (nombre, logo, colores e ícono al instalarla). — Kevin
 - Asistente de logo (Apariencia y marca): se sube una sola imagen y el sistema detecta y quita el fondo, recorta el espacio sobrante, acomoda en horizontal un logo apilado, revisa que se vea en fondo claro y en el menú oscuro (si no, propone versión en blanco/negro o con placa) y saca el símbolo para el ícono. Vista previa de menú, recibo, pestaña y celular antes de guardar. Todo se procesa en el navegador. En el menú, un logo casi cuadrado se muestra con el nombre escrito al lado. — Kevin
 - Preferencias por usuario en Mi perfil: idioma (o el de la empresa), tema claro/oscuro/como mi equipo y tamaño de letra. — Kevin
 - Traducción con i18next (`web-code/panel/src/i18n`): español e inglés en el menú, la barra superior, el login, elegir rol, Mi perfil y Apariencia. Las demás pantallas siguen en español por ahora. Dinero y fechas con el formato del idioma y la moneda de la empresa. — Kevin
-- `pruebas/marca.sh` (54; guarda la marca que haya y la regresa al terminar). — Kevin
+- `pruebas/marca.sh` (58; guarda la marca que haya y la regresa al terminar). — Kevin
 - Fase 6 · App móvil para alumnos y responsables (`app-code`, PWA en `/app/`): inicio con credencial QR, rumbo a la siguiente cinta, semana de asistencia y racha; Mi camino de cintas; avatar en SVG con accesorios que se desbloquean por grado e insignias; solicitar examen; Mi familia con lo que se debe, pagos y recibos. Se instala en el celular desde el navegador. — Kevin
 - Acceso a la app desde la ficha del alumno (tarjeta "App Dojo OS"): recepción genera un código de 6 dígitos (72 h) y lo manda por WhatsApp; la persona activa su cuenta y crea su contraseña. Volver a generar el código sirve para "olvidé mi contraseña". — Kevin
 - API `Modulos/App` (`AccesoControlador`, `AppControlador`); el inicio de sesión acepta matrícula o teléfono. — Kevin
 - Avatar animado y personalizable (el mismo dibujo de frente): movimientos de cada disciplina al tocarlo o con botones (Taekwondo: jirugi, dollyo chagi, kyungrye; Karate: oi-zuki, mae-geri, rei; Box: jab, uppercut, victoria; Jiu-Jitsu: derribo, victoria, saludo), tono de piel, peinado, color de cabello, vello facial (no en niños) y complexión. Lo bloqueado se ve a color y se puede probar (vista previa) sin guardarlo. — Kevin
-- `pruebas/app.sh` (103). — Kevin
+- `pruebas/app.sh` (105). — Kevin
 - 2.6 Carga masiva de alumnos desde CSV (`ImportacionControlador`): revisión sin guardar con errores por renglón, importación de los renglones válidos (matrícula, responsable nuevo o ya registrado por teléfono, hermanos con el mismo responsable, grado de migración y fecha de alta), historial de cargas y revertir una carga si nadie la ha usado. Acepta coma o punto y coma y archivos de Excel en Windows-1252. — Kevin
 - Inicio con datos reales (`GET /api/inicio`): alumnos activos, cobrado hoy, alumnos con pago vencido, asistencia y rechazos del día, clases de hoy, exámenes por autorizar y próximos; cada bloque según los permisos del rol. — Kevin
 - Panel: pantalla Importar alumnos (plantilla, revisión, importar, revertir) e Inicio nuevo. — Kevin
@@ -42,6 +44,7 @@ Tipos: **Agregado** (nuevo), **Cambiado** (cambia algo que ya existía), **Corre
 - `pruebas/tarifas.sh` con 42 pruebas de tarifas y promociones. — Kevin
 
 ### Cambiado
+- App: el login ya no muestra un avatar de ejemplo; ahora es la portada de la empresa: su símbolo en grande, el nombre con su letra y el lema. — Kevin
 - La sesión de alumnos y responsables dura `dias_sesion_app` días (para no pedir la contraseña cada vez que abren la app); el personal sigue con `minutos_inactividad_sesion`. Ficha del alumno: tarjeta "App Dojo OS". — Kevin
 - `EstadoCuenta`: el cálculo de mensualidades por periodo es una sola función que usan la caja, la tableta y el Inicio. — Kevin
 - `Permiso::tiene()` para preguntar por permisos sin lanzar error. — Kevin
@@ -55,6 +58,7 @@ Tipos: **Agregado** (nuevo), **Cambiado** (cambia algo que ya existía), **Corre
 - Panel: las fechas sin hora (`2026-11-28`) se mostraban un día antes. — Kevin
 
 ### Base de datos
+- `011_marca_fuente_nombre.sql`: columna `marca.fuente_nombre` (letra del nombre comercial). Para una base que ya existe: `parches/2026-11-26_marca_nombre.sql` (se puede correr dos veces). — Kevin
 - `010_marca_preferencias`: tablas `marca`, `marca_imagenes` y `usuario_preferencias`; permiso `marca.editar` para el súper administrador. Para una base que ya existe: `database-code/parches/2026-11-26_marca.sql`. — Kevin
 - `008_app_movil`: tabla `activaciones`. Semilla `003_app_demo`: parámetro `dias_sesion_app`, insignias por grado y 16 accesorios de Taekwondo. Para una base que ya existe: `database-code/parches/2026-11-25_app_movil.sql`. `009_avatar_apariencia`: tabla `avatar_apariencia` (parche `2026-11-25_avatar_apariencia.sql`). — Kevin
 - Semilla demo: usuario de la tableta de Centro (`tableta.centro@dojoos.mx`). Para una base que ya existe: `database-code/parches/2026-11-24_usuario_tableta.sql`. — Kevin

@@ -4,6 +4,7 @@ import { ArrowRight, AtSign, Eye, EyeOff, Lock, ShieldCheck } from 'lucide-react
 import { useTranslation } from 'react-i18next';
 import { useSesion } from '../auth/Sesion';
 import { useMarca } from '../marca/Marca';
+import { NombreMarca, nombrePlano } from '../marca/NombreMarca';
 import { Boton, BotonTema, Campo, Isotipo } from '../ui';
 
 // S-01a / S-01b · Inicio de sesión (con error en el mismo lugar, sin recargar)
@@ -46,7 +47,7 @@ export default function Login() {
       <div aria-hidden className="pointer-events-none absolute -right-40 top-0 h-full w-[70vw] opacity-60 blur-[70px]"
         style={{ background: 'radial-gradient(60% 50% at 70% 40%, color-mix(in srgb, var(--action) 55%, transparent) 0%, transparent 70%), radial-gradient(50% 60% at 40% 80%, color-mix(in srgb, var(--soft) 45%, transparent) 0%, transparent 70%), radial-gradient(40% 40% at 85% 85%, color-mix(in srgb, var(--gold) 35%, transparent) 0%, transparent 70%)' }} />
       <header className="relative flex items-center justify-between px-6 py-4">
-        <span className="etiqueta">{marca.nombre} · {t('login.etiqueta')}</span>
+        <span className="etiqueta">{nombrePlano(marca.nombre)} · {t('login.etiqueta')}</span>
         <BotonTema />
       </header>
 
@@ -59,7 +60,7 @@ export default function Login() {
               {logo
                 ? <img src={logo} alt={marca.nombre} className="h-16 max-w-[240px] object-contain" />
                 : <span className="grid place-items-center size-16 rounded-full bg-inset text-text">{im.icono ? <img src={im.icono} alt="" className="size-12 rounded-md object-contain" /> : <Isotipo className="size-12" />}</span>}
-              {!logo && <h1 className="text-[28px] mt-3">{marca.nombre === 'Dojo OS' ? <>Dojo <span className="text-gold font-normal">OS</span></> : marca.nombre}</h1>}
+              {!logo && <h1 className="text-[28px] mt-3">{marca.nombre === 'Dojo OS' ? <>Dojo <span className="text-gold font-normal">OS</span></> : <NombreMarca nombre={marca.nombre} fuente={marca.fuente_nombre} />}</h1>}
               <p className={`text-muted text-sm ${logo ? 'mt-3' : ''}`}>{marca.lema || t('login.subtitulo')}</p>
             </div>
 
@@ -91,7 +92,7 @@ export default function Login() {
           </div>
         </form>
       </main>
-      <footer className="relative px-6 py-4 text-[12px] text-muted">© 2026 {marca.nombre}{marca.nombre !== 'Dojo OS' && ` · ${t('comun.hechoCon')}`}</footer>
+      <footer className="relative px-6 py-4 text-[12px] text-muted">© 2026 {nombrePlano(marca.nombre)}{marca.nombre !== 'Dojo OS' && ` · ${t('comun.hechoCon')}`}</footer>
     </div>
   );
 }

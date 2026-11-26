@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, Navigate, useParams } from 'react-router-dom';
+import { useSesion } from '../sesion';
+import { clavePosponer } from './CrearAvatar';
 import QRCode from 'qrcode';
 import { AlertTriangle, CalendarClock, Check, Clock, QrCode, X } from 'lucide-react';
 import { api, colorCinta, formato } from '../api';
@@ -10,11 +12,16 @@ import { Barra, Boton, Cargando, Chip, ErrorCaja, Hoja, Tarjeta, cx, useDatos } 
 // Inicio del alumno: saludo con su avatar, credencial QR, rumbo a la siguiente cinta y su semana.
 export default function Inicio() {
   const { id } = useParams();
+  const { yo } = useSesion();
   const datos = useDatos(() => api.get(`/app/alumnos/${id}/inicio`), [id]);
   const [qr, setQr] = useState(false);
   const d = datos.datos;
   if (datos.cargando && !d) return <Cargando />;
   if (datos.error) return <><Cabecera titulo="Dojo OS" /><ErrorCaja error={datos.error} reintentar={datos.recargar} /></>;
+
+  // Alumno nuevo (nunca armó su avatar): primero lo crea. Un papá viendo a su hijo no pasa por aquí.
+  let pospuesto = false; try { pospuesto = !!localStorage.getItem(clavePosponer(id)); } catch { /* nada */ }
+  if (d.apariencia && d.apariencia.personalizada === false && yo?.alumno_id === Number(id) && !pospuesto) return <Navigate to={`/a/${id}/crear-avatar`} replace />;
 
   const hoy = new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' });
   const enCurso = d.clases_hoy.find((c) => c.estado !== 'terminada');

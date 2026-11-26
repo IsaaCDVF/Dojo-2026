@@ -17,6 +17,8 @@ final class MarcaControlador
 {
     public const TEMAS = ['oceano', 'dojo', 'bosque', 'grafito', 'ciruela', 'atardecer', 'personalizado'];
     public const FUENTES = ['dm-sans', 'inter', 'nunito', 'montserrat', 'poppins', 'source-sans', 'lora', 'sistema'];
+    /** Letra del nombre comercial: igual = la del sistema; las demás son de rótulo, para parecerse a su logo */
+    public const FUENTES_NOMBRE = ['igual', 'oswald', 'bebas', 'archivo', 'russo', 'playfair', 'marker'];
     public const IDIOMAS = ['es-MX', 'en-US'];
     public const MONEDAS = ['MXN', 'USD', 'EUR', 'COP', 'ARS', 'CLP', 'PEN', 'GTQ', 'CAD'];
     private const IMAGENES = ['logo', 'logo_oscuro', 'icono'];
@@ -31,8 +33,8 @@ final class MarcaControlador
 
     public static function datos(): array
     {
-        $m = Db::uno('SELECT nombre, lema, tema, color_primario, color_fondo, fuente, idioma, moneda, zona_horaria, pais, actualizado FROM marca WHERE id = 1')
-            ?? ['nombre' => 'Dojo OS', 'lema' => null, 'tema' => 'oceano', 'color_primario' => null, 'color_fondo' => null, 'fuente' => 'dm-sans',
+        $m = Db::uno('SELECT nombre, lema, tema, color_primario, color_fondo, fuente, fuente_nombre, idioma, moneda, zona_horaria, pais, actualizado FROM marca WHERE id = 1')
+            ?? ['nombre' => 'Dojo OS', 'lema' => null, 'tema' => 'oceano', 'color_primario' => null, 'color_fondo' => null, 'fuente' => 'dm-sans', 'fuente_nombre' => 'igual',
                 'idioma' => 'es-MX', 'moneda' => 'MXN', 'zona_horaria' => 'America/Mexico_City', 'pais' => 'MX', 'actualizado' => null];
         $imgs = Db::todos('SELECT tipo, UNIX_TIMESTAMP(actualizado) AS v FROM marca_imagenes');
         $m['imagenes'] = array_fill_keys(self::IMAGENES, null);
@@ -43,7 +45,7 @@ final class MarcaControlador
     /** PUT /api/marca — cambia nombre, tema, letra y región (solo lo que se manda) */
     public function guardar(Peticion $req): void
     {
-        $antes = Db::uno('SELECT nombre, lema, tema, color_primario, color_fondo, fuente, idioma, moneda, zona_horaria, pais FROM marca WHERE id = 1');
+        $antes = Db::uno('SELECT nombre, lema, tema, color_primario, color_fondo, fuente, fuente_nombre, idioma, moneda, zona_horaria, pais FROM marca WHERE id = 1');
         $d = array_intersect_key($req->cuerpo, $antes);
         if (!$d) throw new ErrorApi('No hay nada que cambiar', 422);
         if (array_key_exists('nombre', $d)) {
@@ -54,7 +56,7 @@ final class MarcaControlador
             $d['lema'] = trim((string) $d['lema']) ?: null;
             if ($d['lema'] && mb_strlen($d['lema']) > 120) throw new ErrorApi('El lema no puede pasar de 120 letras', 422, ['campo' => 'lema']);
         }
-        $lista = ['tema' => self::TEMAS, 'fuente' => self::FUENTES, 'idioma' => self::IDIOMAS, 'moneda' => self::MONEDAS];
+        $lista = ['tema' => self::TEMAS, 'fuente' => self::FUENTES, 'fuente_nombre' => self::FUENTES_NOMBRE, 'idioma' => self::IDIOMAS, 'moneda' => self::MONEDAS];
         foreach ($lista as $k => $ok) {
             if (array_key_exists($k, $d) && !in_array($d[$k], $ok, true)) throw new ErrorApi("Ese valor no existe para $k", 422, ['campo' => $k]);
         }

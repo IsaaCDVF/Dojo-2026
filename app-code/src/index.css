@@ -1,5 +1,12 @@
 @import "tailwindcss";
 @import "@fontsource-variable/nunito";
+/* Letras de rótulo para el nombre de la empresa (las elige en el panel: Apariencia → Letra del nombre) */
+@import "@fontsource-variable/oswald";
+@import "@fontsource/bebas-neue";
+@import "@fontsource/archivo-black";
+@import "@fontsource/russo-one";
+@import "@fontsource-variable/playfair-display";
+@import "@fontsource/permanent-marker";
 
 /* App Dojo OS · misma paleta del panel (docs/DESIGN_DojoOS.md), con look más animado:
    tipografía redonda, botones "gorditos" con sombra inferior y tarjetas grandes. */

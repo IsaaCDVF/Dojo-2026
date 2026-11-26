@@ -4,6 +4,7 @@ import { useSesion } from '../auth/Sesion';
 import { cambiarIdioma } from '../i18n';
 import { css } from './temas';
 import { fuenteDe } from './fuentes';
+import { nombrePlano } from './NombreMarca';
 
 // Marca de la empresa + preferencias del usuario, aplicadas a todo el panel:
 // - tema de colores y letra → una hoja <style id="marca-tema"> encima de index.css
@@ -12,7 +13,7 @@ import { fuenteDe } from './fuentes';
 // Se guarda una copia en localStorage para que al abrir no se vea un instante el tema de fábrica.
 
 const DE_FABRICA = {
-  nombre: 'Dojo OS', lema: null, tema: 'oceano', color_primario: null, color_fondo: null, fuente: 'dm-sans',
+  nombre: 'Dojo OS', lema: null, tema: 'oceano', color_primario: null, color_fondo: null, fuente: 'dm-sans', fuente_nombre: 'igual',
   idioma: 'es-MX', moneda: 'MXN', zona_horaria: 'America/Mexico_City', pais: 'MX', imagenes: { logo: null, logo_oscuro: null, icono: null },
 };
 const ZOOM = { normal: 1, grande: 1.1, muy_grande: 1.2 };
@@ -61,7 +62,7 @@ export function MarcaProvider({ children }) {
 
   // Nombre en la pestaña e ícono
   useEffect(() => {
-    document.title = activa.nombre || 'Dojo OS';
+    document.title = nombrePlano(activa.nombre) || 'Dojo OS';
     let link = document.querySelector('link[rel="icon"]');
     if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
     link.href = activa.imagenes?.icono || '/favicon.svg';
