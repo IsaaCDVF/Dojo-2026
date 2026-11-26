@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Camera, CameraOff, Clock, Keyboard, LogOut, RefreshCw, SwitchCamera, Users } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ArrowLeft, Camera, CameraOff, Clock, Keyboard, LayoutDashboard, LogOut, RefreshCw, SwitchCamera, Users } from 'lucide-react';
 import { api, ErrorApi } from '../api';
 import { useSesion } from '../auth/Sesion';
 import { BotonIcono, BotonTema, Cargando, Cinta, ErrorCaja, FotoAlumno, Logo, Pestanas, useDatos } from '../ui';
@@ -49,7 +50,7 @@ function Reloj() {
 
 /* ---------------- Paso 1: elegir la clase ---------------- */
 function ElegirClase({ sucursal, global, sucursales, onSucursal, onElegir }) {
-  const { logout, usuario } = useSesion();
+  const { logout, usuario, rol } = useSesion();
   const datos = useDatos(() => (sucursal ? api.get('/asistencias/clases', { sucursal_id: sucursal }) : Promise.resolve(null)), [sucursal]);
   useEffect(() => { const t = setInterval(datos.recargar, 60000); return () => clearInterval(t); }, [datos.recargar]);
   const clases = datos.datos?.clases || [];
@@ -62,6 +63,12 @@ function ElegirClase({ sucursal, global, sucursales, onSucursal, onElegir }) {
         <div className="flex-1" />
         <Reloj />
         <BotonTema />
+        {/* La cuenta de la tableta solo puede salir; el personal regresa al panel */}
+        {rol?.nombre !== 'tableta' && (
+          <Link to="/" className="inline-flex items-center gap-2 h-9 px-3.5 rounded-full border border-line text-sm font-semibold hover:border-action">
+            <LayoutDashboard className="size-4" /><span className="hidden sm:inline">Volver al panel</span>
+          </Link>
+        )}
         <BotonIcono icono={LogOut} etiqueta={`Salir (${usuario?.email || ''})`} onClick={logout} />
       </header>
       <main className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 max-w-5xl w-full mx-auto">

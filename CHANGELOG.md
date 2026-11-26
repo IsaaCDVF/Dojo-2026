@@ -8,6 +8,10 @@ Tipos: **Agregado** (nuevo), **Cambiado** (cambia algo que ya existía), **Corre
 ## [Sin publicar]
 
 ### Agregado
+- 2.6 Carga masiva de alumnos desde CSV (`ImportacionControlador`): revisión sin guardar con errores por renglón, importación de los renglones válidos (matrícula, responsable nuevo o ya registrado por teléfono, hermanos con el mismo responsable, grado de migración y fecha de alta), historial de cargas y revertir una carga si nadie la ha usado. Acepta coma o punto y coma y archivos de Excel en Windows-1252. — Kevin
+- Inicio con datos reales (`GET /api/inicio`): alumnos activos, cobrado hoy, alumnos con pago vencido, asistencia y rechazos del día, clases de hoy, exámenes por autorizar y próximos; cada bloque según los permisos del rol. — Kevin
+- Panel: pantalla Importar alumnos (plantilla, revisión, importar, revertir) e Inicio nuevo. — Kevin
+- `pruebas/importacion.sh` (60). — Kevin
 - Fase 3 · Asistencia (`Modulos/Asistencia`): clases del día, registro con el QR de la credencial (inscripción, visitas a otra sucursal con límite al mes, pago vencido niega la entrada y dentro de la tolerancia entra con aviso, retardo), registro manual con excepción en bitácora, lista de la clase, validar y quitar registros, historial del alumno y nueva credencial. Los rechazos quedan en `accesos_rechazados`. — Kevin
 - Panel: modo tableta (`/tableta`) que lee el QR con la cámara del celular o con un lector USB, y pantalla Asistencia para el instructor; asistencia de 90 días y "Nueva credencial" en la ficha. `npm run celular` levanta el panel con https para usar la cámara. — Kevin
 - `pruebas/asistencia.sh` (73). — Kevin
@@ -28,6 +32,8 @@ Tipos: **Agregado** (nuevo), **Cambiado** (cambia algo que ya existía), **Corre
 - `pruebas/tarifas.sh` con 42 pruebas de tarifas y promociones. — Kevin
 
 ### Cambiado
+- `EstadoCuenta`: el cálculo de mensualidades por periodo es una sola función que usan la caja, la tableta y el Inicio. — Kevin
+- `Permiso::tiene()` para preguntar por permisos sin lanzar error. — Kevin
 - Criterio de examen: cada N retardos cuentan como una falta al calcular el porcentaje de asistencia. — Kevin
 - Alta de alumno acepta `fecha_alta` (solo con permiso `alumnos.importar`) para migrar alumnos que ya venían; de ahí sale su día de cobro. — Kevin
 - Un permiso de ruta puede ser "a,b,c": basta con tener cualquiera (`Permiso::exigir`). — Kevin

@@ -12,6 +12,8 @@ use Dojo\Modulos\Inscripciones\InscripcionControlador;
 use Dojo\Modulos\Pagos\CajaControlador;
 use Dojo\Modulos\Examenes\ExamenControlador;
 use Dojo\Modulos\Asistencia\AsistenciaControlador;
+use Dojo\Modulos\Inicio\InicioControlador;
+use Dojo\Modulos\Personas\ImportacionControlador;
 
 /** @var Dojo\Nucleo\Router $router */
 $router->get('/api/salud',                       [SaludControlador::class, 'ver'],             null);
@@ -57,6 +59,10 @@ $router->get('/api/instructores',                [HorarioControlador::class, 'in
 // 2.4 Personas
 $router->get('/api/alumnos',                     [AlumnoControlador::class, 'buscar'],         'alumnos.ver');
 $router->post('/api/alumnos',                    [AlumnoControlador::class, 'crear'],          'alumnos.crear');
+$router->post('/api/alumnos/importar',           [ImportacionControlador::class, 'importar'],  'alumnos.importar');
+$router->get('/api/importaciones',               [ImportacionControlador::class, 'listar'],    'alumnos.importar');
+$router->put('/api/importaciones/{id}/revertir', [ImportacionControlador::class, 'revertir'],  'alumnos.importar');
+$router->get('/api/inicio',                      [InicioControlador::class, 'resumen'],        '');
 $router->get('/api/alumnos/{id}',                [AlumnoControlador::class, 'ver'],            'alumnos.ver');
 $router->get('/api/alumnos/{id}/foto',           [AlumnoControlador::class, 'foto'],           'alumnos.ver,asistencia.registrar');
 $router->put('/api/alumnos/{id}/estado',         [AlumnoControlador::class, 'cambiarEstado'],  'alumnos.baja');

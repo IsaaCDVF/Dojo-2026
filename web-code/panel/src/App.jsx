@@ -21,6 +21,7 @@ import Caja from './paginas/Caja';
 import Examenes, { ExamenDetalle } from './paginas/Examenes';
 import Asistencia from './paginas/Asistencia';
 import Tableta from './paginas/Tableta';
+import Importar from './paginas/Importar';
 
 /** La cuenta de la tableta (o del celular que hace de tableta) va directo a leer credenciales */
 function InicioSegunRol() {
@@ -56,6 +57,7 @@ export default function App() {
         <Route index element={<InicioSegunRol />} />
         <Route path="mi-perfil" element={<MiPerfil />} />
         <Route path="alumnos" element={<Alumnos />} />
+        <Route path="alumnos/importar" element={<Importar />} />
         <Route path="alumnos/:id" element={<Ficha />} />
         <Route path="inscripcion" element={<Inscripcion />} />
         <Route path="caja" element={<Caja />} />

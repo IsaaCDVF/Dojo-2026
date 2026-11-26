@@ -110,3 +110,14 @@ Los adeudos no se guardan: se calculan con inscripciones, grados y pagos. Cada a
 | PUT | /alumnos/{id}/qr | alumnos.editar | Nueva credencial: el QR anterior deja de servir |
 
 El retardo no se guarda: se calcula con el parámetro `minutos_retardo` vigente (por sucursal y disciplina). `retardos_por_falta` dice cuántos retardos son una falta y `visitas_por_mes` cuántas clases puede tomar en otra sucursal.
+
+## Endpoints · 2.6 Carga masiva e Inicio
+
+| Método | Ruta | Permiso | Qué hace |
+|---|---|---|---|
+| POST | /alumnos/importar | alumnos.importar | `{archivo, csv, sucursal_id?, confirmar?}`. Sin `confirmar`: reporte `{filas, validas, con_error, errores[{fila, campo, mensaje}], muestra[]}` sin guardar. Con `confirmar`: importa solo los válidos → 201 `{importacion_id, creados}`. Máx. 2,000 renglones |
+| GET | /importaciones | alumnos.importar | Últimas 50 cargas con estado (completada, con_errores, revertida) |
+| PUT | /importaciones/{id}/revertir | alumnos.importar | Borra los alumnos y responsables que creó la carga; 409 si alguno ya tiene clases, pagos, asistencias o exámenes |
+| GET | /inicio | (cualquier rol) | `?sucursal_id=` bloques según permisos: alumnos, caja, vencidos (lista de los 8 más atrasados), examenes, asistencia, clases |
+
+Columnas del CSV (encabezado obligatorio, el orden no importa): **nombre, apellido_paterno, fecha_nacimiento, curp**, apellido_materno, sexo, telefono, email, fecha_alta, disciplina, grado, responsable_nombre, responsable_apellido, responsable_telefono, responsable_parentesco y, para un rol global, sucursal (clave o nombre). Fechas `AAAA-MM-DD` o `DD/MM/AAAA`.
