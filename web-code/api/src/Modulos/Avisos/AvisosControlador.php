@@ -28,7 +28,7 @@ final class AvisosControlador
         $vista = ($req->query['vista'] ?? 'pendientes') === 'enviados' ? 'enviados' : 'pendientes';
         $f = $suc ? ' AND n.sucursal_id = ' . (int) $suc : '';
 
-        Db::ejecutar('UPDATE notificaciones n JOIN plantillas_notificacion p ON p.id = n.plantilla_id SET n.estado = "omitida"
+        Db::ejecutar('UPDATE notificaciones n JOIN plantillas_notificacion p ON p.id = n.plantilla_id SET n.estado = "omitida", n.motivo = "vencido", n.fecha_envio = NOW()
                       WHERE p.canal = "whatsapp" AND n.estado = "programada" AND n.fecha_programada < NOW() - INTERVAL ' . self::DIAS_VIGENCIA_WA . ' DAY');
         $sql = 'SELECT n.id, n.clave, p.evento, n.persona_id, CONCAT(pe.nombre, " ", pe.apellido_paterno) persona, n.telefono, n.mensaje, n.fecha_programada,
                        n.estado, n.fecha_envio, n.referencia_tabla, n.referencia_id, s.nombre sucursal,
@@ -43,7 +43,7 @@ final class AvisosControlador
             foreach ($filas as $n) {
                 // Si ya pagó / ya vino / ya no está autorizado desde que se generó, el aviso se quita solo
                 if (Avisos::vigente($n)) { $quedan[] = $n; continue; }
-                Db::ejecutar('UPDATE notificaciones SET estado = "omitida", fecha_envio = NOW() WHERE id = ? AND estado = "programada"', [$n['id']]);
+                Db::ejecutar('UPDATE notificaciones SET estado = "omitida", motivo = "ya_no_aplica", fecha_envio = NOW() WHERE id = ? AND estado = "programada"', [$n['id']]);
             }
             $filas = $quedan;
         } else {
@@ -59,6 +59,86 @@ final class AvisosControlador
         Respuesta::ok(['vista' => $vista, 'avisos' => $filas, 'conteo' => $conteo, 'ultima_revision' => $rev['actualizado'] ?? null]);
     }
 
+    /**
+     * GET /api/avisos/historial?dias=7&buscar=&evento=&sucursal_id=&alumno_id= — a quién se le avisó, de qué y por dónde.
+     * Una fila por aviso (no por canal): cómo le fue en la app (llegó al celular, solo campanita, leído) y en WhatsApp
+     * (lo mandó X, por mandar, no se mandó y por qué). alumno_id: los avisos de ese alumno o de quien paga por él (ficha).
+     */
+    public function historial(Peticion $req): void
+    {
+        $q = $req->query;
+        // Sin un alumno en particular (la pantalla de Avisos) se necesita el permiso de avisos; en la ficha basta con ver alumnos
+        if (empty($q['alumno_id']) && !Permiso::tiene($req, 'avisos.enviar')) throw new ErrorApi('No tienes permiso para ver los avisos', 403);
+        $propia = Permiso::sucursalDe($req);
+        $suc = $propia ?? (isset($q['sucursal_id']) && $q['sucursal_id'] !== '' ? (int) $q['sucursal_id'] : null);
+        $dias = max(1, min(90, (int) ($q['dias'] ?? 7)));
+        $w = ['n.clave IS NOT NULL', 'n.fecha_programada >= CURDATE() - INTERVAL ' . ($dias - 1) . ' DAY', 'p.canal IN ("app","whatsapp")'];
+        $par = [];
+        if ($suc) { $w[] = 'n.sucursal_id = ?'; $par[] = $suc; }
+        if (!empty($q['evento']) && in_array($q['evento'], self::EVENTOS, true)) { $w[] = 'p.evento = ?'; $par[] = $q['evento']; }
+        $alumnoSql = '(CASE n.referencia_tabla WHEN "alumnos" THEN n.referencia_id
+                       WHEN "solicitudes_examen" THEN (SELECT se.alumno_id FROM solicitudes_examen se WHERE se.id = n.referencia_id) END)';
+        if (!empty($q['alumno_id'])) {
+            $aid = (int) $q['alumno_id'];
+            $al = Db::uno('SELECT sucursal_id FROM alumnos WHERE id = ?', [$aid]);
+            if (!$al) throw new ErrorApi('Alumno no encontrado', 404);
+            Permiso::exigirSucursal($req, (int) $al['sucursal_id']);
+            $w[] = "($alumnoSql = ? OR (n.referencia_tabla = 'responsables_pago' AND n.referencia_id IN (SELECT ar.responsable_id FROM alumno_responsable ar WHERE ar.alumno_id = ?)))";
+            array_push($par, $aid, $aid);
+        }
+        $filas = Db::todos("SELECT n.id, n.clave, p.evento, p.canal, n.persona_id, CONCAT(pe.nombre, ' ', pe.apellido_paterno) persona, n.telefono, n.mensaje, n.titulo,
+                                   n.fecha_programada, n.estado, n.motivo, n.fecha_envio, n.leida, n.referencia_tabla, n.referencia_id, s.nombre sucursal,
+                                   CONCAT(ue.nombre, ' ', ue.apellido_paterno) quien, $alumnoSql alumno_id,
+                                   EXISTS(SELECT 1 FROM usuarios u2 WHERE u2.persona_id = n.persona_id AND u2.activo = 1) con_app
+                            FROM notificaciones n JOIN plantillas_notificacion p ON p.id = n.plantilla_id JOIN personas pe ON pe.id = n.persona_id
+                            LEFT JOIN sucursales s ON s.id = n.sucursal_id LEFT JOIN usuarios u ON u.id = n.enviada_por LEFT JOIN personas ue ON ue.id = u.persona_id
+                            WHERE " . implode(' AND ', $w) . ' ORDER BY n.fecha_programada DESC, n.id DESC LIMIT 1000', $par);
+
+        // Agrupar los dos canales del mismo aviso (la clave termina en :app o :wa)
+        $grupos = [];
+        foreach ($filas as $f) {
+            $base = preg_replace('/:(app|wa)$/', '', (string) $f['clave']);
+            $g = &$grupos[$base];
+            $g ??= ['clave' => $base, 'evento' => $f['evento'], 'persona_id' => (int) $f['persona_id'], 'persona' => $f['persona'], 'sucursal' => $f['sucursal'],
+                    'fecha' => $f['fecha_programada'], 'alumno_id' => $f['alumno_id'] ? (int) $f['alumno_id'] : null, 'con_app' => (bool) $f['con_app'],
+                    'es_alumno' => str_ends_with($base, ':a'), 'referencia_tabla' => $f['referencia_tabla'], 'referencia_id' => (int) $f['referencia_id'],
+                    'resumen' => null, 'app' => null, 'whatsapp' => null];
+            if ($f['canal'] === 'app') {
+                [$texto] = Avisos::separarRuta((string) $f['mensaje']);
+                $g['resumen'] = $texto;
+                $g['app'] = ['id' => (int) $f['id'], 'estado' => $f['estado'], 'motivo' => $f['motivo'], 'fecha' => $f['fecha_envio'], 'leida' => $f['leida'], 'titulo' => $f['titulo']];
+            } else {
+                $g['resumen'] ??= $f['mensaje'];
+                $g['whatsapp'] = ['id' => (int) $f['id'], 'estado' => $f['estado'], 'motivo' => $f['motivo'], 'fecha' => $f['fecha_envio'], 'quien' => $f['quien'], 'telefono' => $f['telefono'], 'mensaje' => $f['mensaje']];
+            }
+            if ($f['fecha_programada'] < $g['fecha']) $g['fecha'] = $f['fecha_programada'];
+            unset($g);
+        }
+        // Nombres de los alumnos (de qué alumno es el aviso)
+        $lista = array_values($grupos);
+        foreach ($lista as &$g) {
+            $g['alumnos'] = $g['alumno_id']
+                ? array_column(Db::todos('SELECT CONCAT(pe.nombre, " ", pe.apellido_paterno) n FROM alumnos a JOIN personas pe ON pe.id = a.persona_id WHERE a.id = ?', [$g['alumno_id']]), 'n')
+                : ($g['referencia_tabla'] === 'responsables_pago'
+                    ? array_column(Db::todos('SELECT CONCAT(pe.nombre, " ", pe.apellido_paterno) n FROM alumno_responsable ar JOIN alumnos a ON a.id = ar.alumno_id JOIN personas pe ON pe.id = a.persona_id
+                                              WHERE ar.responsable_id = ? AND ar.vigente_hasta IS NULL ORDER BY pe.nombre', [$g['referencia_id']]), 'n') : []);
+            unset($g['referencia_tabla'], $g['referencia_id']);
+        }
+        unset($g);
+        if (!empty($q['buscar'])) {
+            $b = mb_strtolower(trim((string) $q['buscar']));
+            $lista = array_values(array_filter($lista, fn($g) => str_contains(mb_strtolower($g['persona'] . ' ' . implode(' ', $g['alumnos'])), $b)));
+        }
+        $kpi = ['avisos' => count($lista), 'llegaron_celular' => 0, 'leidos' => 0, 'whatsapp_mandados' => 0, 'whatsapp_por_mandar' => 0];
+        foreach ($lista as $g) {
+            if (($g['app']['estado'] ?? '') === 'enviada') $kpi['llegaron_celular']++;
+            if (!empty($g['app']['leida'])) $kpi['leidos']++;
+            if (($g['whatsapp']['estado'] ?? '') === 'enviada') $kpi['whatsapp_mandados']++;
+            if (($g['whatsapp']['estado'] ?? '') === 'programada') $kpi['whatsapp_por_mandar']++;
+        }
+        Respuesta::ok(['dias' => $dias, 'avisos' => array_slice($lista, 0, 300), 'resumen' => $kpi]);
+    }
+
     /** PUT /api/avisos/{id} {estado: enviada|omitida|programada} — "Ya lo mandé", "No mandar" o deshacer */
     public function marcar(Peticion $req): void
     {
@@ -69,8 +149,8 @@ final class AvisosControlador
         if (!$n) throw new ErrorApi('Ese aviso no existe', 404);
         if ($n['sucursal_id']) Permiso::exigirSucursal($req, (int) $n['sucursal_id']);
         if ($n['estado'] === $nuevo) { Respuesta::ok(['id' => $id, 'estado' => $nuevo]); return; }
-        Db::ejecutar('UPDATE notificaciones SET estado = ?, fecha_envio = IF(? = "programada", NULL, NOW()), enviada_por = IF(? = "enviada", ?, NULL) WHERE id = ?',
-            [$nuevo, $nuevo, $nuevo, $req->ctx['usuario_id'], $id]);
+        Db::ejecutar('UPDATE notificaciones SET estado = ?, motivo = ?, fecha_envio = IF(? = "programada", NULL, NOW()), enviada_por = IF(? IN ("enviada","omitida"), ?, NULL) WHERE id = ?',
+            [$nuevo, $nuevo === 'omitida' ? 'recepcion' : null, $nuevo, $nuevo, $req->ctx['usuario_id'], $id]);
         Bitacora::cambio($req, 'notificaciones', $id, ['estado' => $n['estado']], ['estado' => $nuevo], $n['sucursal_id'] ? (int) $n['sucursal_id'] : null);
         Respuesta::ok(['id' => $id, 'estado' => $nuevo]);
     }
@@ -128,7 +208,7 @@ final class AvisosControlador
     {
         $pid = $this->personaDe($req);
         $filas = Db::todos('SELECT n.id, p.evento, n.titulo, n.mensaje, n.fecha_programada fecha, n.leida FROM notificaciones n JOIN plantillas_notificacion p ON p.id = n.plantilla_id
-                            WHERE n.persona_id = ? AND p.canal = "app" AND n.fecha_programada >= NOW() - INTERVAL 60 DAY ORDER BY n.fecha_programada DESC, n.id DESC LIMIT 50', [$pid]);
+                            WHERE n.persona_id = ? AND p.canal = "app" AND n.fecha_programada >= NOW() - INTERVAL 60 DAY AND (n.motivo IS NULL OR n.motivo <> "ya_no_aplica") ORDER BY n.fecha_programada DESC, n.id DESC LIMIT 50', [$pid]);
         $sin = 0;
         foreach ($filas as &$f) {
             [$f['mensaje'], $f['ruta']] = Avisos::separarRuta($f['mensaje']);
@@ -145,7 +225,7 @@ final class AvisosControlador
         $ids = array_values(array_filter(array_map('intval', (array) ($req->cuerpo['ids'] ?? [])), fn($x) => $x > 0));
         $n = $ids
             ? Db::ejecutar('UPDATE notificaciones SET leida = NOW() WHERE leida IS NULL AND persona_id = ? AND id IN (' . implode(',', $ids) . ')', [$pid])
-            : Db::ejecutar('UPDATE notificaciones n JOIN plantillas_notificacion p ON p.id = n.plantilla_id SET n.leida = NOW() WHERE n.leida IS NULL AND n.persona_id = ? AND p.canal = "app"', [$pid]);
+            : Db::ejecutar('UPDATE notificaciones n JOIN plantillas_notificacion p ON p.id = n.plantilla_id SET n.leida = NOW() WHERE n.leida IS NULL AND n.persona_id = ? AND p.canal = "app" AND (n.motivo IS NULL OR n.motivo <> "ya_no_aplica")', [$pid]);
         Respuesta::ok(['marcadas' => $n]);
     }
 

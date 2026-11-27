@@ -8,6 +8,7 @@ import { Boton, Cargando, Chip, Cinta, ErrorCaja, FotoAlumno, Modal, Selector, T
 import { inscribir } from './inscribir';
 import { MOTIVOS } from './Asistencia';
 import AccesoApp from './AccesoApp';
+import { AvisosAlumno } from './HistorialAvisos';
 
 // S-05 · Ficha del alumno
 function Credencial({ a }) {
@@ -160,6 +161,7 @@ export default function Ficha() {
             )}
           </Tarjeta>
           {tiene('asistencia.ver', 'asistencia.validar', 'alumnos.ver') && <AsistenciaAlumno id={a.id} />}
+          {tiene('avisos.enviar', 'alumnos.ver') && <AvisosAlumno alumnoId={a.id} puedeMandar={tiene('avisos.enviar')} />}
         </div>
         <div className="space-y-4">
           <Tarjeta titulo="Responsable de pago" icono={Users}>

@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Historial } from './HistorialAvisos';
 import { Link } from 'react-router-dom';
 import { BellRing, CalendarClock, CalendarX2, Check, EyeOff, Medal, MessageCircle, Pencil, RefreshCw, Undo2, UserRoundX } from 'lucide-react';
 import { api } from '../api';
@@ -46,7 +48,7 @@ function Fila({ a, pais, vista, onCambio }) {
   };
   const mandar = () => {
     window.open(ligaWhatsApp(a.telefono, a.mensaje, pais), '_blank', 'noopener');
-    marcar('enviada', `Listo: ${a.persona} queda como avisado. Si no se mandó, regrésalo desde "Enviados".`);
+    marcar('enviada', `Listo: ${a.persona} queda como avisado. Si no se mandó, deshazlo en "Historial".`);
   };
   return (
     <li className="px-5 py-4">
@@ -140,13 +142,15 @@ export default function Avisos() {
   const { marca } = useMarca();
   const avisar = useAvisos();
   const global = rol?.alcance === 'global';
-  const [vista, setVista] = useState('pendientes');
+  const [params, setParams] = useSearchParams();
+  const vista = params.get('vista') === 'historial' ? 'historial' : 'pendientes';
+  const setVista = (v) => setParams(v === 'historial' ? { vista: 'historial' } : {});
   const [filtro, setFiltro] = useState('');
   const [suc, setSuc] = useState('');
   const [textos, setTextos] = useState(false);
   const [revisando, setRevisando] = useState(false);
   const sucursales = useDatos(() => (global ? api.get('/sucursales') : Promise.resolve([])), [global]);
-  const d = useDatos(() => api.get('/avisos', { vista, sucursal_id: suc }), [vista, suc]);
+  const d = useDatos(() => api.get('/avisos', { vista: 'pendientes', sucursal_id: suc }), [suc]);
   const lista = (d.datos?.avisos || []).filter((a) => !filtro || a.evento === filtro);
   const conteo = d.datos?.conteo || {};
   const total = Object.values(conteo).reduce((s, n) => s + n, 0);
@@ -164,7 +168,7 @@ export default function Avisos() {
   return (
     <>
       <Encabezado ruta="Recepción" titulo="Avisos"
-        descripcion="El sistema arma solo los avisos de pagos, faltas y exámenes. A quien tiene la app le llegan como notificación; aquí los mandas por WhatsApp con un toque: se abre tu WhatsApp con el mensaje escrito y solo das Enviar."
+        descripcion="El sistema arma solo los avisos de pagos, faltas y exámenes y le llegan solos a quien tiene la app. El WhatsApp lo mandas tú con un toque: se abre tu WhatsApp con el mensaje escrito y solo das Enviar. En Historial ves a quién se le avisó y cómo le llegó."
         acciones={<>
           {tiene('avisos.configurar') && <Boton variante="secundario" icono={Pencil} onClick={() => setTextos(true)}>Textos</Boton>}
           <Boton variante="secundario" icono={RefreshCw} cargando={revisando} onClick={revisar}>Revisar ahora</Boton>
@@ -172,7 +176,7 @@ export default function Avisos() {
 
       <div className="flex flex-wrap items-end gap-3 mb-4">
         <Pestanas valor={vista} onCambio={(v) => { setVista(v); setFiltro(''); }}
-          opciones={[{ valor: 'pendientes', etiqueta: 'Por mandar', cuenta: vista === 'pendientes' ? total : undefined }, { valor: 'enviados', etiqueta: 'Enviados' }]} />
+          opciones={[{ valor: 'pendientes', etiqueta: 'Por mandar', cuenta: total }, { valor: 'historial', etiqueta: 'Historial' }]} />
         {global && (
           <Selector etiqueta="Sucursal" value={suc} onChange={(e) => setSuc(e.target.value)} className="w-56">
             <option value="">Todas</option>
@@ -181,6 +185,7 @@ export default function Avisos() {
         )}
       </div>
 
+{vista === 'historial' ? <Historial sucursal={suc} /> : <>
       {vista === 'pendientes' && total > 0 && (
         <div className="flex flex-wrap gap-2 mb-4">
           {Object.entries(EVENTOS).filter(([k]) => conteo[k]).map(([k, e]) => (
@@ -193,18 +198,18 @@ export default function Avisos() {
         </div>
       )}
 
-      <Tarjeta cuerpo="p-0" titulo={vista === 'pendientes' ? 'Por mandar' : 'Últimos 30 días'} icono={MessageCircle}
+      <Tarjeta cuerpo="p-0" titulo="Por mandar" icono={MessageCircle}
         subtitulo={d.datos?.ultima_revision ? `Última revisión: ${cuando(d.datos.ultima_revision)}. Se revisa sola cada hora de 8:00 a 21:00 mientras alguien usa el sistema.` : 'Todavía no se revisa'}>
         <div className="px-5 pt-3"><ErrorCaja error={d.error} reintentar={d.recargar} /></div>
         {d.cargando && !d.datos ? <Cargando /> : !lista.length ? (
-          <Vacio icono={vista === 'pendientes' ? Check : MessageCircle} titulo={vista === 'pendientes' ? 'Nada por mandar' : 'Todavía no se manda ninguno'}
-            texto={vista === 'pendientes' ? 'Cuando alguien tenga un pago por vencer o vencido, lleve días sin venir o le autoricen su examen, aparece aquí.' : 'Lo que mandes por WhatsApp aparece aquí.'} />
+          <Vacio icono={Check} titulo="Nada por mandar" texto="Cuando alguien tenga un pago por vencer o vencido, lleve días sin venir o le autoricen su examen, aparece aquí. Lo que ya se avisó está en Historial." />
         ) : (
           <ul className="divide-y divide-line">
-            {lista.map((a) => <Fila key={a.id} a={a} vista={vista} pais={marca?.pais} onCambio={d.recargar} />)}
+            {lista.map((a) => <Fila key={a.id} a={a} vista="pendientes" pais={marca?.pais} onCambio={d.recargar} />)}
           </ul>
         )}
       </Tarjeta>
+      </>}
       <Textos abierto={textos} onCerrar={() => setTextos(false)} />
     </>
   );

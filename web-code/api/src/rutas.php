@@ -172,6 +172,7 @@ $router->put('/api/preferencias',                [PreferenciasControlador::class
 
 // Avisos automáticos: WhatsApp en 1 toque desde recepción y notificaciones en la app
 $router->get('/api/avisos',                        [AvisosControlador::class, 'listar'],          'avisos.enviar');
+$router->get('/api/avisos/historial',              [AvisosControlador::class, 'historial'],       'avisos.enviar,alumnos.ver');
 $router->post('/api/avisos/revisar',               [AvisosControlador::class, 'revisar'],         'avisos.enviar');
 $router->get('/api/avisos/plantillas',             [AvisosControlador::class, 'plantillas'],      'avisos.configurar');
 $router->put('/api/avisos/plantillas/{id}',        [AvisosControlador::class, 'guardarPlantilla'],'avisos.configurar');

@@ -8,13 +8,20 @@ Tipos: **Agregado** (nuevo), **Cambiado** (cambia algo que ya existía), **Corre
 ## [Sin publicar]
 
 ### Agregado
+- Avisos → **Historial**: a quién se le avisó, de qué alumno y cómo le llegó, una fila por aviso. En la app: llegó al celular, solo en la campanita (no activó notificaciones), no tiene la app, leído y a qué hora. En WhatsApp: lo mandó tal persona y cuándo, por mandar (con botón "Mandar ahora"), alguien decidió no mandarlo, nadie lo mandó en 7 días o ya no aplicaba (ya pagó / ya vino). Buscar por persona o alumno, filtrar por tipo y fechas, con números arriba (avisos, llegaron al celular, leídos, WhatsApp mandados). Las pestañas quedan "Por mandar" e "Historial" (sustituye a "Enviados"). — Kevin
+- Ficha del alumno → **Avisos**: lo que se le avisó a él y a quien paga, y cómo le llegó (últimos 60 días). — Kevin
+- La notificación de la app sigue siendo automática; el WhatsApp sigue siendo en 1 toque (recepción o admin de sucursal) hasta que se decida contratar WhatsApp Business. — Kevin
+
+### Cambiado
+- Si alguien ya debe algo vencido, ya no se le manda además el aviso de "por vencer" el mismo día (el de vencido ya dice lo que debe). — Kevin
+- La campanita de la app ya no muestra avisos que dejaron de aplicar (por ejemplo, un pago vencido que ya se pagó). — Kevin
 - Caja → "Por cobrar" (recepción y admin): debajo del buscador, la lista de quién debe sin buscar uno por uno — vencidos (desde cuándo), los que vencen en los próximos 7 días y todos con algo pendiente, con su total; un clic abre su cuenta para cobrar. Cada sucursal ve la suya; el súper admin elige sucursal. — Kevin
 - Caja → cobro con tarjeta por QR: recepción marca qué se paga, elige "Tarjeta" y sale un QR de Mercado Pago; la persona lo escanea con su celular y paga con su tarjeta (sin OXXO ni SPEI, porque está en el mostrador). La pantalla ve el pago sola y abre el recibo. Si rechazan la tarjeta puede intentar con otra en el mismo QR; también se puede mandar la liga por WhatsApp, dejarlo para después o cancelarlo. Las llaves de Mercado Pago siguen siendo solo del súper admin. En modo prueba hay botones para simular. El recibo y el corte dicen "QR en caja". — Kevin
 - Panel → menú de la cuenta (arriba a la derecha, como en cualquier sistema actual): Datos personales, Preferencias, Seguridad, Ayuda, Atajos de teclado y Cerrar sesión. "Mi perfil" pasa a ser **Mi cuenta** (`/cuenta`) con secciones: datos personales (cambiar teléfono y correo; el correo pide la contraseña), preferencias (idioma, tema y tamaño de letra para **todos** los roles: recepción, instructores, admin), seguridad (cambiar contraseña y ver/cerrar los equipos con sesión abierta) y ayuda según el rol. Todo en español e inglés. — Kevin
 - Atajos de teclado en el panel: `?` (lista), `/` (buscador de la pantalla), `T` (claro/oscuro) y `G` + letra para ir a Inicio, Alumnos, Inscripción, Caja, Avisos, Horarios, Asistencia, Exámenes o Mi cuenta (solo las que tu rol puede abrir). — Kevin
 - App → Mi cuenta como menú de opciones: Teléfono y correo, Domicilio, Seguridad (contraseña y celulares con sesión abierta), Apariencia, Notificaciones, Ayuda (WhatsApp y teléfono de su sucursal y preguntas frecuentes) y Cerrar sesión, cada una en su pantalla. — Kevin
 - El logo siempre se ve: si es blanco y alguien usa el modo claro (o negro en el modo oscuro), se pinta solo del color que se lee, en la app, el login, el menú y los recibos. Si subieron logo para fondo claro y para fondo oscuro, se usa el que toca. — Kevin
-- `pruebas/caja_qr.sh` (67) y `pruebas/cuenta.sh` (36). — Kevin
+- `pruebas/caja_qr.sh` (67) y `pruebas/cuenta.sh` (36); `pruebas/avisos.sh` ahora con el historial (123). — Kevin
 
 ### Corregido
 - Avisos: en Docker, "Revisar ahora" (y el aviso de examen autorizado) no hacían nada si justo estaba corriendo la revisión automática de cada hora; ahora esperan a que termine. Por eso fallaban 10 pruebas de `avisos.sh`. — Kevin
@@ -93,6 +100,7 @@ Tipos: **Agregado** (nuevo), **Cambiado** (cambia algo que ya existía), **Corre
 - Panel: las fechas sin hora (`2026-11-28`) se mostraban un día antes. — Kevin
 
 ### Base de datos
+- `017_historial_avisos.sql`: `notificaciones.motivo` (por qué un aviso no salió: sin_celular, ya_no_aplica, vencido, recepcion). Para una base que ya existe: `parches/2026-11-27_historial_avisos.sql` (**obligatorio**; se puede correr dos veces). — Kevin
 - `016_caja_qr_sesiones.sql`: `pagos_en_linea.canal` (app | caja) y `sesiones.dispositivo` (navegador desde donde entró). Para una base que ya existe: `parches/2026-11-27_caja_qr_sesiones.sql` (**obligatorio**: sin la columna `canal` no se pueden crear pagos en línea; se puede correr dos veces). — Kevin
 - `015_avisos.sql`: completa `plantillas_notificacion` (activa, título) y `notificaciones` (clave única, sucursal, teléfono, leída, quién la mandó, estado `omitida`); tablas `push_suscripciones` y `sistema_estado`. Semilla `004_avisos.sql`: parámetro `dias_sin_asistir`, permisos `avisos.enviar` (admin, admin de sucursal, recepción) y `avisos.configurar` (admin, admin de sucursal) y los 8 textos. Para una base que ya existe: `parches/2026-11-27_avisos.sql` (se puede correr dos veces). — Kevin
 - `014_pagos_en_linea.sql`: `pasarela_config` y `pagos_en_linea`; permiso `pasarela.configurar` y mensajes nuevos en `codigos_respuesta_pasarela` (en semillas). Para una base que ya existe: `parches/2026-11-26_pagos_en_linea.sql` (se puede correr dos veces). — Kevin

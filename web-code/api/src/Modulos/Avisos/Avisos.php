@@ -110,7 +110,8 @@ final class Avisos
                 $primero = array_key_first($vencidas);
                 $n['pago_vencido'] += self::crear('pago_vencido', "vc:{$r['id']}:$primero", (int) $r['persona_id'], $suc($vencidas[$primero]), $vars($vencidas), 'responsables_pago', (int) $r['id'], $vc, '/app/pagar');
             }
-            if (!$pv) continue;
+            // Si ya debe algo vencido no se le manda además "por vencer" (dos mensajes el mismo día cansan; el de vencido ya dice lo que debe)
+            if (!$pv || $vencidas) continue;
             foreach ($porVencer as $periodo => $lineas) {
                 $s = $suc($lineas);
                 $vence = min(array_column(array_filter($lineas, fn($l) => str_starts_with($l['clave'], 'mens:')), 'vence'));
@@ -207,15 +208,16 @@ final class Avisos
         foreach (Db::todos('SELECT n.id, n.clave, n.titulo, n.mensaje, n.persona_id FROM notificaciones n JOIN plantillas_notificacion p ON p.id = n.plantilla_id
                             WHERE p.canal = "app" AND n.estado = "programada" AND n.fecha_programada <= NOW() ORDER BY n.id LIMIT ' . $limite) as $nt) {
             $subs = Db::todos('SELECT s.* FROM push_suscripciones s JOIN usuarios u ON u.id = s.usuario_id WHERE u.persona_id = ? AND u.activo = 1 AND s.fallos < 20', [$nt['persona_id']]);
-            if (!self::vigente($nt)) { Db::ejecutar('UPDATE notificaciones SET estado = "omitida", fecha_envio = NOW() WHERE id = ?', [$nt['id']]); continue; }
+            if (!self::vigente($nt)) { Db::ejecutar('UPDATE notificaciones SET estado = "omitida", motivo = "ya_no_aplica", fecha_envio = NOW() WHERE id = ?', [$nt['id']]); continue; }
             [$texto, $ruta] = self::separarRuta($nt['mensaje']);
             $llego = false;
             foreach ($subs as $s) {
                 $cod = WebPush::enviar($s, ['title' => $nt['titulo'] ?: self::dojo(), 'body' => $texto, 'url' => $ruta, 'tag' => 'aviso-' . $nt['id'], 'icon' => self::icono()]);
                 if ($cod >= 200 && $cod < 300) $llego = true;
             }
-            // Sin celular suscrito queda solo en la campanita de la app ("omitida" = no salió como notificación)
-            Db::ejecutar('UPDATE notificaciones SET estado = ?, fecha_envio = NOW() WHERE id = ?', [$llego ? 'enviada' : ($subs ? 'fallida' : 'omitida'), $nt['id']]);
+            // Sin celular suscrito queda solo en la campanita de la app ("omitida" con motivo sin_celular)
+            Db::ejecutar('UPDATE notificaciones SET estado = ?, motivo = ?, fecha_envio = NOW() WHERE id = ?',
+                [$llego ? 'enviada' : ($subs ? 'fallida' : 'omitida'), $llego || $subs ? null : 'sin_celular', $nt['id']]);
             if ($llego) $ok++;
         }
         return $ok;
