@@ -1,4 +1,4 @@
-import { BadgeDollarSign, CreditCard, Tablet, UserCog, CalendarCheck, CalendarDays, ClipboardList, Home, Medal, Palette, Settings, SlidersHorizontal, Tags, UserPlus, UserRound, Users, Wallet } from 'lucide-react';
+import { BadgeDollarSign, MessageCircle, CreditCard, Tablet, UserCog, CalendarCheck, CalendarDays, ClipboardList, Home, Medal, Palette, Settings, SlidersHorizontal, Tags, UserPlus, UserRound, Users, Wallet } from 'lucide-react';
 
 // Menú lateral: cada opción aparece solo si el rol activo tiene alguno de sus permisos.
 // t = clave de traducción (src/i18n). listo: false = la pantalla todavía no está terminada (se muestra con la etiqueta "Pronto").
@@ -8,6 +8,7 @@ export const MENU = [
   { a: '/alumnos', t: 'menu.alumnos', icono: Users, permisos: ['alumnos.ver'], listo: true },
   { a: '/inscripcion', t: 'menu.inscripcion', icono: UserPlus, permisos: ['inscripciones.crear'], listo: true },
   { a: '/caja', t: 'menu.caja', icono: Wallet, permisos: ['pagos.cobrar', 'caja.corte'], listo: true },
+  { a: '/avisos', t: 'menu.avisos', icono: MessageCircle, permisos: ['avisos.enviar'], listo: true },
   { a: '/horarios', t: 'menu.horarios', icono: CalendarDays, permisos: ['horarios.gestionar', 'asistencia.validar'], listo: true },
   { a: '/asistencia', t: 'menu.asistencia', icono: CalendarCheck, permisos: ['asistencia.validar', 'asistencia.manual', 'asistencia.ver'], listo: true },
   { a: '/examenes', t: 'menu.examenes', icono: Medal, permisos: ['examenes.programar', 'examenes.validar', 'examenes.solicitar'], listo: true },

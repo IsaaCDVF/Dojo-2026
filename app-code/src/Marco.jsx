@@ -1,11 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
-import { ChevronLeft, Flame, Home, MapPin, Moon, Smile, Sun, Trophy, UserRound, Users, Wallet } from 'lucide-react';
+import { Bell, ChevronLeft, Flame, Home, MapPin, Moon, Smile, Sun, Trophy, UserRound, Users, Wallet } from 'lucide-react';
 import { api } from './api';
 import { useSesion } from './sesion';
 import { Isotipo } from './Logo';
 import { MarcaIcono, Nombre, useMarca } from './marca';
 import { cx } from './ui';
+import { useSinLeer } from './campanita';
+import { sincronizar } from './notificaciones';
 
 /** Columna de celular + barra de pestañas abajo. Las pestañas cambian si estás viendo a un alumno o a tu familia */
 export default function Marco() {
@@ -17,6 +19,7 @@ export default function Marco() {
   useEffect(() => {
     if (sincronizado.current) return; sincronizado.current = true;
     api.get('/preferencias').then((p) => { if (p?.tema && p.tema !== marca.tema) marca.ponerTema(p.tema, false); }).catch(() => {});
+    sincronizar();   // si ya aceptó notificaciones, que el servidor tenga este celular
   }, [marca]);
   const m = loc.pathname.match(/^\/a\/(\d+)/);
   const tabs = m
@@ -60,6 +63,7 @@ export function Cabecera({ titulo, racha, alumnoId }) {
   const { yo } = useSesion();
   const marca = useMarca();
   const ajeno = alumnoId && yo.es_responsable && Number(alumnoId) !== yo.alumno_id;
+  const sinLeer = useSinLeer();
   return (
     <header className="flex items-center gap-3 h-14 mb-3">
       {ajeno
@@ -69,6 +73,10 @@ export function Cabecera({ titulo, racha, alumnoId }) {
       {racha > 0 && <span className="inline-flex items-center gap-1 font-black text-gold text-[18px]" title={`${racha} clases seguidas`}><Flame className="size-6 fill-gold" />{racha}</span>}
       <button onClick={() => marca.ponerTema(marca.modo === 'oscuro' ? 'claro' : 'oscuro')} aria-label={marca.modo === 'oscuro' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
         className="grid place-items-center size-10 rounded-full text-muted hover:text-text cursor-pointer">{marca.modo === 'oscuro' ? <Sun className="size-5" /> : <Moon className="size-5" />}</button>
+      <Link to="/avisos" aria-label={sinLeer ? `Avisos: ${sinLeer} sin leer` : 'Avisos'} className="relative grid place-items-center size-10 rounded-full text-muted hover:text-text">
+        <Bell className="size-5" />
+        {sinLeer > 0 && <span className="absolute top-0.5 right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-danger text-white text-[11px] font-black grid place-items-center leading-none">{sinLeer > 9 ? '9+' : sinLeer}</span>}
+      </Link>
       <Link to="/cuenta" aria-label="Mi cuenta" className="grid place-items-center size-10 -mr-1 rounded-full bg-surface border-2 border-line text-text"><UserRound className="size-5" /></Link>
     </header>
   );

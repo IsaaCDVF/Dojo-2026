@@ -9,7 +9,7 @@ export default {
     hechoCon: 'with Dojo OS',
   },
   menu: {
-    inicio: 'Home', miPerfil: 'My profile', alumnos: 'Students', inscripcion: 'Enrollment', caja: 'Front desk', horarios: 'Schedule',
+    avisos: 'Reminders', inicio: 'Home', miPerfil: 'My profile', alumnos: 'Students', inscripcion: 'Enrollment', caja: 'Front desk', horarios: 'Schedule',
     asistencia: 'Attendance', examenes: 'Belt testing', tarifas: 'Pricing & promotions', parametros: 'Settings', bitacora: 'Audit log',
     configuracion: 'Setup', personal: 'Staff & access', tabletas: 'Check-in tablets', pagosEnLinea: 'Online payments', apariencia: 'Branding & appearance',
   },

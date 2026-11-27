@@ -214,3 +214,24 @@ El responsable paga desde la app lo que debe (mensualidad, recargo, inscripción
 
 Reglas al aplicar lo que dice Mercado Pago: `approved` → folio, `aprobado`, solicitudes de examen ligadas; si alguna línea ya se había pagado en caja mientras tanto, su monto queda como **saldo a favor**. `pending/in_process` → sigue pendiente con la ficha. `rejected` → `rechazado` con el mensaje del catálogo (`fondos_insuficientes`, `datos_tarjeta`, `sospecha_fraude`, `rechazo_banco`); `cancelled` (ficha vencida) → `cancelado`. Un pago aprobado nunca baja a pendiente o rechazado; `refunded/charged_back` lo pasan a `reembolsado`. Cada intento es un pago (RN-35): los rechazados no salen en la app ni en el corte. `GET /app/familia` trae `pago_en_linea` (modo) y cada adeudo en proceso trae `en_linea {pago_id, medio}` (también en el estado de cuenta de la caja).
 
+## Endpoints · Avisos automáticos (WhatsApp en 1 toque y notificaciones en la app)
+
+`Avisos::revisar()` arma los avisos y los guarda en `notificaciones` (una fila por canal). Cada uno lleva una `clave` única (`vc:{responsable}:{mes más viejo}`, `pv:{responsable}:{mes}:{días}`, `au:{alumno}:{última fecha}:{persona}`, `ex:{solicitud}:{persona}`), así nunca se repite. Eventos: `pago_por_vencer` (`dias_aviso_pago`), `pago_vencido`, `ausencia` (`dias_sin_asistir`; cuenta desde la última asistencia o desde la inscripción) y `examen_autorizado`. Canal `app`: solo si la persona tiene cuenta (va a la campanita y por Web Push si hay celular suscrito). Canal `whatsapp`: solo si tiene teléfono; lo manda recepción. Las ausencias y exámenes también le llegan al alumno en su app.
+
+Sin cron: `public/index.php` llama `Avisos::siToca()` en cada petición con sesión; revisa como mucho cada hora, de 8:00 a 21:00, al terminar de responder (`fastcgi_finish_request`). Al autorizar un examen se revisa al momento. Antes de mostrar o mandar, cada aviso se vuelve a validar (si ya pagó, ya vino o el examen se canceló, pasa a `omitida`). Un WhatsApp sin mandar en 7 días también pasa a `omitida`.
+
+| Método | Ruta | Permiso | Qué hace |
+|---|---|---|---|
+| GET | /avisos | avisos.enviar | `?vista=pendientes\|enviados&sucursal_id=` → `{avisos: [{id, evento, persona, telefono, mensaje, fecha_programada, estado, fecha_envio, enviada_por, sucursal, alumno_id}], conteo {por evento}, ultima_revision}`. Solo canal WhatsApp; el admin de sucursal y recepción ven solo su sucursal. Enviados = últimos 30 días |
+| PUT | /avisos/{id} | avisos.enviar | `{estado: enviada \| omitida \| programada}` (Ya lo mandé, No mandar, regresar a pendientes). Otra sucursal → 403 |
+| POST | /avisos/revisar | avisos.enviar | Revisa ya → `{pago_por_vencer, pago_vencido, ausencia, examen_autorizado, notificaciones_enviadas}` (nuevos). Si otra revisión está corriendo → `{ocupado: true}` |
+| GET | /avisos/plantillas | avisos.configurar | `{plantillas: [{id, evento, canal, titulo, cuerpo, activa}], parametros {dias_aviso_pago, dias_sin_asistir}, celulares_con_notificaciones}` |
+| PUT | /avisos/plantillas/{id} | avisos.configurar | `{cuerpo?, titulo? (solo app), activa?}`. Variables: `{nombre} {alumno} {periodo} {monto} {fecha} {dias} {grado} {sucursal} {dojo}`; otra → 422 |
+| GET | /app/avisos | (sesión) | La campanita: `{avisos: [{id, evento, titulo, mensaje, fecha, leida, ruta}], sin_leer}` (últimos 60 días de la persona que entró) |
+| POST | /app/avisos/leidas | (sesión) | `{ids?}`; sin ids marca todas |
+| GET | /app/notificaciones | (sesión) | `{llave (VAPID pública), celulares}` |
+| POST | /app/notificaciones | (sesión) | La suscripción del navegador (`PushSubscription.toJSON()`: `{endpoint (https), keys {p256dh, auth}}`). Máximo 5 celulares por cuenta |
+| POST | /app/notificaciones/quitar | (sesión) | `{endpoint}`. La app la llama al cerrar sesión |
+
+Web Push sin librerías (`Modulos/Avisos/WebPush.php`): cifrado RFC 8291 (`aes128gcm`) y firma VAPID (RFC 8292, JWT ES256) con OpenSSL. Las llaves VAPID se crean la primera vez y la privada se guarda cifrada en `sistema_estado` (con la misma llave de `almacen/llaves/`). Si se pierde esa llave se crean otras y los celulares se vuelven a suscribir solos al abrir la app. El service worker es `app-code/public/sw.js` (solo notificaciones, sin caché). Necesita https (o `localhost`) y que el servidor pueda salir a internet (fcm.googleapis.com, web.push.apple.com, updates.push.services.mozilla.com).
+

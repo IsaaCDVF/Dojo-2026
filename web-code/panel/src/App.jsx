@@ -28,6 +28,7 @@ import CambiarContrasena from './paginas/CambiarContrasena';
 import VincularTableta from './paginas/VincularTableta';
 import Tabletas from './paginas/Tabletas';
 import PagosEnLinea from './paginas/PagosEnLinea';
+import Avisos from './paginas/Avisos';
 
 /** La cuenta de la tableta (o del celular que hace de tableta) va directo a leer credenciales */
 function InicioSegunRol() {
@@ -70,6 +71,7 @@ export default function App() {
         <Route path="alumnos/:id" element={<Ficha />} />
         <Route path="inscripcion" element={<Inscripcion />} />
         <Route path="caja" element={<Caja />} />
+        <Route path="avisos" element={<Avisos />} />
         <Route path="horarios" element={<Horarios />} />
         <Route path="asistencia" element={<Asistencia />} />
         <Route path="examenes" element={<Examenes />} />

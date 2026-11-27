@@ -3,6 +3,7 @@ import { AlertTriangle, CheckCircle2, ChevronRight, CreditCard, PiggyBank, Store
 import { api, colorCinta, formato } from '../api';
 import { Cabecera } from '../Marco';
 import Avatar from '../Avatar';
+import { Notificaciones } from './Avisos';
 import { Boton, Cargando, Chip, ErrorCaja, Tarjeta, cx, useDatos } from '../ui';
 
 // Mi familia (responsable de pago): cuánto debe, de quién, y la lista de sus alumnos.
@@ -21,6 +22,7 @@ export default function Familia() {
     <>
       <Cabecera titulo="Mi familia" />
       <div className="space-y-4">
+        <Notificaciones compacta />
         <section className={cx('rounded-3xl p-5 border-2 anim-entrar', vencido ? 'bg-danger/12 border-danger' : debe ? 'bg-gold/10 border-gold/50' : 'bg-action/10 border-action/50')}>
           <div className="flex items-center gap-2 etiqueta">
             {vencido ? <AlertTriangle className="size-4 text-danger" /> : debe ? <CreditCard className="size-4 text-gold" /> : <CheckCircle2 className="size-4 text-action" />}

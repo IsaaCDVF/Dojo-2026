@@ -18,6 +18,7 @@ use Dojo\Modulos\App\AccesoControlador;
 use Dojo\Modulos\App\AppControlador;
 use Dojo\Modulos\Personas\ImportacionControlador;
 use Dojo\Modulos\Personal\{PersonalControlador, DispositivoControlador};
+use Dojo\Modulos\Avisos\AvisosControlador;
 
 /** @var Dojo\Nucleo\Router $router */
 $router->get('/api/salud',                       [SaludControlador::class, 'ver'],             null);
@@ -159,3 +160,15 @@ $router->delete('/api/marca/imagen/{tipo:texto}', [MarcaControlador::class, 'qui
 $router->get('/api/marca/manifest/{app:texto}',  [MarcaControlador::class, 'manifest'],        null);
 $router->get('/api/preferencias',                [PreferenciasControlador::class, 'ver'],      '');
 $router->put('/api/preferencias',                [PreferenciasControlador::class, 'guardar'],  '');
+
+// Avisos automáticos: WhatsApp en 1 toque desde recepción y notificaciones en la app
+$router->get('/api/avisos',                        [AvisosControlador::class, 'listar'],          'avisos.enviar');
+$router->post('/api/avisos/revisar',               [AvisosControlador::class, 'revisar'],         'avisos.enviar');
+$router->get('/api/avisos/plantillas',             [AvisosControlador::class, 'plantillas'],      'avisos.configurar');
+$router->put('/api/avisos/plantillas/{id}',        [AvisosControlador::class, 'guardarPlantilla'],'avisos.configurar');
+$router->put('/api/avisos/{id}',                   [AvisosControlador::class, 'marcar'],          'avisos.enviar');
+$router->get('/api/app/avisos',                    [AvisosControlador::class, 'bandeja'],         '');
+$router->post('/api/app/avisos/leidas',            [AvisosControlador::class, 'leidas'],          '');
+$router->get('/api/app/notificaciones',            [AvisosControlador::class, 'llave'],           '');
+$router->post('/api/app/notificaciones',           [AvisosControlador::class, 'suscribir'],       '');
+$router->post('/api/app/notificaciones/quitar',    [AvisosControlador::class, 'desuscribir'],     '');

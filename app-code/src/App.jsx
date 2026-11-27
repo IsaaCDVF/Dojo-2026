@@ -15,6 +15,7 @@ import CrearAvatar from './paginas/CrearAvatar';
 import MiCuenta from './paginas/MiCuenta';
 import Pagar from './paginas/Pagar';
 import PagoEstado from './paginas/PagoEstado';
+import Avisos from './paginas/Avisos';
 
 function Protegida({ children }) {
   const { yo, cargando } = useSesion();
@@ -50,6 +51,7 @@ export default function App() {
         <Route path="cuenta" element={<MiCuenta />} />
         <Route path="pagar" element={<Pagar />} />
         <Route path="pago/:id" element={<PagoEstado />} />
+        <Route path="avisos" element={<Avisos />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

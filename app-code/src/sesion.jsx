@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { api, token } from './api';
+import { desactivar } from './notificaciones';
 
 // Quién abrió la app: su persona, si es alumno, si es responsable y qué alumnos puede ver.
 const Ctx = createContext(null);
@@ -36,6 +37,7 @@ export function SesionProvider({ children }) {
   }, [cargar]);
 
   const salir = useCallback(async () => {
+    await desactivar();   // que a este celular ya no le lleguen sus avisos
     try { await api.post('/auth/logout'); } catch { /* aunque falle */ }
     token.borrar(); setYo(null);
   }, []);

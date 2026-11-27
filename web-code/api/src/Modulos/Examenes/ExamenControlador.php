@@ -163,6 +163,7 @@ final class ExamenControlador
                 [$dec, $instructor['id'] ?? null, $obs ?: null, $s['id']]);
             Bitacora::cambio($req, 'solicitudes_examen', (int) $s['id'], ['estado' => $s['estado']], ['estado' => $dec], (int) $s['sucursal_id']);
         });
+        if ($dec === 'autorizada') \Dojo\Modulos\Avisos\Avisos::ahora();   // el aviso "examen autorizado" sale enseguida
         Respuesta::ok(['id' => (int) $s['id'], 'estado' => $dec]);
     }
 
