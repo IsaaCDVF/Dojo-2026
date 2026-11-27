@@ -8,7 +8,8 @@ use Dojo\Nucleo\{Db, ErrorApi, Parametros, Peticion, Respuesta};
 use Dojo\Nucleo\Middleware\Permiso;
 
 /**
- * Fase 3 · Asistencia (BPMN-03). La tableta (por ahora un celular) elige la clase y lee el QR del alumno.
+ * Fase 3 · Asistencia (BPMN-03). La tableta lee el QR del alumno; la clase la busca sola (la de ahorita en la que está
+ * inscrito) o se elige a mano.
  * Reglas, en este orden:
  *   1. El QR existe y el alumno está activo .......................... si no: "alumno_baja"
  *   2. Está inscrito en esa clase, o es alumno nuestro de otra sucursal
@@ -55,14 +56,19 @@ final class AsistenciaControlador
         Respuesta::ok(['fecha' => $fecha, 'sucursal_id' => $suc, 'clases' => $lista]);
     }
 
-    /** POST /api/asistencias/qr {codigo, horario_id} — la tableta lee la credencial */
+    /**
+     * POST /api/asistencias/qr {codigo, horario_id?, sucursal_id?} — la tableta lee la credencial.
+     * Sin horario_id la clase se busca sola: de las clases de hoy en la sucursal (desde 1 h antes hasta que terminan),
+     * la más cercana a esta hora en la que está inscrito y que no ha registrado; si no está inscrito en ninguna,
+     * una de su misma disciplina (visita); si tampoco, la más cercana (y se rechaza como no inscrito).
+     */
     public function qr(Peticion $req): void
     {
-        $d = $req->requeridos('codigo', 'horario_id');
-        $h = $this->horario((int) $d['horario_id'], $req);
+        $d = $req->requeridos('codigo');
         $codigo = trim((string) $d['codigo']);
         $a = Db::uno('SELECT id FROM alumnos WHERE codigo_qr = ?', [$codigo]);
         if (!$a) throw new ErrorApi('Código no reconocido. Usa la credencial del alumno.', 404);
+        $h = !empty($req->cuerpo['horario_id']) ? $this->horario((int) $req->cuerpo['horario_id'], $req) : $this->claseDeAhorita((int) $a['id'], $req);
         $alumno = $this->alumno((int) $a['id'], (int) $h['disciplina_id']);
 
         // Solo se registra la clase de hoy, desde una hora antes hasta que termina
@@ -270,6 +276,28 @@ final class AsistenciaControlador
         return ['id' => $id, 'resultado' => $retardo ? 'retardo' : 'bienvenido', 'minutos_tarde' => max(0, $tarde), 'visita' => $ev['visita'],
                 'alumno' => $alumno, 'clase' => ['id' => (int) $h['id'], 'disciplina' => $h['disciplina'], 'hora_inicio' => substr($h['hora_inicio'], 0, 5)],
                 'avisos' => $avisos];
+    }
+
+    /** La clase de ahorita para ese alumno en la sucursal de la tableta (ver qr()) */
+    private function claseDeAhorita(int $alumnoId, Peticion $req): array
+    {
+        $suc = Permiso::sucursalDe($req) ?? (!empty($req->cuerpo['sucursal_id']) ? (int) $req->cuerpo['sucursal_id'] : null);
+        if (!$suc) throw new ErrorApi('Elige la sucursal', 422);
+        $hoy = date('Y-m-d');
+        $cand = Db::todos('SELECT h.id, h.disciplina_id, ABS(TIMESTAMPDIFF(MINUTE, TIMESTAMP(CURDATE(), h.hora_inicio), NOW())) distancia,
+                                  EXISTS(SELECT 1 FROM inscripciones i WHERE i.alumno_id = ? AND i.horario_id = h.id AND i.fecha_inicio <= ? AND (i.fecha_fin IS NULL OR i.fecha_fin >= ?)) inscrito,
+                                  EXISTS(SELECT 1 FROM inscripciones i JOIN horarios x ON x.id = i.horario_id WHERE i.alumno_id = ? AND x.disciplina_id = h.disciplina_id
+                                          AND i.fecha_inicio <= ? AND (i.fecha_fin IS NULL OR i.fecha_fin >= ?)) misma_disciplina,
+                                  EXISTS(SELECT 1 FROM asistencias s WHERE s.alumno_id = ? AND s.horario_id = h.id AND DATE(s.fecha_hora) = ?) registrada
+                           FROM horarios h WHERE h.sucursal_id = ? AND h.activo = 1 AND h.dia_semana = ?
+                             AND NOW() BETWEEN TIMESTAMP(CURDATE(), h.hora_inicio) - INTERVAL 60 MINUTE AND TIMESTAMP(CURDATE(), h.hora_fin)
+                           ORDER BY distancia, h.hora_inicio',
+            [$alumnoId, $hoy, $hoy, $alumnoId, $hoy, $hoy, $alumnoId, $hoy, $suc, (int) date('N')]);
+        if (!$cand) throw new ErrorApi('Ahorita no hay clases en esta sucursal', 409, ['resultado' => 'sin_clase']);
+        $elegir = fn($f) => array_values(array_filter($cand, $f))[0] ?? null;
+        $h = $elegir(fn($c) => $c['inscrito'] && !$c['registrada']) ?? $elegir(fn($c) => $c['inscrito'])
+          ?? $elegir(fn($c) => $c['misma_disciplina'] && !$c['registrada']) ?? $elegir(fn($c) => $c['misma_disciplina']) ?? $cand[0];
+        return $this->horario((int) $h['id'], $req);
     }
 
     private function sinRepetir(array $alumno, array $h, string $fecha): void

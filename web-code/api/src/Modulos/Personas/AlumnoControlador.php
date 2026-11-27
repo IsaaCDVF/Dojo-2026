@@ -47,6 +47,7 @@ final class AlumnoControlador
                       FROM alumnos a JOIN personas pe ON pe.id = a.persona_id JOIN sucursales s ON s.id = a.sucursal_id WHERE a.id = ?', [$req->params['id']]);
         if (!$a) throw new ErrorApi('Alumno no encontrado', 404);
         Permiso::exigirSucursal($req, (int) $a['sucursal_id']);
+        $a['domicilio'] = Db::uno('SELECT calle, numero, colonia, cp, municipio, estado FROM domicilios WHERE persona_id = ? ORDER BY id DESC LIMIT 1', [$a['persona_id']]);
         $a['contactos'] = Db::todos('SELECT id, tipo, valor, principal FROM contactos WHERE persona_id = ? ORDER BY principal DESC, id', [$a['persona_id']]);
         $a['responsables'] = Db::todos(
             'SELECT r.id, ar.parentesco, ar.vigente_desde, pe.nombre, pe.apellido_paterno, pe.apellido_materno, (r.persona_id = ?) AS es_el_mismo,

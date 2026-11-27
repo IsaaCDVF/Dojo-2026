@@ -1,8 +1,10 @@
+import { useTranslation } from 'react-i18next';
+import { useMarca } from '../marca/Marca';
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertTriangle, CheckCircle2, Info, Loader2, Moon, Sun, X, XCircle } from 'lucide-react';
 
-export { Isotipo, Logo } from './Logo';
+export { Isotipo, Logo, MarcaImpresa } from './Logo';
 
 const cx = (...c) => c.filter(Boolean).join(' ');
 
@@ -180,14 +182,25 @@ export function ErrorCaja({ error, reintentar }) {
 /* ---------- Modal y panel lateral ---------- */
 export function Modal({ abierto, onCerrar, titulo, subtitulo, children, pie, lateral = false, ancho = 'max-w-lg' }) {
   const ref = useRef(null);
+  // onCerrar suele llegar como función nueva en cada render (cada tecla): se guarda en una ref para que el efecto
+  // corra solo al abrir y cerrar. Antes se volvía a ejecutar con cada letra y mandaba el foco a la X.
+  const cerrarRef = useRef(onCerrar);
+  cerrarRef.current = onCerrar;
   useEffect(() => {
-    if (!abierto) return;
-    const esc = (e) => e.key === 'Escape' && onCerrar?.();
+    if (!abierto) return undefined;
+    const esc = (e) => e.key === 'Escape' && cerrarRef.current?.();
     document.addEventListener('keydown', esc);
     const prev = document.activeElement;
-    setTimeout(() => ref.current?.querySelector('input,select,textarea,button')?.focus(), 30);
-    return () => { document.removeEventListener('keydown', esc); prev?.focus?.(); };
-  }, [abierto, onCerrar]);
+    // Al abrir, el cursor va directo al primer campo para escribir (si no hay campos, al primer botón del contenido)
+    const t = setTimeout(() => {
+      const caja = ref.current; if (!caja) return;
+      const campo = caja.querySelector('[autofocus], [data-autofocus]')
+        || caja.querySelector("[data-cuerpo] input:not([disabled]):not([type=hidden]), [data-cuerpo] select:not([disabled]), [data-cuerpo] textarea:not([disabled])")
+        || caja.querySelector("[data-cuerpo] button, footer button");
+      campo?.focus();
+    }, 30);
+    return () => { clearTimeout(t); document.removeEventListener('keydown', esc); prev?.focus?.(); };
+  }, [abierto]);
   if (!abierto) return null;
   return createPortal(
     <div className="fixed inset-0 z-50 flex anim-aparecer" style={{ background: 'var(--overlay)' }} onMouseDown={(e) => e.target === e.currentTarget && onCerrar?.()}>
@@ -201,7 +214,7 @@ export function Modal({ abierto, onCerrar, titulo, subtitulo, children, pie, lat
           </div>
           <BotonIcono icono={X} etiqueta="Cerrar" onClick={onCerrar} />
         </header>
-        <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
+        <div data-cuerpo className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
         {pie && <footer className="flex justify-end gap-2 px-6 py-4 border-t border-line">{pie}</footer>}
       </div>
     </div>,
@@ -259,20 +272,15 @@ export function AvisosProvider({ children }) {
   );
 }
 
-/* ---------- Tema oscuro / claro ---------- */
+/* ---------- Tema oscuro / claro (lo maneja la marca: src/marca/Marca.jsx) ---------- */
 export function useTema() {
-  const [tema, setTema] = useState(() => document.documentElement.dataset.theme || 'dark');
-  const cambiar = () => {
-    const nuevo = tema === 'dark' ? 'light' : 'dark';
-    document.documentElement.dataset.theme = nuevo;
-    try { localStorage.setItem('dojo-tema', nuevo); } catch { /* nada */ }
-    setTema(nuevo);
-  };
-  return [tema, cambiar];
+  const { modo, alternarModo } = useMarca();
+  return [modo, alternarModo];
 }
 export function BotonTema({ className }) {
   const [tema, cambiar] = useTema();
-  return <BotonIcono icono={tema === 'dark' ? Sun : Moon} etiqueta={tema === 'dark' ? 'Modo claro' : 'Modo oscuro'} onClick={cambiar} className={className} />;
+  const { t } = useTranslation();
+  return <BotonIcono icono={tema === 'dark' ? Sun : Moon} etiqueta={tema === 'dark' ? t('comun.modoClaro') : t('comun.modoOscuro')} onClick={cambiar} className={className} />;
 }
 
 /* ---------- Tabla ---------- */

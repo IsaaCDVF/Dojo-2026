@@ -5,7 +5,7 @@ Base: `http://localhost:8080/api` (desarrollo). Todo es JSON en UTF-8.
 **Respuesta correcta:** `{ "ok": true, "datos": ... }`  
 **Error:** `{ "ok": false, "error": "mensaje para el usuario", "detalle": { ... } }`
 
-**Sesión:** `POST /auth/login` devuelve un `token`; se manda en cada petición como `Authorization: Bearer <token>`.
+**Sesión:** `POST /auth/login` devuelve un `token`; si `debe_cambiar_password` es `true` (entró con contraseña temporal) todo lo que pide permiso responde 403 hasta que llame `PUT /auth/contrasena`. El token se manda en cada petición como `Authorization: Bearer <token>`.
 Si la persona tiene varios roles, debe llamar `POST /auth/rol` antes de usar el resto (si no, responde 409).
 
 | Código | Significa |
@@ -23,13 +23,15 @@ Si la persona tiene varios roles, debe llamar `POST /auth/rol` antes de usar el 
 | Método | Ruta | Permiso | Qué hace |
 |---|---|---|---|
 | GET | /salud | pública | Estado de la API y número de tablas |
-| POST | /auth/login | pública | `{email, password}` → `{token, roles, debe_elegir_rol}` |
+| POST | /auth/login | pública | `{email, password}` → `{token, roles, debe_elegir_rol, debe_cambiar_password}` |
 | POST | /auth/rol | sesión | `{usuario_rol_id}` elige con qué rol y sucursal trabajar |
 | GET | /auth/yo | sesión | Usuario, rol activo, todos sus roles y permisos (para el menú) |
 | POST | /auth/logout | sesión | Cierra la sesión |
+| PUT | /auth/contrasena | sesión | `{actual, nueva}`: mínimo 8, con letras y números, distinta a la actual. Quita `debe_cambiar_password` y cierra sus otras sesiones |
 | GET | /sucursales | horarios.ver | Lista; un rol de sucursal solo ve la suya |
-| POST | /sucursales | sucursales.gestionar | `{clave (4 letras), nombre}` |
-| PUT | /sucursales/{id} | sucursales.gestionar | `{nombre?, activa?}` — registra en bitácora cada campo |
+| POST | /sucursales | sucursales.gestionar | `{clave (4 letras), nombre, telefono?, domicilio?:{calle, numero?, colonia?, cp, municipio, estado}, disciplinas?:[ids], encargado?: {usuario_id} \| {nuevo:{nombre, apellido_paterno, apellido_materno?, fecha_nacimiento, email, telefono?}}}`. Todo o nada (si el encargado falla no queda la sucursal). Con encargado nuevo responde `encargado_nuevo` con su contraseña temporal. El panel pide todo; la API acepta solo clave y nombre |
+| GET | /sucursales/{id} | horarios.ver | Con `domicilio`, `disciplinas` y `personal` (roles activos de la sucursal) |
+| PUT | /sucursales/{id} | sucursales.gestionar | `{nombre?, activa?, telefono?, domicilio?, disciplinas?}` — la clave no cambia. Quitar una disciplina con horarios activos → 409. Registra en bitácora cada campo |
 | GET | /disciplinas | horarios.ver | Lista con número de grados |
 | POST | /disciplinas | disciplinas.gestionar | `{nombre}` |
 | GET | /disciplinas/{id}/grados | horarios.ver | Grados en orden |
@@ -121,3 +123,149 @@ El retardo no se guarda: se calcula con el parámetro `minutos_retardo` vigente 
 | GET | /inicio | (cualquier rol) | `?sucursal_id=` bloques según permisos: alumnos, caja, vencidos (lista de los 8 más atrasados), examenes, asistencia, clases |
 
 Columnas del CSV (encabezado obligatorio, el orden no importa): **nombre, apellido_paterno, fecha_nacimiento, curp**, apellido_materno, sexo, telefono, email, fecha_alta, disciplina, grado, responsable_nombre, responsable_apellido, responsable_telefono, responsable_parentesco y, para un rol global, sucursal (clave o nombre). Fechas `AAAA-MM-DD` o `DD/MM/AAAA`.
+
+## Endpoints · Fase 6 App del alumno y del responsable
+
+El acceso a la app lo da recepción (no hay registro abierto). El alumno entra con su **matrícula**; el responsable con su **teléfono** (10 dígitos). `POST /auth/login` acepta en `email` el correo, la matrícula o el teléfono. Para alumnos y responsables la sesión dura `dias_sesion_app` días (30 por omisión) en lugar de `minutos_inactividad_sesion`.
+
+| Método | Ruta | Permiso | Qué hace |
+|---|---|---|---|
+| GET | /alumnos/{id}/app | alumnos.ver | El alumno y sus responsables con `estado` (sin_acceso, codigo_enviado, activo), `usuario`, `codigo_vence`, `ultimo_acceso` |
+| POST | /alumnos/{id}/app | alumnos.editar o responsables.gestionar | `{para: alumno\|responsable, responsable_id?}` → 201 `{usuario, codigo, expira, telefono, mensaje}`. Crea el usuario y el rol si hace falta; código de 6 dígitos que vence en 72 h; el anterior deja de servir. Para un alumno sin teléfono, `telefono` es el de su responsable. 422 si el responsable no tiene teléfono; 409 si el teléfono ya es de otro responsable |
+| POST | /app/activar | (pública) | `{usuario, codigo, password}` → `{token}`. Contraseña de 8 o más; 5 intentos fallidos bloquean el código (423); cierra las demás sesiones |
+| GET | /app/yo | (sesión) | Persona, `alumno_id` (si entrena), `es_responsable` y la lista de alumnos que puede ver |
+| GET | /app/alumnos/{id}/inicio | (sesión) | Alumno con `codigo_qr`, grado, clases de hoy, próxima clase, rumbo al siguiente grado con el próximo examen, semana (asistio, retardo, falta, hoy, proxima, sin_clase), racha, estado de pago y avatar puesto |
+| GET | /app/alumnos/{id}/camino | (sesión) | Por disciplina: grados con estado (obtenido, actual, siguiente, bloqueado), fecha e insignia; rumbo y examen |
+| GET / PUT | /app/alumnos/{id}/avatar | (sesión) | Accesorios con `desbloqueado`, insignias con `obtenida`, equipo puesto y `apariencia`. PUT `{equipo?:[ids], apariencia?:{piel, peinado, color_pelo, vello, complexion}}`: equipo uno por tipo y solo desbloqueados (422); si no se manda `equipo` no se toca. Valores fuera de la lista → 422 |
+| GET | /app/alumnos/{id}/examenes | (sesión) | Precio, fechas programadas con criterios, fecha límite y su solicitud; historial |
+| POST | /app/alumnos/{id}/examenes/{examen} | (sesión) | Solicita el examen (canal portal) → 201 con `examen` e `instructor` |
+| GET | /app/familia | (sesión, responsable) | Alumnos con estado de pago, adeudos (sin los por vencer), total, vencido, saldo a favor, últimos pagos y próximo cargo; 403 si no es responsable |
+| GET | /app/pagos/{id} | (sesión, responsable) | Recibo de un pago propio; 404 si es de otra familia |
+
+| GET | /app/cuenta | (sesión) | Mi cuenta: nombre, matrícula, `telefono`, `email`, `domicilio`, `es_responsable` y `entra_con` (con qué puede entrar) |
+| PUT | /app/cuenta | (sesión) | `{telefono?, email?, domicilio?:{calle, numero?, colonia?, cp, municipio, estado} \| null, password?}`. Cambiar teléfono o correo pide `password` (422 si falta o está mal). El responsable no puede quedarse sin teléfono (es su usuario) y no puede usar el de otro responsable (409). El correo también sirve para entrar; si ya lo usa otra cuenta → 409. Todo queda en bitácora con la sucursal del alumno |
+
+El modo claro u oscuro de la app se guarda con `PUT /preferencias {tema}` (el mismo de Mi perfil del panel).
+
+`apariencia` viene en inicio, camino, avatar, exámenes y en cada alumno de familia: `{piel 1-6, peinado (rapado, corto, despeinado, rizado, coleta, chongo, largo), color_pelo, vello (ninguno, bigote, candado, barba), complexion (delgada, media, robusta), etapa (nino < 12, joven < 18, adulto), disciplina, personalizada}`. `personalizada` es `false` mientras el alumno no haya guardado su apariencia: la app le pide armar su avatar la primera vez que entra. Un niño nunca lleva vello facial; la disciplina decide el uniforme y los movimientos.
+
+En `/app/alumnos/{id}/…` el alumno solo se ve a sí mismo y el responsable a los alumnos por los que paga (403 "Ese alumno no está en tu cuenta").
+
+## Endpoints · Marca blanca y preferencias
+
+Cada instalación guarda su marca en la tabla `marca` (una fila). Todo lo de la empresa vive en la base de datos, no en el código ni en el `.env`: el mismo sistema sirve a cualquier cliente y, para pasar a SaaS, la fila única se cambia por una por empresa.
+
+| Método | Ruta | Permiso | Qué hace |
+|---|---|---|---|
+| GET | /marca | (pública) | `{nombre, lema, tema, color_primario, color_fondo, fuente, fuente_nombre, idioma, moneda, zona_horaria, pais, imagenes: {logo, logo_oscuro, icono}}`. Las imágenes son direcciones con `?v=` para que el navegador las vuelva a pedir cuando cambian |
+| PUT | /marca | marca.editar | Cambia solo lo que se manda. `tema`: oceano, dojo, bosque, grafito, ciruela, atardecer o personalizado (requiere `color_primario`). `fuente`: dm-sans, inter, nunito, montserrat, poppins, source-sans, lora, sistema. `fuente_nombre` (letra solo del nombre comercial): igual, oswald, bebas, archivo, russo, playfair, marker. El `nombre` puede traer caracteres combinables (raya arriba U+0305, subrayado U+0332, tachado U+0336): el panel y la app los dibujan como una línea continua. `idioma`: es-MX, en-US. Queda en bitácora |
+| GET | /marca/imagen/{tipo} | (pública) | `logo`, `logo_oscuro` o `icono`. Se sirve con `Content-Security-Policy` que no deja ejecutar nada (por los SVG) |
+| PUT | /marca/imagen/{tipo} | marca.editar | `{imagen: dataURL}` PNG, JPG, WEBP o SVG hasta 512 KB. Un SVG con scripts, eventos o enlaces externos se rechaza (422) |
+| DELETE | /marca/imagen/{tipo} | marca.editar | Vuelve al logo de Dojo OS |
+| GET | /marca/manifest/{app} | (pública) | Manifest de la PWA (`app` o `panel`) con el nombre, ícono y color de la empresa |
+| GET / PUT | /preferencias | (sesión) | `{idioma (null = el de la empresa), tema: sistema\|claro\|oscuro, letra: normal\|grande\|muy_grande}`. También vienen en `GET /auth/yo` como `preferencias` |
+
+El router acepta parámetros de texto con `{nombre:texto}` (letras minúsculas y guion bajo); `{id}` sigue siendo solo número.
+
+## Endpoints · Personal y accesos
+
+Quién entra al panel, con qué rol y en qué sucursal. Solo se dan roles de **nivel menor** al propio: el súper admin da admin de sucursal, recepción, instructor y tableta; el admin de sucursal da recepción, instructor y tableta, y solo en su sucursal. Nadie cambia a alguien de su mismo nivel o mayor, ni sus propios accesos. Al dar de alta se genera una contraseña temporal (10 caracteres) que se muestra una sola vez, con el mensaje listo para WhatsApp.
+
+| Método | Ruta | Permiso | Qué hace |
+|---|---|---|---|
+| GET | /personal | roles.asignar | `?sucursal_id=&q=&inactivos=1`. Cada persona con `roles` (activos e inactivos, `se_puede_quitar`), `nivel`, `editable`, `debe_cambiar_password`, `ultima_vez`. El admin de sucursal solo ve a quien tiene rol en la suya |
+| GET | /personal/opciones | roles.asignar | Roles que puede dar quien pregunta y en qué sucursales |
+| GET | /personal/{id} | roles.asignar | Ficha |
+| POST | /personal | roles.asignar | `{nombre, apellido_paterno, apellido_materno?, fecha_nacimiento (16 a 100 años), sexo?, email, telefono?, roles:[{rol, sucursal_id}]}` → `{usuario_id, email, password_temporal, telefono, mensaje, ficha}`. Correo ya usado → 409. Rol de instructor → queda también en `instructores` (para horarios) |
+| PUT | /personal/{id} | roles.asignar | `{nombre?, apellido_paterno?, apellido_materno?, email?, telefono?, activo?}`. Desactivar cierra sus sesiones; no puedes desactivarte |
+| POST | /personal/{id}/roles | roles.asignar | `{rol, sucursal_id}`; si lo tuvo antes se reactiva; repetido → 409 |
+| DELETE | /personal/{id}/roles/{rid} | roles.asignar | Desactiva el rol (queda en el historial) y cierra las sesiones con ese rol |
+| POST | /personal/{id}/contrasena | roles.asignar | Contraseña temporal nueva ("olvidé mi contraseña"); cierra sus sesiones y desbloquea la cuenta |
+
+## Endpoints · Tabletas de asistencia
+
+La tableta de la entrada se conecta con un código (como una tele con una app de video): abre `/tableta/vincular`, muestra 6 dígitos, el admin los escribe en Configuración → Tabletas y la tableta recibe su sesión. Por dentro usa una cuenta interna con rol `tableta` en la sucursal (sin contraseña con la que alguien pueda entrar). Su sesión **no se cierra por inactividad**; se corta con "Desconectar".
+
+| Método | Ruta | Permiso | Qué hace |
+|---|---|---|---|
+| POST | /dispositivos/solicitar | pública | → `{codigo (6 dígitos), clave (secreta), expira_en: 600}`. Máximo 10 códigos vivos por IP (429) |
+| POST | /dispositivos/estado | pública | `{clave}` → `{estado: esperando \| vinculado \| expirado}`; con `vinculado` trae `token` y `dispositivo {nombre, sucursal}` **una sola vez** |
+| GET | /dispositivos | roles.asignar | `{tabletas: [{id, nombre, sucursal, activo, conectada, en_linea (habló en los últimos 10 min), ultima_vez, creado_por}], cuentas_con_correo}` (las tabletas de antes, con correo y contraseña). El admin de sucursal solo ve las suyas |
+| POST | /dispositivos | roles.asignar | `{codigo, nombre, sucursal_id}`. Código inexistente, usado o vencido → 404 |
+| PUT | /dispositivos/{id} | roles.asignar | `{nombre?, activo: 0}`. Desconectar cierra su sesión al momento; se vuelve a conectar con código nuevo (activo: 1 → 422) |
+
+`POST /asistencias/qr` ya no exige `horario_id`: sin él, la clase se busca sola entre las de hoy en la sucursal de la tableta (desde 1 h antes hasta que terminan): la más cercana a esta hora en la que está inscrito y que no ha registrado; si no está inscrito en ninguna, una de su misma disciplina (visita); si tampoco, la más cercana (y se rechaza como no inscrito). Sin clases a esa hora → 409 con `resultado: sin_clase`. La respuesta trae `clase {id, disciplina, hora_inicio}`. Un rol global manda `sucursal_id`.
+
+`GET /marca/manifest/tableta`: manifiesto para "Agregar a pantalla de inicio" en la tableta (abre `/tableta` a pantalla completa).
+
+## Endpoints · Pago en línea (Mercado Pago)
+
+El responsable paga desde la app lo que debe (mensualidad, recargo, inscripción, examen) con tarjeta, OXXO, SPEI o saldo de Mercado Pago (Checkout Pro, API de preferencias). Usa las mismas tablas de la caja: un pago `metodo = pasarela` que nace `pendiente` sin folio y recibe folio al aprobarse. Los montos los calcula el servidor (`Cotizador`, el mismo de la caja). Las llaves se guardan cifradas (`almacen/llaves/pasarela.key`, fuera de git); no se usa el `.env`.
+
+| Método | Ruta | Permiso | Qué hace |
+|---|---|---|---|
+| GET | /pasarela | pasarela.configurar | `{modo: apagado\|prueba\|real, public_key, tiene_token, token_final, tiene_secreto, url_publica, url_aviso, https, pagos_hoy}`. El token y la clave nunca se devuelven |
+| PUT | /pasarela | pasarela.configurar | `{modo?, public_key?, access_token?, webhook_secret?, url_publica?}` (vacío = borrar). `real` sin token → 422 |
+| POST | /pasarela/probar | pasarela.configurar | Llama a `GET /users/me` de Mercado Pago con el token → `{cuenta, correo, pais}` |
+| POST | /app/pagos-en-linea | (sesión, responsable) | `{claves: [...]}` → `{pago_id, url, origen, total}`. Con `real` crea la preferencia y `url` es el checkout de Mercado Pago; con `prueba`, `url` es `/app/pago/{id}`. Una línea con un pago en proceso → 409 con `pago_id`. Apagado → 409 |
+| GET | /app/pagos-en-linea/{id} | (sesión, dueño) | Estado: `pendiente\|aprobado\|rechazado\|reembolsado`, `vigente`, `medio` (credit_card, debit_card, ticket = OXXO, bank_transfer = SPEI), `ficha_url`, `expira`, `folio`, `mensaje_usuario`, `permite_reintento`, `lineas`, `a_favor`. Si está pendiente en modo real, antes le pregunta a Mercado Pago (busca por `external_reference`): así funciona aunque el aviso no pueda llegar (local) |
+| POST | /app/pagos-en-linea/{id}/prueba | (sesión, dueño) | Solo en modo prueba: `{resultado: aprobado\|rechazado\|oxxo\|spei\|pagar_ficha\|vencer}` simula a Mercado Pago |
+| POST | /pagos-en-linea/aviso | pública | Webhook de Mercado Pago. Con clave secreta configurada valida `x-signature` (HMAC-SHA256 de `id:{data.id};request-id:{x-request-id};ts:{ts};`) → 401 si no cuadra. Solo `type=payment` en modo real; el pago se vuelve a pedir a Mercado Pago con el token |
+
+Reglas al aplicar lo que dice Mercado Pago: `approved` → folio, `aprobado`, solicitudes de examen ligadas; si alguna línea ya se había pagado en caja mientras tanto, su monto queda como **saldo a favor**. `pending/in_process` → sigue pendiente con la ficha. `rejected` → `rechazado` con el mensaje del catálogo (`fondos_insuficientes`, `datos_tarjeta`, `sospecha_fraude`, `rechazo_banco`); `cancelled` (ficha vencida) → `cancelado`. Un pago aprobado nunca baja a pendiente o rechazado; `refunded/charged_back` lo pasan a `reembolsado`. Cada intento es un pago (RN-35): los rechazados no salen en la app ni en el corte. `GET /app/familia` trae `pago_en_linea` (modo) y cada adeudo en proceso trae `en_linea {pago_id, medio}` (también en el estado de cuenta de la caja).
+
+## Endpoints · Avisos automáticos (WhatsApp en 1 toque y notificaciones en la app)
+
+`Avisos::revisar()` arma los avisos y los guarda en `notificaciones` (una fila por canal). Cada uno lleva una `clave` única (`vc:{responsable}:{mes más viejo}`, `pv:{responsable}:{mes}:{días}`, `au:{alumno}:{última fecha}:{persona}`, `ex:{solicitud}:{persona}`), así nunca se repite. Eventos: `pago_por_vencer` (`dias_aviso_pago`), `pago_vencido`, `ausencia` (`dias_sin_asistir`; cuenta desde la última asistencia o desde la inscripción) y `examen_autorizado`. Canal `app`: solo si la persona tiene cuenta (va a la campanita y por Web Push si hay celular suscrito). Canal `whatsapp`: solo si tiene teléfono; lo manda recepción. Las ausencias y exámenes también le llegan al alumno en su app.
+
+`notificaciones.motivo` dice por qué un aviso no salió: `sin_celular` (app: no activó notificaciones, queda en la campanita), `ya_no_aplica` (ya pagó, ya vino o cambió el examen), `vencido` (WhatsApp sin mandar en 7 días), `recepcion` (decidieron no mandarlo). La campanita no muestra los `ya_no_aplica`. A quien ya debe algo vencido no se le arma además "por vencer".
+
+Sin cron: `public/index.php` llama `Avisos::siToca()` en cada petición con sesión; revisa como mucho cada hora, de 8:00 a 21:00, al terminar de responder (`fastcgi_finish_request`). Al autorizar un examen se revisa al momento. Antes de mostrar o mandar, cada aviso se vuelve a validar (si ya pagó, ya vino o el examen se canceló, pasa a `omitida`). Un WhatsApp sin mandar en 7 días también pasa a `omitida`.
+
+| Método | Ruta | Permiso | Qué hace |
+|---|---|---|---|
+| GET | /avisos | avisos.enviar | `?vista=pendientes\|enviados&sucursal_id=` → `{avisos: [{id, evento, persona, telefono, mensaje, fecha_programada, estado, fecha_envio, enviada_por, sucursal, alumno_id}], conteo {por evento}, ultima_revision}`. Solo canal WhatsApp; el admin de sucursal y recepción ven solo su sucursal. Enviados = últimos 30 días |
+| PUT | /avisos/{id} | avisos.enviar | `{estado: enviada \| omitida \| programada}` (Ya lo mandé, No mandar, regresar a pendientes). "No mandar" guarda `motivo = recepcion` y quién. Otra sucursal → 403 |
+| GET | /avisos/historial | avisos.enviar (o alumnos.ver con `alumno_id`) | `?dias=7&buscar=&evento=&sucursal_id=&alumno_id=` → `{avisos: [{clave, evento, persona, alumnos[], fecha, sucursal, alumno_id, con_app, es_alumno, resumen, app: {estado, motivo, fecha, leida} \| null, whatsapp: {id, estado, motivo, fecha, quien, telefono, mensaje} \| null}], resumen: {avisos, llegaron_celular, leidos, whatsapp_mandados, whatsapp_por_mandar}}`. Una fila por aviso (junta los dos canales). `alumno_id`: los del alumno y los de quien paga por él (ficha) |
+| POST | /avisos/revisar | avisos.enviar | Revisa ya → `{pago_por_vencer, pago_vencido, ausencia, examen_autorizado, notificaciones_enviadas}` (nuevos). Si otra revisión está corriendo → `{ocupado: true}` |
+| GET | /avisos/plantillas | avisos.configurar | `{plantillas: [{id, evento, canal, titulo, cuerpo, activa}], parametros {dias_aviso_pago, dias_sin_asistir}, celulares_con_notificaciones}` |
+| PUT | /avisos/plantillas/{id} | avisos.configurar | `{cuerpo?, titulo? (solo app), activa?}`. Variables: `{nombre} {alumno} {periodo} {monto} {fecha} {dias} {grado} {sucursal} {dojo}`; otra → 422 |
+| GET | /app/avisos | (sesión) | La campanita: `{avisos: [{id, evento, titulo, mensaje, fecha, leida, ruta}], sin_leer}` (últimos 60 días de la persona que entró) |
+| POST | /app/avisos/leidas | (sesión) | `{ids?}`; sin ids marca todas |
+| GET | /app/notificaciones | (sesión) | `{llave (VAPID pública), celulares}` |
+| POST | /app/notificaciones | (sesión) | La suscripción del navegador (`PushSubscription.toJSON()`: `{endpoint (https), keys {p256dh, auth}}`). Máximo 5 celulares por cuenta |
+| POST | /app/notificaciones/quitar | (sesión) | `{endpoint}`. La app la llama al cerrar sesión |
+
+Web Push sin librerías (`Modulos/Avisos/WebPush.php`): cifrado RFC 8291 (`aes128gcm`) y firma VAPID (RFC 8292, JWT ES256) con OpenSSL. Las llaves VAPID se crean la primera vez y la privada se guarda cifrada en `sistema_estado` (con la misma llave de `almacen/llaves/`). Si se pierde esa llave se crean otras y los celulares se vuelven a suscribir solos al abrir la app. El service worker es `app-code/public/sw.js` (solo notificaciones, sin caché). Necesita https (o `localhost`) y que el servidor pueda salir a internet (fcm.googleapis.com, web.push.apple.com, updates.push.services.mozilla.com).
+
+## Endpoints · Recepción en caja: por cobrar y cobro con QR
+
+| Método | Ruta | Permiso | Qué hace |
+|---|---|---|---|
+| GET | /caja/por-cobrar | pagos.cobrar | `?sucursal_id=&dias=7` → `{cuentas: [{responsable_id, nombre, telefono, alumnos[], total, vencido, estado: vencido\|por_vencer\|pendiente, vencido_desde, vence, en_linea}], conteo, total_vencido}`. Vencidos primero (el más viejo arriba). Recepción y admin de sucursal ven solo la suya |
+| POST | /caja/cobro-qr | pagos.cobrar | `{responsable_id, claves, codigo?}` → `{pago_id, url, origen, total}` (201). Mismo cálculo y tablas que el pago desde la app (`PagoEnLineaControlador::iniciar`), con `pagos_en_linea.canal = caja` y sin OXXO/SPEI. `url` es el checkout de Mercado Pago (la pantalla lo muestra como QR). Cuenta de otra sucursal → 409; línea ya en proceso → 409; cobro en línea apagado → 409 |
+| GET | /caja/cobro-qr/{id} | pagos.cobrar | Cómo va (la pantalla pregunta cada 3 s). En modo real le pregunta a Mercado Pago; tras una tarjeta rechazada sigue preguntando 1 h (puede intentar con otra en el mismo QR) |
+| POST | /caja/cobro-qr/{id}/prueba | pagos.cobrar | Solo modo prueba: `{resultado: aprobado\|rechazado}` |
+| PUT | /caja/cobro-qr/{id}/cancelar | pagos.cobrar | Lo cancela (`rechazado`, código `cancelado`). Ya pagado → 409. Si de todos modos pagan después, Mercado Pago avisa y se aplica |
+
+`GET /caja/estado-cuenta/{id}` trae `cobro_qr` (apagado | prueba | real) para mostrar o no la opción "Tarjeta". El recibo y el corte dicen `QR en caja · {correo}` en `cobro`.
+
+## Endpoints · Mi cuenta (cualquier persona con sesión)
+
+| Método | Ruta | Permiso | Qué hace |
+|---|---|---|---|
+| GET | /auth/perfil | (sesión) | `{nombre, apellido_paterno, apellido_materno, email, telefono, roles[]}` |
+| PUT | /auth/perfil | (sesión) | `{telefono?, email?, password?}`. Cambiar el correo (con el que entra) pide `password`; correo de otra cuenta → 409. Queda en bitácora |
+| GET | /auth/sesiones | (sesión) | Sesiones abiertas de los últimos 30 días: `[{id, ip, equipo ("Chrome · Windows"), creada, ultima_actividad, actual}]` |
+| POST | /auth/sesiones/cerrar | (sesión) | `{id}` cierra esa; sin `id` cierra todas menos la actual → `{cerradas}`. La actual → 422 (para eso es logout) |
+
+`GET /app/cuenta` trae además `sucursal {nombre, telefono, direccion}` (para "Ayuda" en la app).
+
+## Endpoints · Reportes
+
+| Método | Ruta | Permiso | Qué hace |
+|---|---|---|---|
+| GET | /reportes | reportes.ver | `?mes=AAAA-MM&sucursal_id=` (un mes futuro se queda en el actual; el admin de sucursal siempre ve la suya) → `{mes, kpi: {ingresos, ingresos_anterior, cobros, ticket_promedio, activos, activos_anterior, altas, bajas, asistencias, asistencias_por_alumno, vencido, cuentas_vencidas}, serie: [12 × {mes, ingresos, efectivo, transferencia, en_linea, cobros, altas, bajas, activos, asistencias}], por_concepto: [{concepto, total, lineas}], por_sucursal: [{id, sucursal, ingresos, activos, vencido}] (solo con todas), deuda: {d1_30, d31_60, d61, cuentas}, clases: [top 8 {disciplina, dia_semana, hora, nivel, sucursal, asistencias, inscritos}], dias_semana: [7], riesgo: [top 20 {alumno_id, nombre, sucursal, motivos: sin_venir\|debe, dias_sin_venir, nunca_vino, debe, dias_vencido}]}` |
+
+Cómo se calcula: **ingresos** = pagos aprobados del mes (total menos el saldo a favor que se usó; sin pagos hechos solo con saldo, sin cancelados ni rechazados). **Lo vendido por concepto** sí incluye lo pagado con saldo a favor. **Activos al cierre** = alta antes del fin de mes y sin baja antes de esa fecha (la fecha de baja sale de la bitácora). **Vencido** y **riesgo** son de hoy (no del mes elegido): riesgo = más de `dias_sin_asistir` días sin venir (o desde su alta si nunca ha venido) o algo vencido hace más de 30 días.
+

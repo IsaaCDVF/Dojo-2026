@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Camera, CameraOff, Clock, Keyboard, LayoutDashboard, LogOut, RefreshCw, SwitchCamera, Users } from 'lucide-react';
-import { api, ErrorApi } from '../api';
+import { ArrowLeft, Camera, CameraOff, Clock, Keyboard, LayoutDashboard, ListChecks, LogOut, RefreshCw, SwitchCamera, Users } from 'lucide-react';
+import { api, ErrorApi, regional } from '../api';
 import { useSesion } from '../auth/Sesion';
-import { BotonIcono, BotonTema, Cargando, Cinta, ErrorCaja, FotoAlumno, Logo, Pestanas, useDatos } from '../ui';
+import { BotonIcono, BotonTema, Cargando, Cinta, ErrorCaja, FotoAlumno, Logo, Pestanas, useConfirmar, useDatos } from '../ui';
 
-// S-09 · Tableta de asistencia (BPMN-03). Por ahora corre en un celular: elige la clase y lee el QR de la credencial
-// con la cámara. También acepta un lector de códigos USB o Bluetooth (escribe el código y un Enter).
+// S-09 · Tableta de asistencia (BPMN-03). Se queda en la entrada: el alumno acerca su QR y el sistema busca solo
+// la clase de ahorita en la que está inscrito ("Entrada"). Si hace falta, se puede elegir una clase a mano.
+// Lee con la cámara o con un lector de códigos USB/Bluetooth (escribe el código y un Enter).
 // Si no hay cámara o el navegador no la deja usar (la página debe ser https), queda el campo para teclear el código.
+// La tableta se conecta con un código desde Configuración → Tabletas (ver VincularTableta.jsx).
 
 const cx = (...c) => c.filter(Boolean).join(' ');
 const GUARDA = 'dojo-tableta-sucursal';
@@ -17,6 +19,7 @@ export default function Tableta() {
   const global = rol?.alcance === 'global';
   const [suc, setSuc] = useState(() => { try { return localStorage.getItem(GUARDA) || ''; } catch { return ''; } });
   const [clase, setClase] = useState(null);
+  const [elegir, setElegir] = useState(false);   // false = Entrada (la clase se busca sola)
   const sucursales = useDatos(() => (global ? api.get('/sucursales') : Promise.resolve([])), [global]);
   const sucursal = global ? (suc || String(sucursales.datos?.[0]?.id || '')) : String(rol?.sucursal_id || '');
 
@@ -28,7 +31,12 @@ export default function Tableta() {
     pedir();
     const visible = () => document.visibilityState === 'visible' && pedir();
     document.addEventListener('visibilitychange', visible);
-    return () => { clearInterval(t); lock?.release?.(); document.removeEventListener('visibilitychange', visible); };
+    // Para "instalarla" a pantalla completa (Agregar a pantalla de inicio) con su propio manifiesto
+    let link = document.querySelector('link[rel="manifest"]');
+    const habia = !!link;
+    if (!link) { link = document.createElement('link'); link.rel = 'manifest'; document.head.appendChild(link); }
+    const antes = link.href; link.href = '/api/marca/manifest/tableta';
+    return () => { clearInterval(t); lock?.release?.(); document.removeEventListener('visibilitychange', visible); if (habia) link.href = antes; else link.remove(); };
   }, []);
 
   const elegirSucursal = (v) => { setSuc(v); try { localStorage.setItem(GUARDA, v); } catch { /* nada */ } };
@@ -36,8 +44,10 @@ export default function Tableta() {
   return (
     <div className="h-full flex flex-col bg-canvas">
       {clase
-        ? <Escanear clase={clase} onSalir={() => setClase(null)} />
-        : <ElegirClase sucursal={sucursal} global={global} sucursales={sucursales.datos || []} onSucursal={elegirSucursal} onElegir={setClase} />}
+        ? <Escanear clase={clase} sucursal={sucursal} onSalir={() => setClase(null)} />
+        : elegir
+          ? <ElegirClase sucursal={sucursal} global={global} sucursales={sucursales.datos || []} onSucursal={elegirSucursal} onElegir={setClase} onEntrada={() => setElegir(false)} />
+          : <Escanear clase={null} sucursal={sucursal} global={global} sucursales={sucursales.datos || []} onSucursal={elegirSucursal} onElegir={() => setElegir(true)} />}
     </div>
   );
 }
@@ -45,35 +55,51 @@ export default function Tableta() {
 function Reloj() {
   const [ahora, setAhora] = useState(new Date());
   useEffect(() => { const t = setInterval(() => setAhora(new Date()), 15000); return () => clearInterval(t); }, []);
-  return <span className="font-mono text-[15px] tabular-nums">{ahora.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}</span>;
+  return <span className="font-mono text-[15px] tabular-nums">{ahora.toLocaleTimeString(regional.locale, { hour: '2-digit', minute: '2-digit' })}</span>;
 }
 
 /* ---------------- Paso 1: elegir la clase ---------------- */
-function ElegirClase({ sucursal, global, sucursales, onSucursal, onElegir }) {
+/** Controles de la cabecera: volver al panel (personal) o salir (la tableta pide confirmación) */
+function Controles() {
   const { logout, usuario, rol } = useSesion();
+  const confirmar = useConfirmar();
+  const salir = async () => {
+    if (rol?.nombre === 'tableta' && !(await confirmar({ titulo: 'Desconectar esta tableta', texto: 'Para volver a usarla habrá que conectarla con un código nuevo desde el panel (Configuración → Tabletas).', aceptar: 'Desconectar', peligro: true }))) return;
+    logout();
+  };
+  return (
+    <>
+      <BotonTema />
+      {/* La cuenta de la tableta solo puede salir; el personal regresa al panel */}
+      {rol?.nombre !== 'tableta' && (
+        <Link to="/" className="inline-flex items-center gap-2 h-9 px-3.5 rounded-full border border-line text-sm font-semibold hover:border-action">
+          <LayoutDashboard className="size-4" /><span className="hidden sm:inline">Volver al panel</span>
+        </Link>
+      )}
+      <BotonIcono icono={LogOut} etiqueta={`Salir (${usuario?.nombre || usuario?.email || ''})`} onClick={salir} />
+    </>
+  );
+}
+
+function ElegirClase({ sucursal, global, sucursales, onSucursal, onElegir, onEntrada }) {
   const datos = useDatos(() => (sucursal ? api.get('/asistencias/clases', { sucursal_id: sucursal }) : Promise.resolve(null)), [sucursal]);
   useEffect(() => { const t = setInterval(datos.recargar, 60000); return () => clearInterval(t); }, [datos.recargar]);
   const clases = datos.datos?.clases || [];
-  const hoy = new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
+  const hoy = new Date().toLocaleDateString(regional.locale, { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
     <>
       <header className="flex items-center gap-3 px-4 sm:px-6 h-16 border-b border-line shrink-0">
+        <BotonIcono icono={ArrowLeft} etiqueta="Volver a la entrada" onClick={onEntrada} />
         <Logo subtitulo="Asistencia" />
         <div className="flex-1" />
         <Reloj />
-        <BotonTema />
-        {/* La cuenta de la tableta solo puede salir; el personal regresa al panel */}
-        {rol?.nombre !== 'tableta' && (
-          <Link to="/" className="inline-flex items-center gap-2 h-9 px-3.5 rounded-full border border-line text-sm font-semibold hover:border-action">
-            <LayoutDashboard className="size-4" /><span className="hidden sm:inline">Volver al panel</span>
-          </Link>
-        )}
-        <BotonIcono icono={LogOut} etiqueta={`Salir (${usuario?.email || ''})`} onClick={logout} />
+        <Controles />
       </header>
       <main className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 max-w-5xl w-full mx-auto">
         <div className="etiqueta mb-1">{hoy}</div>
-        <h1 className="text-[28px] leading-tight mb-4">¿Qué clase empieza?</h1>
+        <h1 className="text-[28px] leading-tight mb-1">Elige una clase</h1>
+        <p className="text-muted text-sm mb-4">Solo si quieres registrar a mano una clase en particular. En la entrada la clase se busca sola.</p>
         {global && <Pestanas className="mb-4" valor={sucursal} onCambio={onSucursal} opciones={sucursales.map((s) => ({ valor: String(s.id), etiqueta: s.nombre }))} />}
         <ErrorCaja error={datos.error} reintentar={datos.recargar} />
         {datos.cargando && !datos.datos ? <Cargando /> : !clases.length ? (
@@ -116,6 +142,7 @@ const ESTILO = {
   negado: { fondo: 'bg-[#b42318]', titulo: 'Acceso negado' },
   repetida: { fondo: 'bg-[#1d4ed8]', titulo: 'Ya estabas registrado' },
   desconocido: { fondo: 'bg-[#3f3f46]', titulo: 'Código no reconocido' },
+  sin_clase: { fondo: 'bg-[#3f3f46]', titulo: 'Ahorita no hay clase' },
   error: { fondo: 'bg-[#3f3f46]', titulo: 'No se pudo registrar' },
 };
 
@@ -134,10 +161,16 @@ function sonar(tipo) {
   navigator.vibrate?.(tipo === 'bienvenido' ? 80 : [120, 60, 120]);
 }
 
-function Escanear({ clase, onSalir }) {
+function Escanear({ clase, sucursal, global, sucursales = [], onSucursal, onSalir, onElegir }) {
+  const { usuario, rol } = useSesion();
   const [resultado, setResultado] = useState(null);
   const [recientes, setRecientes] = useState([]);
-  const [contador, setContador] = useState(Number(clase.asistieron) || 0);
+  const [contador, setContador] = useState(clase ? Number(clase.asistieron) || 0 : 0);
+  const auto = !clase;
+  // En la entrada se muestran las clases de ahorita (solo informativo)
+  const hoy = useDatos(() => (auto && sucursal ? api.get('/asistencias/clases', { sucursal_id: sucursal }) : Promise.resolve(null)), [auto, sucursal]);
+  useEffect(() => { if (!auto) return undefined; const t = setInterval(hoy.recargar, 60000); return () => clearInterval(t); }, [auto, hoy.recargar]);
+  const ahora = (hoy.datos?.clases || []).filter((c) => c.estado !== 'terminada');
   const [teclear, setTeclear] = useState(false);
   const [codigo, setCodigo] = useState('');
   const ocupado = useRef(false);
@@ -151,19 +184,21 @@ function Escanear({ clase, onSalir }) {
     ocupado.current = true;
     let r;
     try {
-      const d = await api.post('/asistencias/qr', { codigo: c, horario_id: clase.id });
-      r = { tipo: d.resultado, alumno: d.alumno, avisos: d.avisos, mensaje: d.resultado === 'retardo' ? `${d.minutos_tarde} minutos tarde` : d.visita ? 'Visita de otra sucursal' : 'Buen entrenamiento' };
+      const d = await api.post('/asistencias/qr', clase ? { codigo: c, horario_id: clase.id } : { codigo: c, sucursal_id: sucursal });
+      const cual = auto ? `${d.clase.disciplina} de las ${d.clase.hora_inicio}` : '';
+      r = { tipo: d.resultado, alumno: d.alumno, avisos: d.avisos, clase: cual,
+        mensaje: d.resultado === 'retardo' ? `${d.minutos_tarde} minutos tarde` : d.visita ? 'Visita de otra sucursal' : 'Buen entrenamiento' };
       setContador((n) => n + 1);
     } catch (e) {
       const det = e instanceof ErrorApi ? e.detalle : {};
-      const tipo = det.resultado || (e.estado === 404 ? 'desconocido' : 'error');
+      const tipo = det.resultado === 'sin_clase' ? 'sin_clase' : det.resultado || (e.estado === 404 ? 'desconocido' : 'error');
       r = { tipo, alumno: det.alumno, avisos: det.avisos || [], mensaje: e.message };
     }
     sonar(r.tipo);
     setResultado(r);
-    if (r.alumno) setRecientes((l) => [{ ...r, hora: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }), k: Date.now() }, ...l].slice(0, 6));
+    if (r.alumno) setRecientes((l) => [{ ...r, hora: new Date().toLocaleTimeString(regional.locale, { hour: '2-digit', minute: '2-digit' }), k: Date.now() }, ...l].slice(0, 6));
     setTimeout(() => { setResultado((x) => (x === r ? null : x)); ocupado.current = false; }, r.tipo === 'bienvenido' ? 2500 : 4500);
-  }, [clase.id]);
+  }, [clase?.id, auto, sucursal]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Lector USB/Bluetooth: "teclea" el código muy rápido y termina con Enter
   useEffect(() => {
@@ -182,13 +217,24 @@ function Escanear({ clase, onSalir }) {
   return (
     <>
       <header className="flex items-center gap-3 px-3 sm:px-5 h-16 border-b border-line shrink-0">
-        <BotonIcono icono={ArrowLeft} etiqueta="Cambiar de clase" onClick={onSalir} />
-        <div className="min-w-0 flex-1">
-          <div className="font-semibold truncate">{clase.disciplina} · <span className="font-mono">{clase.hora_inicio}</span></div>
-          <div className="text-[12px] text-muted truncate">{clase.nivel || 'Clase general'} · {clase.instructor}</div>
-        </div>
-        <div className="text-right"><div className="font-mono text-[22px] font-semibold leading-none">{contador}</div><div className="etiqueta !text-[10px]">registrados</div></div>
+        {auto ? (
+          <>
+            <Logo subtitulo={rol?.nombre === 'tableta' ? usuario?.nombre : 'Entrada'} />
+            <div className="flex-1" />
+            {global && <div className="hidden md:block"><Pestanas valor={sucursal} onCambio={onSucursal} opciones={sucursales.map((x) => ({ valor: String(x.id), etiqueta: x.nombre }))} /></div>}
+          </>
+        ) : (
+          <>
+            <BotonIcono icono={ArrowLeft} etiqueta="Cambiar de clase" onClick={onSalir} />
+            <div className="min-w-0 flex-1">
+              <div className="font-semibold truncate">{clase.disciplina} · <span className="font-mono">{clase.hora_inicio}</span></div>
+              <div className="text-[12px] text-muted truncate">{clase.nivel || 'Clase general'} · {clase.instructor}</div>
+            </div>
+          </>
+        )}
+        <div className="text-right"><div className="font-mono text-[22px] font-semibold leading-none">{contador}</div><div className="etiqueta !text-[10px]">{auto ? 'hoy aquí' : 'registrados'}</div></div>
         <Reloj />
+        {auto && <Controles />}
       </header>
       <main className="flex-1 min-h-0 flex flex-col lg:flex-row gap-4 p-3 sm:p-5">
         <div className="flex-1 min-h-0 flex flex-col gap-3">
@@ -207,6 +253,25 @@ function Escanear({ clase, onSalir }) {
           </div>
         </div>
         <aside className="lg:w-80 shrink-0">
+          {auto && (
+            <div className="mb-5">
+              <div className="flex items-center justify-between mb-2">
+                <div className="etiqueta">Clases de ahora</div>
+                <button onClick={onElegir} className="inline-flex items-center gap-1.5 text-[12px] text-muted hover:text-text cursor-pointer"><ListChecks className="size-3.5" />Elegir una clase</button>
+              </div>
+              {!ahora.length ? <p className="text-sm text-muted">{hoy.cargando ? 'Cargando…' : 'Por ahora no hay clases. Las de hoy aparecen aquí una hora antes.'}</p> : (
+                <ul className="space-y-1.5">
+                  {ahora.slice(0, 4).map((c) => (
+                    <li key={c.id} className={cx('flex items-center gap-3 rounded-md border px-3 py-2', c.estado === 'en_curso' ? 'border-action bg-action/8' : 'border-line bg-surface')}>
+                      <span className="font-mono text-[15px] font-semibold">{c.hora_inicio}</span>
+                      <span className="flex-1 min-w-0 text-sm truncate">{c.disciplina}{c.nivel ? ` · ${c.nivel}` : ''}</span>
+                      <span className="text-[12px] text-muted">{c.asistieron}/{c.inscritos}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
           <div className="etiqueta mb-2">Últimos registros</div>
           {!recientes.length ? <p className="text-sm text-muted">Acerca la credencial del alumno a la cámara.</p> : (
             <ul className="space-y-2">
@@ -235,6 +300,7 @@ function Resultado({ r, onCerrar }) {
         <div className="text-[34px] sm:text-[44px] font-semibold leading-tight">{e.titulo}</div>
         {r.alumno && <div className="text-[24px] sm:text-[30px] mt-1">{r.alumno.nombre}</div>}
         {r.alumno?.grado && <div className="inline-flex items-center gap-2 mt-2 text-white/90"><Cinta color={r.alumno.color_cinta} />{r.alumno.grado}</div>}
+        {r.clase && <div className="text-white/85 text-[17px] mt-1">{r.clase}</div>}
       </div>
       <div className="text-[18px] sm:text-[20px] max-w-xl text-white/95">{r.mensaje}</div>
       {r.avisos?.length > 0 && (

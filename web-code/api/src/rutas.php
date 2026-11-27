@@ -1,7 +1,7 @@
 <?php
 // Tabla de rutas de la API. Cada ruta indica el permiso que exige (null = pública,
 // '' = solo requiere sesión). Al agregar una ruta, actualizar docs/api.md.
-use Dojo\Modulos\Sistema\SaludControlador;
+use Dojo\Modulos\Sistema\{SaludControlador, MarcaControlador, PreferenciasControlador};
 use Dojo\Modulos\Auth\AuthControlador;
 use Dojo\Modulos\Catalogos\{SucursalControlador, DisciplinaControlador, ParametroControlador,
     ConceptoControlador, PrecioControlador, PromocionControlador};
@@ -10,10 +10,15 @@ use Dojo\Modulos\Horarios\HorarioControlador;
 use Dojo\Modulos\Personas\AlumnoControlador;
 use Dojo\Modulos\Inscripciones\InscripcionControlador;
 use Dojo\Modulos\Pagos\CajaControlador;
+use Dojo\Modulos\Pagos\Pasarela\{PasarelaControlador, PagoEnLineaControlador, CobroQrControlador};
 use Dojo\Modulos\Examenes\ExamenControlador;
 use Dojo\Modulos\Asistencia\AsistenciaControlador;
 use Dojo\Modulos\Inicio\InicioControlador;
+use Dojo\Modulos\App\AccesoControlador;
+use Dojo\Modulos\App\AppControlador;
 use Dojo\Modulos\Personas\ImportacionControlador;
+use Dojo\Modulos\Personal\{PersonalControlador, DispositivoControlador};
+use Dojo\Modulos\Avisos\AvisosControlador;
 
 /** @var Dojo\Nucleo\Router $router */
 $router->get('/api/salud',                       [SaludControlador::class, 'ver'],             null);
@@ -22,10 +27,31 @@ $router->post('/api/auth/login',                 [AuthControlador::class, 'login
 $router->post('/api/auth/rol',                   [AuthControlador::class, 'elegirRol'],        '');
 $router->get('/api/auth/yo',                     [AuthControlador::class, 'yo'],               '');
 $router->post('/api/auth/logout',                [AuthControlador::class, 'logout'],           '');
+$router->put('/api/auth/contrasena',             [AuthControlador::class, 'cambiarContrasena'], '');
+$router->get('/api/auth/perfil',                 [AuthControlador::class, 'perfil'],           '');
+$router->put('/api/auth/perfil',                 [AuthControlador::class, 'guardarPerfil'],    '');
+$router->get('/api/auth/sesiones',               [AuthControlador::class, 'sesiones'],         '');
+$router->post('/api/auth/sesiones/cerrar',       [AuthControlador::class, 'cerrarSesiones'],   '');
 
 $router->get('/api/sucursales',                  [SucursalControlador::class, 'listar'],       'horarios.ver');
 $router->post('/api/sucursales',                 [SucursalControlador::class, 'crear'],        'sucursales.gestionar');
 $router->put('/api/sucursales/{id}',             [SucursalControlador::class, 'editar'],       'sucursales.gestionar');
+$router->get('/api/sucursales/{id}',             [SucursalControlador::class, 'ver'],          'horarios.ver');
+
+// Personal y accesos: alta del personal, sus roles por sucursal y contraseñas temporales
+$router->get('/api/personal',                    [PersonalControlador::class, 'listar'],       'roles.asignar');
+$router->get('/api/personal/opciones',           [PersonalControlador::class, 'opciones'],     'roles.asignar');
+$router->get('/api/personal/{id}',               [PersonalControlador::class, 'ver'],          'roles.asignar');
+$router->post('/api/personal',                   [PersonalControlador::class, 'crear'],        'roles.asignar');
+$router->put('/api/personal/{id}',               [PersonalControlador::class, 'editar'],       'roles.asignar');
+$router->post('/api/personal/{id}/roles',        [PersonalControlador::class, 'darRol'],       'roles.asignar');
+$router->delete('/api/personal/{id}/roles/{rid}',[PersonalControlador::class, 'quitarRol'],    'roles.asignar');
+$router->post('/api/dispositivos/solicitar',      [DispositivoControlador::class, 'solicitar'], null);
+$router->post('/api/dispositivos/estado',         [DispositivoControlador::class, 'estado'],    null);
+$router->get('/api/dispositivos',                 [DispositivoControlador::class, 'listar'],    'roles.asignar');
+$router->post('/api/dispositivos',                [DispositivoControlador::class, 'vincular'],  'roles.asignar');
+$router->put('/api/dispositivos/{id}',            [DispositivoControlador::class, 'editar'],    'roles.asignar');
+$router->post('/api/personal/{id}/contrasena',   [PersonalControlador::class, 'restablecer'],  'roles.asignar');
 
 $router->get('/api/disciplinas',                 [DisciplinaControlador::class, 'listar'],     'horarios.ver');
 $router->post('/api/disciplinas',                [DisciplinaControlador::class, 'crear'],      'disciplinas.gestionar');
@@ -82,13 +108,43 @@ $router->delete('/api/asistencias/{id}',         [AsistenciaControlador::class, 
 $router->get('/api/alumnos/{id}/asistencia',     [AsistenciaControlador::class, 'historial'],  'asistencia.ver,asistencia.validar,alumnos.ver');
 $router->put('/api/alumnos/{id}/qr',             [AsistenciaControlador::class, 'regenerarQr'],'alumnos.editar');
 
+// Fase 6 · App del alumno y del responsable (sin permiso de personal: cada quien ve solo lo suyo)
+$router->get('/api/app/cuenta',                  [\Dojo\Modulos\App\CuentaControlador::class, 'ver'],     '');
+$router->put('/api/app/cuenta',                  [\Dojo\Modulos\App\CuentaControlador::class, 'guardar'], '');
+$router->get('/api/alumnos/{id}/app',            [AccesoControlador::class, 'estado'],        'alumnos.ver');
+$router->post('/api/alumnos/{id}/app',           [AccesoControlador::class, 'dar'],           'alumnos.editar,responsables.gestionar');
+$router->post('/api/app/activar',                [AccesoControlador::class, 'activar'],       null);
+$router->get('/api/app/yo',                      [AppControlador::class, 'yo'],               '');
+$router->get('/api/app/alumnos/{id}/inicio',     [AppControlador::class, 'inicio'],           '');
+$router->get('/api/app/alumnos/{id}/camino',     [AppControlador::class, 'camino'],           '');
+$router->get('/api/app/alumnos/{id}/avatar',     [AppControlador::class, 'avatar'],           '');
+$router->put('/api/app/alumnos/{id}/avatar',     [AppControlador::class, 'guardarAvatar'],    '');
+$router->get('/api/app/alumnos/{id}/examenes',   [AppControlador::class, 'examenes'],         '');
+$router->post('/api/app/alumnos/{id}/examenes/{examen}', [AppControlador::class, 'solicitar'], '');
+$router->get('/api/app/familia',                 [AppControlador::class, 'familia'],          '');
+$router->get('/api/app/pagos/{id}',              [AppControlador::class, 'recibo'],           '');
+
 // Fase 4 · Caja
+$router->get('/api/caja/por-cobrar',              [CajaControlador::class, 'porCobrar'],        'pagos.cobrar');
+$router->post('/api/caja/cobro-qr',                [CobroQrControlador::class, 'crear'],        'pagos.cobrar');
+$router->get('/api/caja/cobro-qr/{id}',            [CobroQrControlador::class, 'ver'],          'pagos.cobrar');
+$router->post('/api/caja/cobro-qr/{id}/prueba',    [CobroQrControlador::class, 'prueba'],       'pagos.cobrar');
+$router->put('/api/caja/cobro-qr/{id}/cancelar',   [CobroQrControlador::class, 'cancelar'],     'pagos.cobrar');
 $router->get('/api/caja/estado-cuenta/{id}',     [CajaControlador::class, 'estadoCuenta'],     'pagos.ver');
 $router->post('/api/caja/cotizar',               [CajaControlador::class, 'cotizar'],          'pagos.cobrar');
 $router->post('/api/caja/cobros',                [CajaControlador::class, 'cobrar'],           'pagos.cobrar');
 $router->get('/api/caja/pagos/{id}',             [CajaControlador::class, 'recibo'],           'pagos.ver');
 $router->put('/api/caja/pagos/{id}/cancelar',    [CajaControlador::class, 'cancelar'],         'pagos.cancelar');
 $router->get('/api/caja/corte',                  [CajaControlador::class, 'corte'],            'caja.corte');
+
+// Pago en línea (Mercado Pago). La configuración solo la toca el súper admin; el aviso de Mercado Pago es público (se valida su firma)
+$router->get('/api/pasarela',                     [PasarelaControlador::class, 'ver'],          'pasarela.configurar');
+$router->put('/api/pasarela',                     [PasarelaControlador::class, 'guardar'],      'pasarela.configurar');
+$router->post('/api/pasarela/probar',             [PasarelaControlador::class, 'probar'],       'pasarela.configurar');
+$router->post('/api/app/pagos-en-linea',          [PagoEnLineaControlador::class, 'crear'],     '');
+$router->get('/api/app/pagos-en-linea/{id}',      [PagoEnLineaControlador::class, 'ver'],       '');
+$router->post('/api/app/pagos-en-linea/{id}/prueba', [PagoEnLineaControlador::class, 'prueba'], '');
+$router->post('/api/pagos-en-linea/aviso',        [PagoEnLineaControlador::class, 'aviso'],     null);
 
 // Fase 5 · Exámenes
 $router->get('/api/examenes',                    [ExamenControlador::class, 'listar'],         'examenes.programar,examenes.validar,examenes.solicitar');
@@ -103,3 +159,30 @@ $router->put('/api/solicitudes-examen/{id}/resultado', [ExamenControlador::class
 $router->put('/api/solicitudes-examen/{id}/cancelar',  [ExamenControlador::class, 'cancelar'],  'examenes.programar,examenes.solicitar');
 
 $router->get('/api/bitacora',                    [BitacoraControlador::class, 'buscar'],       'bitacora.ver');
+
+// Marca blanca y preferencias: cada empresa pone su logo, colores, letra e idioma; cada usuario su tema y letra
+$router->get('/api/marca',                       [MarcaControlador::class, 'ver'],             null);
+$router->put('/api/marca',                       [MarcaControlador::class, 'guardar'],         'marca.editar');
+$router->get('/api/marca/imagen/{tipo:texto}',   [MarcaControlador::class, 'imagen'],          null);
+$router->put('/api/marca/imagen/{tipo:texto}',   [MarcaControlador::class, 'subirImagen'],     'marca.editar');
+$router->delete('/api/marca/imagen/{tipo:texto}', [MarcaControlador::class, 'quitarImagen'],   'marca.editar');
+$router->get('/api/marca/manifest/{app:texto}',  [MarcaControlador::class, 'manifest'],        null);
+$router->get('/api/preferencias',                [PreferenciasControlador::class, 'ver'],      '');
+$router->put('/api/preferencias',                [PreferenciasControlador::class, 'guardar'],  '');
+
+// Avisos automáticos: WhatsApp en 1 toque desde recepción y notificaciones en la app
+$router->get('/api/avisos',                        [AvisosControlador::class, 'listar'],          'avisos.enviar');
+$router->get('/api/avisos/historial',              [AvisosControlador::class, 'historial'],       'avisos.enviar,alumnos.ver');
+$router->post('/api/avisos/revisar',               [AvisosControlador::class, 'revisar'],         'avisos.enviar');
+$router->get('/api/avisos/plantillas',             [AvisosControlador::class, 'plantillas'],      'avisos.configurar');
+$router->put('/api/avisos/plantillas/{id}',        [AvisosControlador::class, 'guardarPlantilla'],'avisos.configurar');
+$router->put('/api/avisos/{id}',                   [AvisosControlador::class, 'marcar'],          'avisos.enviar');
+$router->get('/api/app/avisos',                    [AvisosControlador::class, 'bandeja'],         '');
+$router->post('/api/app/avisos/leidas',            [AvisosControlador::class, 'leidas'],          '');
+$router->get('/api/app/notificaciones',            [AvisosControlador::class, 'llave'],           '');
+$router->post('/api/app/notificaciones',           [AvisosControlador::class, 'suscribir'],       '');
+$router->post('/api/app/notificaciones/quitar',    [AvisosControlador::class, 'desuscribir'],     '');
+
+// Reportes del dueño y los administradores
+$router->get('/api/reportes',                      [\Dojo\Modulos\Reportes\ReportesControlador::class, 'resumen'], 'reportes.ver');
+

@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import QRCode from 'qrcode';
-import { ArrowLeft, CalendarCheck, CalendarPlus, IdCard, Mail, Phone, Printer, RefreshCw, UserCheck, UserX, Users } from 'lucide-react';
+import { ArrowLeft, CalendarCheck, CalendarPlus, IdCard, Mail, MapPin, Phone, Printer, RefreshCw, UserCheck, UserX, Users } from 'lucide-react';
 import { api, DIAS, formato, nombreCompleto } from '../api';
 import { useSesion } from '../auth/Sesion';
-import { Boton, Cargando, Chip, Cinta, ErrorCaja, FotoAlumno, Modal, Selector, Tarjeta, Vacio, useAvisos, useConfirmar, useDatos } from '../ui';
+import { Boton, Cargando, Chip, Cinta, ErrorCaja, FotoAlumno, Modal, Selector, Tarjeta, Vacio, useAvisos, useConfirmar, useDatos, MarcaImpresa } from '../ui';
 import { inscribir } from './inscribir';
 import { MOTIVOS } from './Asistencia';
+import AccesoApp from './AccesoApp';
+import { AvisosAlumno } from './HistorialAvisos';
 
 // S-05 · Ficha del alumno
 function Credencial({ a }) {
@@ -14,8 +16,8 @@ function Credencial({ a }) {
   useEffect(() => { QRCode.toDataURL(a.codigo_qr, { margin: 1, width: 280, color: { dark: '#011c42', light: '#ffffff' } }).then(setQr); }, [a.codigo_qr]);
   return (
     <div className="imprimible rounded-[14px] overflow-hidden border border-line" id="credencial">
-      <div className="px-4 py-3 text-white flex items-center justify-between" style={{ background: 'linear-gradient(120deg,#011c42,#0a2852 60%,#006aff)' }}>
-        <span className="font-semibold">Dojo <span className="text-[#f2a900]">OS</span></span>
+      <div className="px-4 py-3 text-white flex items-center justify-between" style={{ background: 'linear-gradient(120deg, var(--sidebar), var(--sidebar) 55%, var(--action))' }}>
+        <MarcaImpresa fondo="oscuro" />
         <span className="font-mono text-[11px] tracking-wider opacity-80">CREDENCIAL</span>
       </div>
       <div className="bg-white text-[#0b1b33] p-4 flex gap-4 items-center">
@@ -159,6 +161,7 @@ export default function Ficha() {
             )}
           </Tarjeta>
           {tiene('asistencia.ver', 'asistencia.validar', 'alumnos.ver') && <AsistenciaAlumno id={a.id} />}
+          {tiene('avisos.enviar', 'alumnos.ver') && <AvisosAlumno alumnoId={a.id} puedeMandar={tiene('avisos.enviar')} />}
         </div>
         <div className="space-y-4">
           <Tarjeta titulo="Responsable de pago" icono={Users}>
@@ -172,11 +175,13 @@ export default function Ficha() {
               </div>
             ))}
           </Tarjeta>
+          {tiene('alumnos.ver') && <AccesoApp alumnoId={a.id} />}
           <Tarjeta titulo="Contacto del alumno">
             {!a.contactos.length ? <p className="text-sm text-muted">Sin datos de contacto propios.</p> : a.contactos.map((c) => (
               <div key={c.id} className="flex items-center gap-2 text-sm py-1">{c.tipo === 'email' ? <Mail className="size-3.5 text-muted" /> : <Phone className="size-3.5 text-muted" />}<span className={c.tipo !== 'email' ? 'font-mono' : ''}>{c.valor}</span></div>
             ))}
-            <div className="text-[12px] text-muted mt-3">Alta: {formato.fecha(a.fecha_alta)}</div>
+            {a.domicilio && <div className="flex items-start gap-2 text-sm py-1"><MapPin className="size-3.5 text-muted mt-0.5" /><span>{[`${a.domicilio.calle}${a.domicilio.numero ? ` ${a.domicilio.numero}` : ''}`, a.domicilio.colonia, `CP ${a.domicilio.cp}`, a.domicilio.municipio, a.domicilio.estado].filter(Boolean).join(', ')}</span></div>}
+            <div className="text-[12px] text-muted mt-3">Alta: {formato.fecha(a.fecha_alta)} · El alumno puede actualizar su teléfono, correo y domicilio desde la app (queda en bitácora).</div>
           </Tarjeta>
           {tiene('alumnos.baja') && (
             <Tarjeta titulo="Estado">

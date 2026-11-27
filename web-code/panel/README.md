@@ -61,3 +61,10 @@ src/
 - Modo oscuro por defecto; el botón de sol/luna cambia a claro y se recuerda en el navegador.
 - Un botón o menú se muestra solo si el rol tiene el permiso, pero **la API vuelve a validar**: ocultar no es seguridad.
 - Para una pantalla nueva: archivo en `paginas/`, ruta en `jsx` y opción en `layout/menu.js` con sus permisos.
+
+## Marca blanca y traducción
+
+- **Marca** (Configuración → Apariencia y marca): la guarda la API en la tabla `marca`. `src/marca/Marca.jsx` la aplica a todo el panel: colores (`src/marca/temas.js`), letra (`src/marca/fuentes.js`), nombre en la pestaña e ícono. Para agregar un tema listo, súmalo a `TEMAS` en `temas.js`, en la API (`MarcaControlador::TEMAS` y `Temas::FONDOS`) y en la app (`app-code/src/marca.jsx`).
+- **Contraste**: el color del texto de los botones y de los enlaces se calcula solo para que se lean (WCAG AA). En Apariencia se ve la revisión.
+- **Idiomas**: `src/i18n/es-MX.js` y `src/i18n/en-US.js`. En un componente: `const { t } = useTranslation();` y `t('menu.alumnos')`. Para un idioma nuevo, copia `en-US.js`, tradúcelo, regístralo en `src/i18n/index.js` y en la API (`MarcaControlador::IDIOMAS`). Las pantallas que todavía tienen el texto directo en el JSX se van pasando a claves poco a poco.
+- **Preferencias del usuario** (Mi perfil): idioma, tema y tamaño de letra; se guardan en la API y viajan en `/auth/yo`.

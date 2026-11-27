@@ -11,6 +11,8 @@ final class Permiso
     {
         $rol = $req->ctx['rol'] ?? null;
         if (!$rol) throw new ErrorApi('Elige con qué rol vas a trabajar', 409);
+        // Con contraseña temporal solo puede cambiarla (y ver quién es): todo lo que pide permiso queda bloqueado
+        if (!empty($req->ctx['debe_cambiar_password'])) throw new ErrorApi('Primero cambia tu contraseña temporal', 403, ['debe_cambiar_password' => true]);
         // "a,b,c" = basta con tener cualquiera de esos permisos
         $claves = array_map('trim', explode(',', $clave));
         $marcas = implode(',', array_fill(0, count($claves), '?'));

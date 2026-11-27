@@ -1,12 +1,21 @@
+import { ImgLogo } from '../marca/logoLegible';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowRight, AtSign, Eye, EyeOff, Lock, ShieldCheck } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowRight, AtSign, Eye, EyeOff, Lock, ShieldCheck, Tablet } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useSesion } from '../auth/Sesion';
+import { useMarca } from '../marca/Marca';
+import { NombreMarca, nombrePlano } from '../marca/NombreMarca';
 import { Boton, BotonTema, Campo, Isotipo } from '../ui';
 
 // S-01a / S-01b · Inicio de sesión (con error en el mismo lugar, sin recargar)
 export default function Login() {
   const { login, aviso } = useSesion();
+  const { t } = useTranslation();
+  const { marca, modo } = useMarca();
+  const im = marca.imagenes || {};
+  const logo = modo === 'dark' ? (im.logo_oscuro || im.logo) : (im.logo || im.logo_oscuro);
+  const [logoAncho, setLogoAncho] = useState(true);
   const navegar = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,15 +29,15 @@ export default function Login() {
   const enviar = async (e) => {
     e.preventDefault();
     const faltan = {};
-    if (!email.trim()) faltan.email = 'Escribe tu correo';
-    else if (!/^\S+@\S+\.\S+$/.test(email)) faltan.email = 'Ese correo no parece válido';
-    if (!password) faltan.password = 'Escribe tu contraseña';
+    if (!email.trim()) faltan.email = t('login.faltaCorreo');
+    else if (!/^\S+@\S+\.\S+$/.test(email)) faltan.email = t('login.correoInvalido');
+    if (!password) faltan.password = t('login.faltaContrasena');
     setErrores(faltan);
     if (Object.keys(faltan).length) { setSacudir((n) => n + 1); return; }
     setEnviando(true); setError('');
     try {
       const r = await login(email.trim(), password, recordar);
-      navegar(r.debe_elegir_rol ? '/elegir-rol' : '/', { replace: true });
+      navegar(r.debe_cambiar_password ? '/cambiar-contrasena' : r.debe_elegir_rol ? '/elegir-rol' : '/', { replace: true });
     } catch (err) {
       setError(err.message); setSacudir((n) => n + 1);
     } finally { setEnviando(false); }
@@ -38,21 +47,25 @@ export default function Login() {
     <div className="relative min-h-full flex flex-col overflow-hidden">
       {/* Aurora: solo decoración */}
       <div aria-hidden className="pointer-events-none absolute -right-40 top-0 h-full w-[70vw] opacity-60 blur-[70px]"
-        style={{ background: 'radial-gradient(60% 50% at 70% 40%, #a95af8 0%, transparent 70%), radial-gradient(50% 60% at 40% 80%, #006aff 0%, transparent 70%), radial-gradient(40% 40% at 85% 85%, #fb9ce5 0%, transparent 70%)' }} />
+        style={{ background: 'radial-gradient(60% 50% at 70% 40%, color-mix(in srgb, var(--action) 55%, transparent) 0%, transparent 70%), radial-gradient(50% 60% at 40% 80%, color-mix(in srgb, var(--soft) 45%, transparent) 0%, transparent 70%), radial-gradient(40% 40% at 85% 85%, color-mix(in srgb, var(--gold) 35%, transparent) 0%, transparent 70%)' }} />
       <header className="relative flex items-center justify-between px-6 py-4">
-        <span className="etiqueta">Dojo OS · Gestión multisucursal</span>
+        <span className="etiqueta">{nombrePlano(marca.nombre)} · {t('login.etiqueta')}</span>
         <BotonTema />
       </header>
 
-      <main className="relative flex-1 grid place-items-center px-4 pb-10">
+      <main className="relative flex-1 flex flex-col items-center justify-center px-4 pb-10">
         <form key={sacudir} onSubmit={enviar} noValidate
           className={`w-full max-w-[420px] bg-surface/95 backdrop-blur border border-line rounded-[14px] shadow-2xl overflow-hidden ${sacudir ? 'anim-sacudir' : 'anim-entrar'}`}>
-          <div className="h-1" style={{ background: 'linear-gradient(90deg,#006aff,#34e8bb)' }} />
+          <div className="h-1" style={{ background: 'linear-gradient(90deg, var(--soft), var(--action))' }} />
           <div className="px-8 pt-8 pb-7">
             <div className="flex flex-col items-center text-center">
-              <span className="grid place-items-center size-16 rounded-full bg-inset text-text"><Isotipo className="size-12" /></span>
-              <h1 className="text-[28px] mt-3">Dojo <span className="text-gold font-normal">OS</span></h1>
-              <p className="text-muted text-sm">Inicia sesión para entrar a tu sucursal</p>
+              {logo
+                ? <ImgLogo src={logo} fondoOscuro={modo === 'dark'} alt={nombrePlano(marca.nombre)} className="h-16 max-w-[240px] object-contain"
+                    onLoad={(e) => setLogoAncho(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight >= 2.2)} />
+                : <span className="grid place-items-center size-16 rounded-full bg-inset text-text">{im.icono ? <ImgLogo src={im.icono} fondoOscuro={modo === 'dark'} alt="" className="size-12 rounded-md object-contain" /> : <Isotipo className="size-12" />}</span>}
+              {/* Un logo cuadrado (solo el símbolo) va con el nombre abajo; uno ancho ya trae el nombre escrito */}
+              {(!logo || !logoAncho) && <h1 className="text-[28px] mt-3">{marca.nombre === 'Dojo OS' ? <>Dojo <span className="text-gold font-normal">OS</span></> : <NombreMarca nombre={marca.nombre} fuente={marca.fuente_nombre} />}</h1>}
+              <p className={`text-muted text-sm ${logo && logoAncho ? 'mt-3' : ''}`}>{marca.lema || t('login.subtitulo')}</p>
             </div>
 
             {(error || aviso) && (
@@ -62,28 +75,29 @@ export default function Login() {
             )}
 
             <div className="mt-6 space-y-4">
-              <Campo etiqueta="Correo electrónico" icono={AtSign} type="email" autoComplete="username" placeholder="tu@correo.com"
+              <Campo etiqueta={t('login.correo')} icono={AtSign} type="email" autoComplete="username" placeholder="tu@correo.com"
                 value={email} onChange={(e) => setEmail(e.target.value)} error={errores.email} />
-              <Campo etiqueta="Contraseña" icono={Lock} type={ver ? 'text' : 'password'} autoComplete="current-password" placeholder="••••••••"
+              <Campo etiqueta={t('login.contrasena')} icono={Lock} type={ver ? 'text' : 'password'} autoComplete="current-password" placeholder="••••••••"
                 value={password} onChange={(e) => setPassword(e.target.value)} error={errores.password}
-                derecha={<button type="button" onClick={() => setVer((v) => !v)} className="text-muted hover:text-text cursor-pointer" aria-label={ver ? 'Ocultar contraseña' : 'Ver contraseña'}>
+                derecha={<button type="button" onClick={() => setVer((v) => !v)} className="text-muted hover:text-text cursor-pointer" aria-label={ver ? t('login.ocultarContrasena') : t('login.verContrasena')}>
                   {ver ? <EyeOff className="size-4" /> : <Eye className="size-4" />}</button>} />
               <label className="flex items-center gap-2 text-sm text-soft cursor-pointer select-none">
                 <input type="checkbox" checked={recordar} onChange={(e) => setRecordar(e.target.checked)} className="size-4 accent-[var(--action)]" />
-                Mantener la sesión en este equipo
+                {t('login.recordar')}
               </label>
             </div>
 
             <Boton type="submit" tam="lg" cargando={enviando} className="w-full mt-6">
-              Entrar {!enviando && <ArrowRight className="size-4" />}
+              {t('login.entrar')} {!enviando && <ArrowRight className="size-4" />}
             </Boton>
           </div>
           <div className="px-8 py-3.5 border-t border-line bg-inset/50 text-[12px] text-muted flex items-center justify-center gap-1.5">
-            <ShieldCheck className="size-3.5 text-action" /> Conexión cifrada · la sesión se cierra tras un tiempo sin uso
+            <ShieldCheck className="size-3.5 text-action" /> {t('login.cifrada')}
           </div>
         </form>
+        <Link to="/tableta/vincular" className="mt-5 inline-flex items-center gap-1.5 text-[13px] text-muted hover:text-text"><Tablet className="size-4" />{t('login.esTableta')}</Link>
       </main>
-      <footer className="relative px-6 py-4 text-[12px] text-muted">© 2026 Dojo OS</footer>
+      <footer className="relative px-6 py-4 text-[12px] text-muted">© 2026 {nombrePlano(marca.nombre)}{marca.nombre !== 'Dojo OS' && ` · ${t('comun.hechoCon')}`}</footer>
     </div>
   );
 }
