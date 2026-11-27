@@ -182,3 +182,7 @@ $router->post('/api/app/avisos/leidas',            [AvisosControlador::class, 'l
 $router->get('/api/app/notificaciones',            [AvisosControlador::class, 'llave'],           '');
 $router->post('/api/app/notificaciones',           [AvisosControlador::class, 'suscribir'],       '');
 $router->post('/api/app/notificaciones/quitar',    [AvisosControlador::class, 'desuscribir'],     '');
+
+// Reportes del dueño y los administradores
+$router->get('/api/reportes',                      [\Dojo\Modulos\Reportes\ReportesControlador::class, 'resumen'], 'reportes.ver');
+

@@ -102,3 +102,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline: non
   .imprimible, .imprimible * { visibility: visible !important; }
   .imprimible { position: absolute; left: 0; top: 0; width: 100%; max-width: 420px; border: 0 !important; }
 }
+
+/* Gráficas (Reportes): paleta categórica validada (claro y oscuro), independiente del tema de la marca */
+:root { --serie-1: #257de0; --serie-2: #f47230; --serie-3: #00b894; }
+:root[data-theme="dark"] { --serie-1: #338ced; --serie-2: #e76624; --serie-3: #00a888; }

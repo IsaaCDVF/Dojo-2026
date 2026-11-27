@@ -8,6 +8,8 @@ Tipos: **Agregado** (nuevo), **Cambiado** (cambia algo que ya existía), **Corre
 ## [Sin publicar]
 
 ### Agregado
+- **Reportes** (menú, súper admin y admin de sucursal): elige mes y sucursal. Indicadores (ingresos del mes contra el anterior, alumnos activos con altas y bajas, vencido hoy, asistencias por alumno); ingresos de 12 meses por método (efectivo, transferencia, en línea) con tooltip y vista de tabla; alumnos activos al cierre de cada mes; lo vendido por concepto; deuda vencida por antigüedad (hasta 30, 31 a 60, más de 60 días); asistencia por día de la semana; alumnos en riesgo de irse (días sin venir o deuda de más de 30 días, con liga a su ficha); clases con más asistencia contra inscritos; y comparación por sucursal. Botón "Descargar CSV" (abre en Excel). Gráficas en SVG sin librerías, con paleta validada para daltonismo en claro y oscuro. — Kevin
+- `pruebas/reportes.sh` (43). — Kevin
 - Avisos → **Historial**: a quién se le avisó, de qué alumno y cómo le llegó, una fila por aviso. En la app: llegó al celular, solo en la campanita (no activó notificaciones), no tiene la app, leído y a qué hora. En WhatsApp: lo mandó tal persona y cuándo, por mandar (con botón "Mandar ahora"), alguien decidió no mandarlo, nadie lo mandó en 7 días o ya no aplicaba (ya pagó / ya vino). Buscar por persona o alumno, filtrar por tipo y fechas, con números arriba (avisos, llegaron al celular, leídos, WhatsApp mandados). Las pestañas quedan "Por mandar" e "Historial" (sustituye a "Enviados"). — Kevin
 - Ficha del alumno → **Avisos**: lo que se le avisó a él y a quien paga, y cómo le llegó (últimos 60 días). — Kevin
 - La notificación de la app sigue siendo automática; el WhatsApp sigue siendo en 1 toque (recepción o admin de sucursal) hasta que se decida contratar WhatsApp Business. — Kevin
@@ -100,6 +102,7 @@ Tipos: **Agregado** (nuevo), **Cambiado** (cambia algo que ya existía), **Corre
 - Panel: las fechas sin hora (`2026-11-28`) se mostraban un día antes. — Kevin
 
 ### Base de datos
+- Semilla `005_reportes.sql`: permiso `reportes.ver` (súper admin y admin de sucursal). Para una base que ya existe: `parches/2026-11-27_reportes.sql` (**obligatorio** para ver Reportes; se puede correr dos veces). — Kevin
 - `017_historial_avisos.sql`: `notificaciones.motivo` (por qué un aviso no salió: sin_celular, ya_no_aplica, vencido, recepcion). Para una base que ya existe: `parches/2026-11-27_historial_avisos.sql` (**obligatorio**; se puede correr dos veces). — Kevin
 - `016_caja_qr_sesiones.sql`: `pagos_en_linea.canal` (app | caja) y `sesiones.dispositivo` (navegador desde donde entró). Para una base que ya existe: `parches/2026-11-27_caja_qr_sesiones.sql` (**obligatorio**: sin la columna `canal` no se pueden crear pagos en línea; se puede correr dos veces). — Kevin
 - `015_avisos.sql`: completa `plantillas_notificacion` (activa, título) y `notificaciones` (clave única, sucursal, teléfono, leída, quién la mandó, estado `omitida`); tablas `push_suscripciones` y `sistema_estado`. Semilla `004_avisos.sql`: parámetro `dias_sin_asistir`, permisos `avisos.enviar` (admin, admin de sucursal, recepción) y `avisos.configurar` (admin, admin de sucursal) y los 8 textos. Para una base que ya existe: `parches/2026-11-27_avisos.sql` (se puede correr dos veces). — Kevin

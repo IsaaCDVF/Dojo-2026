@@ -10,7 +10,7 @@ export default {
     hechoCon: 'con Dojo OS',
   },
   menu: {
-    avisos: 'Avisos', inicio: 'Inicio', miPerfil: 'Mi cuenta', alumnos: 'Alumnos', inscripcion: 'Inscripción', caja: 'Caja', horarios: 'Horarios',
+    reportes: 'Reportes', avisos: 'Avisos', inicio: 'Inicio', miPerfil: 'Mi cuenta', alumnos: 'Alumnos', inscripcion: 'Inscripción', caja: 'Caja', horarios: 'Horarios',
     asistencia: 'Asistencia', examenes: 'Exámenes', tarifas: 'Precios y promociones', parametros: 'Parámetros', bitacora: 'Bitácora',
     configuracion: 'Configuración', personal: 'Personal y accesos', tabletas: 'Tabletas de asistencia', pagosEnLinea: 'Pagos en línea', apariencia: 'Apariencia y marca',
   },

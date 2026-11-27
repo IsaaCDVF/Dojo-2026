@@ -261,3 +261,11 @@ Web Push sin librerías (`Modulos/Avisos/WebPush.php`): cifrado RFC 8291 (`aes12
 
 `GET /app/cuenta` trae además `sucursal {nombre, telefono, direccion}` (para "Ayuda" en la app).
 
+## Endpoints · Reportes
+
+| Método | Ruta | Permiso | Qué hace |
+|---|---|---|---|
+| GET | /reportes | reportes.ver | `?mes=AAAA-MM&sucursal_id=` (un mes futuro se queda en el actual; el admin de sucursal siempre ve la suya) → `{mes, kpi: {ingresos, ingresos_anterior, cobros, ticket_promedio, activos, activos_anterior, altas, bajas, asistencias, asistencias_por_alumno, vencido, cuentas_vencidas}, serie: [12 × {mes, ingresos, efectivo, transferencia, en_linea, cobros, altas, bajas, activos, asistencias}], por_concepto: [{concepto, total, lineas}], por_sucursal: [{id, sucursal, ingresos, activos, vencido}] (solo con todas), deuda: {d1_30, d31_60, d61, cuentas}, clases: [top 8 {disciplina, dia_semana, hora, nivel, sucursal, asistencias, inscritos}], dias_semana: [7], riesgo: [top 20 {alumno_id, nombre, sucursal, motivos: sin_venir\|debe, dias_sin_venir, nunca_vino, debe, dias_vencido}]}` |
+
+Cómo se calcula: **ingresos** = pagos aprobados del mes (total menos el saldo a favor que se usó; sin pagos hechos solo con saldo, sin cancelados ni rechazados). **Lo vendido por concepto** sí incluye lo pagado con saldo a favor. **Activos al cierre** = alta antes del fin de mes y sin baja antes de esa fecha (la fecha de baja sale de la bitácora). **Vencido** y **riesgo** son de hoy (no del mes elegido): riesgo = más de `dias_sin_asistir` días sin venir (o desde su alta si nunca ha venido) o algo vencido hace más de 30 días.
+
