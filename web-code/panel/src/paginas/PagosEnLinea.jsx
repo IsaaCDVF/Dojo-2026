@@ -7,6 +7,9 @@ import { Boton, Campo, Cargando, Chip, Encabezado, ErrorCaja, Tarjeta, useAvisos
 // Las llaves se guardan cifradas en la base y nunca se vuelven a mostrar; no hay que tocar el .env.
 
 const cx = (...c) => c.filter(Boolean).join(' ');
+// Las llaves NO van en <input type="password">: Chrome cree que es un inicio de sesión y les mete la contraseña guardada
+// del panel (por eso salía "El Access Token empieza con APP_USR-" sin haber escrito nada). Se escriben como texto con puntos.
+const SECRETO = { type: 'text', autoComplete: 'off', spellCheck: false, 'data-lpignore': 'true', 'data-1p-ignore': 'true', style: { WebkitTextSecurity: 'disc' } };
 const MODOS = [
   ['apagado', CircleOff, 'Apagado', 'En la app solo dice "paga en recepción".'],
   ['prueba', FlaskConical, 'Modo prueba', 'Se simula el pago dentro del sistema. No se cobra nada: sirve para enseñar y probar.'],
@@ -66,13 +69,13 @@ export default function PagosEnLinea() {
           <div className="grid lg:grid-cols-[1fr_380px] gap-4 items-start">
             <Tarjeta titulo="Tu cuenta de Mercado Pago" icono={KeyRound} subtitulo="Las llaves se guardan cifradas y no se vuelven a mostrar">
               <div className="space-y-4">
-                <Campo etiqueta="Access Token" type="password" value={f.access_token} onChange={(e) => setF({ ...f, access_token: e.target.value })} error={err.access_token} autoComplete="off"
+                <Campo etiqueta="Access Token" {...SECRETO} name="mp-access-token" value={f.access_token} onChange={(e) => setF({ ...f, access_token: e.target.value.trim() })} error={err.access_token}
                   placeholder={d.tiene_token ? `Guardado (termina en ${d.token_final}). Escribe otro solo para cambiarlo.` : 'APP_USR-...'}
                   ayuda={d.token_ilegible ? 'No se pudo leer el que estaba guardado (cambió la llave del servidor): vuelve a pegarlo.' : 'Credenciales de producción → Access Token.'} />
                 <Campo etiqueta="Public Key" value={f.public_key} onChange={(e) => setF({ ...f, public_key: e.target.value })} error={err.public_key} placeholder="APP_USR-..." autoComplete="off" />
                 <Campo etiqueta="Dirección pública del sistema" value={f.url_publica} onChange={(e) => setF({ ...f, url_publica: e.target.value })} error={err.url_publica} placeholder="https://midojo.com"
                   ayuda="Con https, al terminar de pagar regresan solos a la app y Mercado Pago avisa al instante. Sin ella también funciona: la app pregunta al volver." />
-                <Campo etiqueta="Clave secreta de los avisos (webhooks)" type="password" value={f.webhook_secret} onChange={(e) => setF({ ...f, webhook_secret: e.target.value })} error={err.webhook_secret} autoComplete="off"
+                <Campo etiqueta="Clave secreta de los avisos (webhooks)" {...SECRETO} name="mp-webhook-secret" value={f.webhook_secret} onChange={(e) => setF({ ...f, webhook_secret: e.target.value.trim() })} error={err.webhook_secret}
                   placeholder={d.tiene_secreto ? 'Guardada. Escribe otra solo para cambiarla.' : 'La que te da Mercado Pago al configurar los avisos'} />
                 {d.url_aviso && (
                   <div className="rounded-md bg-inset px-3 py-2.5 text-[13px]">
