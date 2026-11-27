@@ -26,6 +26,7 @@ Tipos: **Agregado** (nuevo), **Cambiado** (cambia algo que ya existía), **Corre
 - `pruebas/caja_qr.sh` (67) y `pruebas/cuenta.sh` (36); `pruebas/avisos.sh` ahora con el historial (123). — Kevin
 
 ### Corregido
+- `pruebas/app.sh` cancela la fecha de examen que crea. Antes cada corrida dejaba una fecha programada y, después de varias, la fecha nueva ya no salía entre las 6 próximas que muestra la app (fallaba "Aparece la fecha nueva"). — Kevin
 - Avisos: en Docker, "Revisar ahora" (y el aviso de examen autorizado) no hacían nada si justo estaba corriendo la revisión automática de cada hora; ahora esperan a que termine. Por eso fallaban 10 pruebas de `avisos.sh`. — Kevin
 - Avisos automáticos (menú Avisos): el sistema arma solo cuatro avisos — pago por vencer (según `dias_aviso_pago`, por ejemplo 3 y 1 día antes), pago vencido (un solo aviso con todo lo vencido), días sin venir (parámetro nuevo `dias_sin_asistir`, 14 por defecto; 0 = apagado) y examen autorizado (sale en cuanto el instructor lo autoriza). Recepción los ve en "Por mandar" y con el botón WhatsApp se abre su WhatsApp con el mensaje ya escrito (gratis, sin contratar nada); queda en "Enviados" con quién lo mandó. Si ya pagó, ya vino o le cancelaron el examen, el aviso se quita solo. Cada aviso sale una sola vez. — Kevin
 - Sin cron ni cambios en Docker: los avisos se revisan solos cuando alguien usa el sistema (panel, app o la tableta), como mucho una vez por hora y de 8:00 a 21:00, después de responder (no hace esperar a nadie). Botón "Revisar ahora". — Kevin

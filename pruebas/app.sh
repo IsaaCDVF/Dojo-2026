@@ -117,6 +117,7 @@ prueba "Otra vez"                          409 POST "/api/app/alumnos/$ANA/exame
 prueba "Ana no pide por Leo"               403 POST "/api/app/alumnos/$LEO/examenes/$EX" "$TA" '{}'
 prueba "Recepción lo ve en el panel"       200 GET  "/api/examenes/$EX" "$ADM"
 igual  "Llegó por el portal"               "array_values(array_filter(\$j['datos']['solicitudes'], fn(\$s) => \$s['alumno_id'] == $ANA))[0]['canal']" "portal"
+prueba "Cancela el examen de prueba"       200 PUT  "/api/examenes/$EX/estado" "$ADM" '{"estado":"cancelado"}'
 
 echo "Familia y pagos"
 prueba "Familia de la mamá"                200 GET  /api/app/familia "$TM"
