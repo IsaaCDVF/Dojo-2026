@@ -10,7 +10,7 @@ export default {
     hechoCon: 'con Dojo OS',
   },
   menu: {
-    avisos: 'Avisos', inicio: 'Inicio', miPerfil: 'Mi perfil', alumnos: 'Alumnos', inscripcion: 'Inscripción', caja: 'Caja', horarios: 'Horarios',
+    avisos: 'Avisos', inicio: 'Inicio', miPerfil: 'Mi cuenta', alumnos: 'Alumnos', inscripcion: 'Inscripción', caja: 'Caja', horarios: 'Horarios',
     asistencia: 'Asistencia', examenes: 'Exámenes', tarifas: 'Precios y promociones', parametros: 'Parámetros', bitacora: 'Bitácora',
     configuracion: 'Configuración', personal: 'Personal y accesos', tabletas: 'Tabletas de asistencia', pagosEnLinea: 'Pagos en línea', apariencia: 'Apariencia y marca',
   },
@@ -31,6 +31,42 @@ export default {
     queHace: {
       super_admin: 'Todas las sucursales: configuración, precios y parámetros', admin_sucursal: 'Horarios, exámenes, excepciones y reportes de la sucursal',
       recepcion: 'Inscribir, cobrar y registrar solicitudes de examen', instructor: 'Pase de lista, autorizar exámenes y capturar resultados',
+    },
+  },
+  cuenta: {
+    titulo: 'Mi cuenta', sub: 'Tus datos, cómo ves el sistema y la seguridad de tu cuenta',
+    menu: { perfil: 'Datos personales', preferencias: 'Preferencias', seguridad: 'Seguridad', atajos: 'Atajos de teclado', ayuda: 'Ayuda', salir: 'Cerrar sesión', abrir: 'Abrir el menú de tu cuenta' },
+    perfil: {
+      sub: 'Así te ven los demás y así te contactan', nombre: 'Nombre', nombreAyuda: 'Tu nombre lo corrige quien administra el personal',
+      correo: 'Correo', correoAyuda: 'Con él entras al sistema', telefono: 'Teléfono (WhatsApp)', telefonoAyuda: '10 dígitos', password: 'Tu contraseña',
+      passwordAyuda: 'Para cambiar el correo te la pedimos', guardar: 'Guardar cambios', guardado: 'Datos guardados', accesos: 'Tus accesos',
+      accesosSub: 'Lo que puedes hacer y dónde. Los da quien administra el personal.',
+    },
+    seguridad: {
+      sub: 'Tu contraseña y los equipos donde tienes la sesión abierta', contrasena: 'Contraseña', contrasenaSub: 'Usa al menos 8 caracteres, con letras y números',
+      cambiar: 'Cambiar', cancelar: 'Cancelar', lista: 'Contraseña cambiada. Tus otras sesiones se cerraron.',
+      sesiones: 'Dónde tienes la sesión abierta', sesionesSub: 'Si no reconoces un equipo, ciérralo y cambia tu contraseña',
+      esteEquipo: 'Este equipo', ultima: 'Última actividad: {{f}}', cerrar: 'Cerrar', cerrarOtras: 'Cerrar sesión en los demás equipos',
+      cerradas_one: 'Se cerró {{count}} sesión', cerradas_other: 'Se cerraron {{count}} sesiones', soloEsta: 'Solo tienes abierta esta sesión',
+    },
+    form: {
+      actual: 'Contraseña actual', nueva: 'Contraseña nueva', otra: 'Repite la nueva', reglaLargo: 'Al menos 8 caracteres', reglaLetras: 'Letras', reglaNumeros: 'Números',
+      escribela: 'Escríbela', revisa: 'Revisa los requisitos', noCoincide: 'No coincide con la nueva', ver: 'Mostrar', ocultar: 'Ocultar', boton: 'Cambiar contraseña',
+    },
+    atajos: {
+      sub: 'Para trabajar más rápido sin el mouse. Funcionan cuando no estás escribiendo en un campo.', abrir: 'Ver los atajos de teclado',
+      buscar: 'Ir al buscador de la pantalla', ir: 'Ir a {{pantalla}}', luego: 'luego', cerrar: 'Cerrar una ventana', tema: 'Cambiar entre claro y oscuro', cuenta: 'Mi cuenta',
+    },
+    ayuda: {
+      sub: 'Lo básico de tu trabajo en el sistema', guia: 'Lo que haces como {{rol}}', soporte: '¿Algo no funciona?',
+      soporteTexto: 'Toma captura de la pantalla y mándasela a quien administra tu sucursal. Si eres el administrador, revisa la Bitácora: ahí queda quién hizo cada cambio.',
+      version: 'Versión', guias: {
+        super_admin: ['Configura sucursales, disciplinas, precios y parámetros.', 'Da accesos al personal en Personal y accesos.', 'Conecta Mercado Pago en Pagos en línea y cambia la marca en Apariencia.', 'Revisa la Bitácora para saber quién cambió qué.'],
+        admin_sucursal: ['Arma los horarios y programa exámenes de tu sucursal.', 'Da accesos de recepción e instructor en Personal y accesos.', 'Revisa el corte del día en Caja.', 'Puedes trabajar desde cualquier lugar: lo de mostrador lo hace recepción.'],
+        recepcion: ['Inscribe alumnos y registra su asistencia a mano si hace falta.', 'En Caja ves quién debe; cobra en efectivo, transferencia o con tarjeta (QR).', 'En Avisos mandas los recordatorios por WhatsApp con un toque.', 'Registra las solicitudes de examen de mostrador.'],
+        instructor: ['Revisa tus clases en Horarios y valida la asistencia.', 'En Exámenes autoriza o rechaza las solicitudes de tus alumnos.', 'Captura el resultado del examen cuando ya está pagado.'],
+        tableta: ['Esta cuenta solo registra asistencia con el QR del alumno.'],
+      },
     },
   },
   perfil: {
@@ -56,7 +92,7 @@ export default {
     contraste: 'Revisión de contraste', textoBotones: 'Texto en botones', enlacesClaro: 'Enlaces en modo claro', enlacesOscuro: 'Enlaces en modo oscuro',
     seLee: 'Se lee bien', justo: 'Justo', pocoLegible: 'Poco legible', contrasteAyuda: 'El sistema ajusta solo el color del texto y de los enlaces para que se lean.',
     letra: 'Tipo de letra', ejemploLetra: 'Ana Ramírez · 7 kup · $650.00',
-    region: 'Región', idioma: 'Idioma por defecto', idiomaAyuda: 'Cada usuario puede elegir el suyo en Mi perfil', moneda: 'Moneda', zona: 'Zona horaria', pais: 'País',
+    region: 'Región', idioma: 'Idioma por defecto', idiomaAyuda: 'Cada persona puede elegir el suyo en Mi cuenta → Preferencias', moneda: 'Moneda', zona: 'Zona horaria', pais: 'País',
     vistaPrevia: 'Vista previa', claro: 'Claro', oscuro: 'Oscuro', sinGuardar: 'Tienes cambios sin guardar', listo: 'Listo: así se ve ahora el sistema',
     asistente: {
       boton: 'Subir logo con el asistente', botonAyuda: 'Sube una sola imagen, la que tengas: el sistema prepara las 3 versiones y te enseña cómo se ven.',

@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArrowLeftRight, Banknote, Calculator, CalendarClock, Phone, Receipt, Search, Ticket, UserRound, Wallet } from 'lucide-react';
+import { AlertTriangle, ArrowLeftRight, Banknote, Calculator, CalendarClock, ChevronRight, CreditCard, Phone, QrCode, Receipt, Search, Ticket, UserRound, Wallet } from 'lucide-react';
 import { api, formato, nombreCompleto } from '../api';
 import { useSesion } from '../auth/Sesion';
 import { Boton, Campo, Cargando, Chip, Encabezado, ErrorCaja, FotoAlumno, Kpi, Pestanas, Selector, Tabla, Tarjeta, Vacio, useAvisos, useDatos } from '../ui';
 import Recibo, { METODOS } from './Recibo';
+import CobroQr from './CobroQr';
 
 // S-04 · Caja en mostrador (fase 4): busca la cuenta, marca lo que se paga, cobra e imprime el recibo.
 // El servidor vuelve a calcular todos los montos: aquí solo se muestra lo que él responde en /caja/cotizar.
@@ -19,7 +20,7 @@ export default function Caja() {
   return (
     <>
       <Encabezado ruta="Pagos" titulo="Caja"
-        descripcion="Cobro en efectivo o transferencia. Las mensualidades vencidas se cobran con su recargo. Lo que pagan desde la app (en línea) aparece solo en el corte."
+        descripcion="Cobro en efectivo, transferencia o tarjeta (con un QR de Mercado Pago que la persona paga en su celular). Las mensualidades vencidas se cobran con su recargo. Lo que pagan desde la app aparece solo en el corte."
         acciones={tiene('caja.corte') && <Pestanas valor={vista} onCambio={(v) => cambiar('vista', v === 'corte' ? 'corte' : '')}
           opciones={[{ valor: 'cobrar', etiqueta: 'Cobrar' }, { valor: 'corte', etiqueta: 'Corte del día' }]} />} />
       {vista === 'corte'
@@ -96,6 +97,7 @@ function Cobrar({ responsable, alumno, onElegir, onRecibo, version }) {
   const [cot, setCot] = useState({ datos: null, error: null, cargando: false });
   const [cobrando, setCobrando] = useState(false);
   const [error, setError] = useState(null);
+  const [qr, setQr] = useState(null);
   const e = edo.datos;
 
   // Al abrir una cuenta se marca todo lo que ya toca pagar (lo adelantado se deja sin marcar)
@@ -139,6 +141,11 @@ function Cobrar({ responsable, alumno, onElegir, onRecibo, version }) {
 
   async function cobrar() {
     setCobrando(true); setError(null);
+    if (metodo === 'tarjeta' && Number(cot.datos?.a_pagar) > 0) {
+      try { setQr(await api.post('/caja/cobro-qr', { responsable_id: Number(responsable), claves, codigo })); }
+      catch (err) { setError(err); } finally { setCobrando(false); }
+      return;
+    }
     try {
       const r = await api.post('/caja/cobros', cuerpo);
       avisar(`Cobro registrado · recibo ${r.folio}`);
@@ -147,7 +154,12 @@ function Cobrar({ responsable, alumno, onElegir, onRecibo, version }) {
     } catch (err) { setError(err); } finally { setCobrando(false); }
   }
 
-  if (!responsable) return <BuscarCuenta alumnoInicial={alumno} onElegir={onElegir} />;
+  if (!responsable) return (
+    <div className="space-y-4">
+      <BuscarCuenta alumnoInicial={alumno} onElegir={onElegir} />
+      <PorCobrar onElegir={onElegir} />
+    </div>
+  );
   if (edo.cargando && !e) return <Cargando texto="Calculando estado de cuenta…" />;
   if (edo.error) return <ErrorCaja error={edo.error} reintentar={edo.recargar} />;
   if (!e) return null;
@@ -155,7 +167,9 @@ function Cobrar({ responsable, alumno, onElegir, onRecibo, version }) {
   const r = e.responsable;
   const aPagar = cot.datos ? Number(cot.datos.a_pagar) : 0;
   const cambio = metodo === 'efectivo' && recibe !== '' ? Number(recibe) - aPagar : null;
+  const conQr = e.cobro_qr && e.cobro_qr !== 'apagado';
   const falta = !claves.length || cot.cargando || !!cot.error || (metodo === 'transferencia' && !referencia.trim()) || (cambio !== null && cambio < 0);
+  const totalQr = cot.datos ? Number(cot.datos.total) : 0;
 
   return (
     <div className="grid lg:grid-cols-[1fr_380px] gap-4 items-start">
@@ -258,8 +272,10 @@ function Cobrar({ responsable, alumno, onElegir, onRecibo, version }) {
         )}
         {aPagar > 0 && (
           <div className="mt-4 space-y-3">
-            <Pestanas valor={metodo} onCambio={setMetodo} opciones={[{ valor: 'efectivo', etiqueta: 'Efectivo' }, { valor: 'transferencia', etiqueta: 'Transferencia' }]} />
-            {metodo === 'efectivo'
+            <Pestanas valor={metodo} onCambio={setMetodo} opciones={[{ valor: 'efectivo', etiqueta: 'Efectivo' }, { valor: 'transferencia', etiqueta: 'Transferencia' }, ...(conQr ? [{ valor: 'tarjeta', etiqueta: 'Tarjeta' }] : [])]} />
+            {metodo === 'tarjeta'
+              ? <p className="flex gap-2 text-[13px] text-muted"><QrCode className="size-4 shrink-0 mt-0.5" />Sale un QR: la persona lo escanea y paga con su tarjeta en Mercado Pago desde su celular.{Number(cot.datos?.saldo_usado) > 0 && ' El saldo a favor no se usa con tarjeta.'}{e.cobro_qr === 'prueba' && ' (Modo prueba: no se cobra nada.)'}</p>
+              : metodo === 'efectivo'
               ? <Campo etiqueta="Recibe" type="number" min="0" step="0.5" value={recibe} onChange={(ev) => setRecibe(ev.target.value)} icono={Banknote}
                   ayuda={cambio !== null && (cambio >= 0 ? `Cambio: ${formato.dinero(cambio)}` : `Faltan ${formato.dinero(-cambio)}`)} error={cambio !== null && cambio < 0 ? `Faltan ${formato.dinero(-cambio)}` : null} />
               : <Campo etiqueta="Número de rastreo" value={referencia} onChange={(ev) => setReferencia(ev.target.value)} placeholder="Del comprobante de la transferencia" className="[&_input]:font-mono" />}
@@ -267,10 +283,68 @@ function Cobrar({ responsable, alumno, onElegir, onRecibo, version }) {
         )}
         <div className="mt-4"><ErrorCaja error={error} /></div>
         <Boton className="w-full mt-3" tam="lg" icono={Calculator} cargando={cobrando} disabled={falta} onClick={cobrar}>
-          {cot.datos ? (aPagar > 0 ? `Cobrar ${formato.dinero(aPagar)}` : 'Aplicar saldo a favor') : 'Cobrar'}
+          {metodo === 'tarjeta' && aPagar > 0 ? `Cobrar ${formato.dinero(totalQr)} con QR` : cot.datos ? (aPagar > 0 ? `Cobrar ${formato.dinero(aPagar)}` : 'Aplicar saldo a favor') : 'Cobrar'}
         </Boton>
       </Tarjeta>
+      <CobroQr pago={qr} telefono={r.telefono} nombre={nombreCompleto(r)} onCerrar={() => { setQr(null); edo.recargar(); }}
+        onListo={(id) => { setQr(null); onRecibo(id); edo.recargar(); }} />
     </div>
+  );
+}
+
+/* ---------------- Por cobrar (sin buscar uno por uno) ---------------- */
+const POR_COBRAR = { vencido: ['Vencidos', 'peligro'], por_vencer: ['Vencen pronto', 'aviso'], pendiente: ['Por pagar', 'info'] };
+function PorCobrar({ onElegir }) {
+  const { rol } = useSesion();
+  const global = rol?.alcance === 'global';
+  const [filtro, setFiltro] = useState('vencido');
+  const [suc, setSuc] = useState('');
+  const sucursales = useDatos(() => (global ? api.get('/sucursales') : Promise.resolve([])), [global]);
+  const d = useDatos(() => api.get('/caja/por-cobrar', { dias: 7, sucursal_id: suc }), [suc]);
+  const conteo = d.datos?.conteo || {};
+  const lista = (d.datos?.cuentas || []).filter((c) => filtro === 'todos' || c.estado === filtro);
+  // Si no hay vencidos, abre en "Vencen pronto"
+  useEffect(() => { if (d.datos && filtro === 'vencido' && !conteo.vencido) setFiltro(conteo.por_vencer ? 'por_vencer' : 'todos'); }, [d.datos]); // eslint-disable-line react-hooks/exhaustive-deps
+  const cuando = (c) => (c.estado === 'vencido' ? `Vencido desde el ${formato.fecha(c.vencido_desde)}` : c.estado === 'por_vencer' ? `Vence el ${formato.fecha(c.vence)}` : 'Inscripción, examen o mes en curso');
+  return (
+    <Tarjeta titulo="Por cobrar" icono={Wallet} cuerpo="p-0"
+      subtitulo={d.datos ? `${(d.datos.cuentas || []).length} cuenta${(d.datos.cuentas || []).length === 1 ? '' : 's'} con algo pendiente${Number(d.datos.total_vencido) > 0 ? ` · vencido: ${formato.dinero(d.datos.total_vencido)}` : ''}` : 'Quién debe o está por vencer'}
+      acciones={global && (
+        <Selector value={suc} onChange={(ev) => setSuc(ev.target.value)} className="w-48" aria-label="Sucursal">
+          <option value="">Todas las sucursales</option>
+          {(sucursales.datos || []).map((s) => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+        </Selector>
+      )}>
+      <div className="px-5 pt-4">
+        <Pestanas valor={filtro} onCambio={setFiltro} opciones={[
+          { valor: 'vencido', etiqueta: 'Vencidos', cuenta: conteo.vencido ?? 0 },
+          { valor: 'por_vencer', etiqueta: 'Vencen en 7 días', cuenta: conteo.por_vencer ?? 0 },
+          { valor: 'todos', etiqueta: 'Todos', cuenta: (d.datos?.cuentas || []).length }]} />
+        <div className="mt-3"><ErrorCaja error={d.error} reintentar={d.recargar} /></div>
+      </div>
+      {d.cargando && !d.datos ? <Cargando texto="Revisando cuentas…" /> : !lista.length ? (
+        <Vacio icono={Wallet} titulo={filtro === 'vencido' ? 'Nadie tiene pagos vencidos' : filtro === 'por_vencer' ? 'Nadie vence esta semana' : 'Todos están al corriente'} texto="Cuando alguien deba, aparece aquí para cobrarle con un clic." />
+      ) : (
+        <ul className="divide-y divide-line mt-3 border-t border-line">
+          {lista.map((c) => (
+            <li key={c.responsable_id}>
+              <button onClick={() => onElegir(String(c.responsable_id))} className="w-full flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-3 text-left hover:bg-inset cursor-pointer">
+                <div className="flex-1 min-w-[200px]">
+                  <div className="font-medium">{c.nombre}</div>
+                  <div className="text-[12px] text-muted truncate">{c.alumnos.join(', ')}{c.telefono && <> · <span className="font-mono">{c.telefono}</span></>}</div>
+                </div>
+                <div className="flex items-center gap-2 text-[13px]">
+                  <Chip tono={POR_COBRAR[c.estado][1]}>{c.estado === 'vencido' && <AlertTriangle className="size-3" />}{cuando(c)}</Chip>
+                  {c.en_linea && <Chip tono="accion"><CreditCard className="size-3" />Pagando en línea</Chip>}
+                </div>
+                <div className="w-28 text-right font-mono font-semibold">{formato.dinero(c.total)}</div>
+                <ChevronRight className="size-4 text-muted" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Tarjeta>
   );
 }
 

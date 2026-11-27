@@ -10,7 +10,7 @@ use Dojo\Modulos\Horarios\HorarioControlador;
 use Dojo\Modulos\Personas\AlumnoControlador;
 use Dojo\Modulos\Inscripciones\InscripcionControlador;
 use Dojo\Modulos\Pagos\CajaControlador;
-use Dojo\Modulos\Pagos\Pasarela\{PasarelaControlador, PagoEnLineaControlador};
+use Dojo\Modulos\Pagos\Pasarela\{PasarelaControlador, PagoEnLineaControlador, CobroQrControlador};
 use Dojo\Modulos\Examenes\ExamenControlador;
 use Dojo\Modulos\Asistencia\AsistenciaControlador;
 use Dojo\Modulos\Inicio\InicioControlador;
@@ -28,6 +28,10 @@ $router->post('/api/auth/rol',                   [AuthControlador::class, 'elegi
 $router->get('/api/auth/yo',                     [AuthControlador::class, 'yo'],               '');
 $router->post('/api/auth/logout',                [AuthControlador::class, 'logout'],           '');
 $router->put('/api/auth/contrasena',             [AuthControlador::class, 'cambiarContrasena'], '');
+$router->get('/api/auth/perfil',                 [AuthControlador::class, 'perfil'],           '');
+$router->put('/api/auth/perfil',                 [AuthControlador::class, 'guardarPerfil'],    '');
+$router->get('/api/auth/sesiones',               [AuthControlador::class, 'sesiones'],         '');
+$router->post('/api/auth/sesiones/cerrar',       [AuthControlador::class, 'cerrarSesiones'],   '');
 
 $router->get('/api/sucursales',                  [SucursalControlador::class, 'listar'],       'horarios.ver');
 $router->post('/api/sucursales',                 [SucursalControlador::class, 'crear'],        'sucursales.gestionar');
@@ -121,6 +125,11 @@ $router->get('/api/app/familia',                 [AppControlador::class, 'famili
 $router->get('/api/app/pagos/{id}',              [AppControlador::class, 'recibo'],           '');
 
 // Fase 4 · Caja
+$router->get('/api/caja/por-cobrar',              [CajaControlador::class, 'porCobrar'],        'pagos.cobrar');
+$router->post('/api/caja/cobro-qr',                [CobroQrControlador::class, 'crear'],        'pagos.cobrar');
+$router->get('/api/caja/cobro-qr/{id}',            [CobroQrControlador::class, 'ver'],          'pagos.cobrar');
+$router->post('/api/caja/cobro-qr/{id}/prueba',    [CobroQrControlador::class, 'prueba'],       'pagos.cobrar');
+$router->put('/api/caja/cobro-qr/{id}/cancelar',   [CobroQrControlador::class, 'cancelar'],     'pagos.cobrar');
 $router->get('/api/caja/estado-cuenta/{id}',     [CajaControlador::class, 'estadoCuenta'],     'pagos.ver');
 $router->post('/api/caja/cotizar',               [CajaControlador::class, 'cotizar'],          'pagos.cobrar');
 $router->post('/api/caja/cobros',                [CajaControlador::class, 'cobrar'],           'pagos.cobrar');

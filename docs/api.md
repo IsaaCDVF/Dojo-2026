@@ -235,3 +235,26 @@ Sin cron: `public/index.php` llama `Avisos::siToca()` en cada petición con sesi
 
 Web Push sin librerías (`Modulos/Avisos/WebPush.php`): cifrado RFC 8291 (`aes128gcm`) y firma VAPID (RFC 8292, JWT ES256) con OpenSSL. Las llaves VAPID se crean la primera vez y la privada se guarda cifrada en `sistema_estado` (con la misma llave de `almacen/llaves/`). Si se pierde esa llave se crean otras y los celulares se vuelven a suscribir solos al abrir la app. El service worker es `app-code/public/sw.js` (solo notificaciones, sin caché). Necesita https (o `localhost`) y que el servidor pueda salir a internet (fcm.googleapis.com, web.push.apple.com, updates.push.services.mozilla.com).
 
+## Endpoints · Recepción en caja: por cobrar y cobro con QR
+
+| Método | Ruta | Permiso | Qué hace |
+|---|---|---|---|
+| GET | /caja/por-cobrar | pagos.cobrar | `?sucursal_id=&dias=7` → `{cuentas: [{responsable_id, nombre, telefono, alumnos[], total, vencido, estado: vencido\|por_vencer\|pendiente, vencido_desde, vence, en_linea}], conteo, total_vencido}`. Vencidos primero (el más viejo arriba). Recepción y admin de sucursal ven solo la suya |
+| POST | /caja/cobro-qr | pagos.cobrar | `{responsable_id, claves, codigo?}` → `{pago_id, url, origen, total}` (201). Mismo cálculo y tablas que el pago desde la app (`PagoEnLineaControlador::iniciar`), con `pagos_en_linea.canal = caja` y sin OXXO/SPEI. `url` es el checkout de Mercado Pago (la pantalla lo muestra como QR). Cuenta de otra sucursal → 409; línea ya en proceso → 409; cobro en línea apagado → 409 |
+| GET | /caja/cobro-qr/{id} | pagos.cobrar | Cómo va (la pantalla pregunta cada 3 s). En modo real le pregunta a Mercado Pago; tras una tarjeta rechazada sigue preguntando 1 h (puede intentar con otra en el mismo QR) |
+| POST | /caja/cobro-qr/{id}/prueba | pagos.cobrar | Solo modo prueba: `{resultado: aprobado\|rechazado}` |
+| PUT | /caja/cobro-qr/{id}/cancelar | pagos.cobrar | Lo cancela (`rechazado`, código `cancelado`). Ya pagado → 409. Si de todos modos pagan después, Mercado Pago avisa y se aplica |
+
+`GET /caja/estado-cuenta/{id}` trae `cobro_qr` (apagado | prueba | real) para mostrar o no la opción "Tarjeta". El recibo y el corte dicen `QR en caja · {correo}` en `cobro`.
+
+## Endpoints · Mi cuenta (cualquier persona con sesión)
+
+| Método | Ruta | Permiso | Qué hace |
+|---|---|---|---|
+| GET | /auth/perfil | (sesión) | `{nombre, apellido_paterno, apellido_materno, email, telefono, roles[]}` |
+| PUT | /auth/perfil | (sesión) | `{telefono?, email?, password?}`. Cambiar el correo (con el que entra) pide `password`; correo de otra cuenta → 409. Queda en bitácora |
+| GET | /auth/sesiones | (sesión) | Sesiones abiertas de los últimos 30 días: `[{id, ip, equipo ("Chrome · Windows"), creada, ultima_actividad, actual}]` |
+| POST | /auth/sesiones/cerrar | (sesión) | `{id}` cierra esa; sin `id` cierra todas menos la actual → `{cerradas}`. La actual → 422 (para eso es logout) |
+
+`GET /app/cuenta` trae además `sucursal {nombre, telefono, direccion}` (para "Ayuda" en la app).
+

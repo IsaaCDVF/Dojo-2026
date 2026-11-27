@@ -44,20 +44,31 @@ final class PagoEnLineaControlador
             if (!array_diff($claves, $adeudos)) { $resp = (int) $x['id']; break; }
         }
         if (!$resp) throw new ErrorApi('Algo de lo que elegiste ya no está pendiente o no es de tu cuenta; recarga la pantalla', 409);
+        Respuesta::ok(self::iniciar($req, $cfg, $resp, $claves, null, null, 'app'), 201);
+    }
+
+    /**
+     * Crea el pago pendiente y (en modo real) la preferencia de Mercado Pago. Lo usan la app y la caja (cobro con QR).
+     * $propia: sucursal de quien cobra en caja (no puede cobrar cuentas de otra). $canal: app | caja.
+     * @return array{pago_id: int, url: string, origen: string, total: string}
+     */
+    public static function iniciar(Peticion $req, array $cfg, int $responsableId, array $claves, ?int $propia, ?string $codigo, string $canal): array
+    {
         $r = Db::uno('SELECT r.id, pe.nombre, pe.apellido_paterno,
                              (SELECT c.valor FROM contactos c WHERE c.persona_id = pe.id AND c.tipo = "email" LIMIT 1) email
-                      FROM responsables_pago r JOIN personas pe ON pe.id = r.persona_id WHERE r.id = ?', [$resp]);
+                      FROM responsables_pago r JOIN personas pe ON pe.id = r.persona_id WHERE r.id = ?', [$responsableId]);
+        if (!$r) throw new ErrorApi('Responsable no encontrado', 404);
         $r['id'] = (int) $r['id'];
 
-        $x = Cotizador::preparar($r, null, $claves, [], null, false);
+        $x = Cotizador::preparar($r, $propia, $claves, [], $codigo, false);
         foreach ($x['lineas'] as $l) {
-            if (!empty($l['en_linea'])) throw new ErrorApi('Ya tienes un pago en proceso para ' . $l['concepto'] . ($l['detalle'] ? " de {$l['detalle']}" : '') . '. Termínalo o espera a que venza.', 409, ['pago_id' => $l['en_linea']['pago_id']]);
+            if (!empty($l['en_linea'])) throw new ErrorApi(($canal === 'caja' ? 'Ya hay un pago en línea en proceso para ' : 'Ya tienes un pago en proceso para ') . $l['concepto'] . ($l['detalle'] ? " de {$l['detalle']}" : '') . ($canal === 'caja' ? '. Cancélalo o espera a que venza.' : '. Termínalo o espera a que venza.'), 409, ['pago_id' => $l['en_linea']['pago_id']]);
         }
         if ($x['aPagar'] <= 0) throw new ErrorApi('No hay nada que cobrar', 422);
         $origen = $cfg['modo'] === 'real' ? 'mercadopago' : 'prueba';
         $ref = bin2hex(random_bytes(16));
 
-        $pagoId = Db::transaccion(function () use ($req, $r, $x, $origen, $ref) {
+        $pagoId = Db::transaccion(function () use ($req, $r, $x, $origen, $ref, $canal) {
             $id = Db::insertar('INSERT INTO pagos (responsable_id, sucursal_id, folio, fecha, metodo, estado, registrado_por) VALUES (?, ?, NULL, NOW(), "pasarela", "pendiente", ?)',
                 [$r['id'], $x['sucursal'], $req->ctx['usuario_id']]);
             $sol = [];
@@ -67,8 +78,8 @@ final class PagoEnLineaControlador
                     [$id, $l['alumno_id'], $l['concepto_id'], $l['periodo'], $cl['importe'], $cl['descuento'], (float) $cl['descuento'] > 0 ? $x['cot']['promocion']['id'] : null]);
                 if (!empty($l['solicitud_id'])) $sol[$did] = (int) $l['solicitud_id'];
             }
-            Db::insertar('INSERT INTO pagos_en_linea (pago_id, referencia, origen, solicitudes) VALUES (?, ?, ?, ?)', [$id, $ref, $origen, $sol ? json_encode($sol) : null]);
-            Bitacora::alta($req, 'pagos', $id, ['metodo' => 'pasarela', 'estado' => 'pendiente', 'total' => $x['cot']['total'], 'origen' => $origen], $x['sucursal']);
+            Db::insertar('INSERT INTO pagos_en_linea (pago_id, referencia, origen, canal, solicitudes) VALUES (?, ?, ?, ?, ?)', [$id, $ref, $origen, $canal, $sol ? json_encode($sol) : null]);
+            Bitacora::alta($req, 'pagos', $id, ['metodo' => 'pasarela', 'estado' => 'pendiente', 'total' => $x['cot']['total'], 'origen' => $origen, 'canal' => $canal], $x['sucursal']);
             return $id;
         });
 
@@ -87,12 +98,14 @@ final class PagoEnLineaControlador
                     $items[] = ['id' => (string) ($l['clave'] ?? $l['concepto_id']), 'title' => mb_substr($l['concepto'] . (!empty($l['detalle']) ? ' ' . $l['detalle'] : '') . (!empty($l['alumno']) ? ' · ' . $l['alumno'] : ''), 0, 120),
                                 'quantity' => 1, 'unit_price' => $neto, 'currency_id' => 'MXN'];
                 }
+                // En mostrador solo tarjeta o saldo de Mercado Pago (una ficha de OXXO no tiene sentido si la persona está ahí)
+                $medios = ['installments' => 1] + ($canal === 'caja' ? ['excluded_payment_types' => [['id' => 'ticket'], ['id' => 'atm'], ['id' => 'bank_transfer']]] : []);
                 $pref = ['items' => $items, 'external_reference' => $ref, 'statement_descriptor' => mb_substr(strtoupper(preg_replace('/[^A-Za-z0-9 ]/', '', $marca)), 0, 13),
-                         'payment_methods' => ['installments' => 1], 'metadata' => ['pago_id' => $pagoId]]
+                         'payment_methods' => $medios, 'metadata' => ['pago_id' => $pagoId, 'canal' => $canal]]
                        + ($r['email'] ? ['payer' => ['email' => $r['email']]] : [])
-                       // Mercado Pago descarta las direcciones http: sin https no hay regreso automático ni avisos (la app pregunta al volver)
-                       + ($https ? ['back_urls' => ['success' => "$base/app/pago/$pagoId", 'pending' => "$base/app/pago/$pagoId", 'failure' => "$base/app/pago/$pagoId"],
-                                    'auto_return' => 'approved', 'notification_url' => "$base/api/pagos-en-linea/aviso"] : []);
+                       // Mercado Pago descarta las direcciones http: sin https no hay regreso automático ni avisos (se le pregunta al volver)
+                       + ($https && $canal === 'app' ? ['back_urls' => ['success' => "$base/app/pago/$pagoId", 'pending' => "$base/app/pago/$pagoId", 'failure' => "$base/app/pago/$pagoId"], 'auto_return' => 'approved'] : [])
+                       + ($https ? ['notification_url' => "$base/api/pagos-en-linea/aviso"] : []);
                 $p = $mp->crearPreferencia($pref);
                 // Con credenciales de prueba (TEST-) el checkout es el de pruebas (sandbox_init_point)
                 $url = (string) ((str_starts_with($token, 'TEST-') ? ($p['sandbox_init_point'] ?? null) : null) ?? $p['init_point'] ?? '');
@@ -104,31 +117,46 @@ final class PagoEnLineaControlador
         } else {
             Db::ejecutar('UPDATE pagos_en_linea SET url_pago = ? WHERE pago_id = ?', [$url, $pagoId]);
         }
-        Respuesta::ok(['pago_id' => $pagoId, 'url' => $url, 'origen' => $origen, 'total' => Tarifas::aPesos($x['aPagar'])], 201);
+        return ['pago_id' => $pagoId, 'url' => $url, 'origen' => $origen, 'total' => Tarifas::aPesos($x['aPagar'])];
     }
 
     /** GET /api/app/pagos-en-linea/{id} — cómo va el pago (si está pendiente, le pregunta a Mercado Pago) */
     public function ver(Peticion $req): void
     {
         $pl = $this->mio($req, (int) $req->params['id']);
-        if ($pl['origen'] === 'mercadopago' && $pl['estado'] === 'pendiente' && self::modo() === 'real'
+        self::consultar($pl, $req->ip);
+        Respuesta::ok(self::estado((int) $req->params['id']));
+    }
+
+    /** Si el pago sigue pendiente en modo real, le pregunta a Mercado Pago cómo va (máximo cada 10 s) */
+    public static function consultar(array $pl, ?string $ip): void
+    {
+        // En caja, después de una tarjeta rechazada la persona puede intentar con otra en el mismo QR: se sigue preguntando
+        $sigue = $pl['estado'] === 'pendiente' || (($pl['canal'] ?? 'app') === 'caja' && $pl['estado'] === 'rechazado'
+                 && ($pl['codigo_respuesta'] ?? '') !== 'cancelado' && strtotime((string) $pl['creado']) > time() - 3600);
+        if ($pl['origen'] === 'mercadopago' && $sigue && self::modo() === 'real'
             && (!$pl['actualizado'] || strtotime($pl['actualizado']) < time() - 10)) {
             try {
                 $mp = new MercadoPago(self::token(Db::uno('SELECT * FROM pasarela_config WHERE id = 1')));
                 $pago = $pl['mp_pago_id'] ? $mp->pago($pl['mp_pago_id']) : $mp->ultimoPorReferencia($pl['referencia']);
-                if ($pago) self::aplicar($pago, $req->ip);
+                if ($pago) self::aplicar($pago, $ip);
                 else Db::ejecutar('UPDATE pagos_en_linea SET actualizado = NOW() WHERE id = ?', [$pl['id']]);
             } catch (ErrorApi) { /* sin conexión: se muestra lo último que se sabe */ }
         }
-        Respuesta::ok(self::estado((int) $req->params['id']));
     }
 
     /** POST /api/app/pagos-en-linea/{id}/prueba {resultado: aprobado|rechazado|tarjeta|oxxo|spei|pagar_ficha|vencer} — solo en modo prueba */
     public function prueba(Peticion $req): void
     {
         $pl = $this->mio($req, (int) $req->params['id']);
+        self::simular($pl, (string) ($req->cuerpo['resultado'] ?? ''), $req->ip);
+        Respuesta::ok(self::estado($pl['pago_id']));
+    }
+
+    /** Modo prueba: hace como si Mercado Pago contestara (lo usan la app y la caja) */
+    public static function simular(array $pl, string $res, ?string $ip): void
+    {
         if ($pl['origen'] !== 'prueba' || self::modo() !== 'prueba') throw new ErrorApi('Esto solo existe en modo prueba', 409);
-        $res = (string) ($req->cuerpo['resultado'] ?? '');
         $total = (float) Db::uno('SELECT SUM(monto_cobrado - descuento_aplicado) t FROM pago_detalles WHERE pago_id = ?', [$pl['pago_id']])['t'];
         $base = ['id' => $pl['mp_pago_id'] ?: 'PRUEBA-' . $pl['pago_id'] . '-' . random_int(1000, 9999), 'external_reference' => $pl['referencia'], 'transaction_amount' => $total];
         $sim = match ($res) {
@@ -143,8 +171,7 @@ final class PagoEnLineaControlador
             default => throw new ErrorApi('Resultado de prueba no válido', 422),
         };
         if (in_array($res, ['pagar_ficha', 'vencer'], true) && !$pl['mp_pago_id']) throw new ErrorApi('Primero genera la ficha', 409);
-        self::aplicar($sim + $base, $req->ip);
-        Respuesta::ok(self::estado($pl['pago_id']));
+        self::aplicar($sim + $base, $ip);
     }
 
     /**

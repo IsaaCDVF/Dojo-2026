@@ -47,14 +47,18 @@ final class Avisos
         $hecho = true;
         register_shutdown_function(static function () {
             if (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
-            try { self::revisar(); } catch (\Throwable $e) { error_log('Avisos: ' . $e->getMessage()); }
+            try { self::revisar(30); } catch (\Throwable $e) { error_log('Avisos: ' . $e->getMessage()); }
         });
     }
 
-    /** Genera los avisos que toquen y manda las notificaciones pendientes. @return array conteos por evento */
-    public static function revisar(): array
+    /**
+     * Genera los avisos que toquen y manda las notificaciones pendientes. @return array conteos por evento
+     * $espera: segundos para esperar si otra revisión está corriendo. La revisión automática de cada hora no espera (0);
+     * "Revisar ahora" y la de "examen autorizado" sí esperan, para no perder lo que acaba de pasar.
+     */
+    public static function revisar(int $espera = 0): array
     {
-        if (!(int) (Db::uno('SELECT GET_LOCK("dojo_avisos", 0) l')['l'] ?? 0)) return ['ocupado' => true];
+        if (!(int) (Db::uno('SELECT GET_LOCK("dojo_avisos", ?) l', [$espera])['l'] ?? 0)) return ['ocupado' => true];
         try {
             Db::ejecutar('REPLACE INTO sistema_estado (clave, valor, actualizado) VALUES ("avisos_revision", NULL, NOW())');
             $n = ['pago_por_vencer' => 0, 'pago_vencido' => 0, 'ausencia' => 0, 'examen_autorizado' => 0];

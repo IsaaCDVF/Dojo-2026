@@ -9,7 +9,7 @@ use Dojo\Nucleo\Middleware\Permiso;
 
 /**
  * Fase 4 · Caja en mostrador: estado de cuenta, cobro con recibo, corte del día y cancelación.
- * El cobro automático con tarjeta (pasarela) se conecta después: usa las mismas tablas con metodo = pasarela.
+ * El cobro con tarjeta va por Mercado Pago (Pasarela\CobroQrControlador): mismas tablas con metodo = pasarela.
  */
 final class CajaControlador
 {
@@ -20,6 +20,7 @@ final class CajaControlador
         $r = $this->responsable((int) $req->params['id']);
         $edo = EstadoCuenta::de($r['id'], $this->sucursalFiltro($req));
         $edo['responsable'] = $r;
+        $edo['cobro_qr'] = \Dojo\Modulos\Pagos\Pasarela\PagoEnLineaControlador::modo();   // apagado | prueba | real
         $edo['total'] = Tarifas::aPesos(array_sum(array_map(fn($l) => $l['precio'] ? Tarifas::aCentavos($l['precio']) : 0,
             array_filter($edo['adeudos'], fn($l) => $l['estado'] !== 'por_vencer'))));
         $edo['pagos'] = Db::todos(
@@ -84,7 +85,7 @@ final class CajaControlador
     public function recibo(Peticion $req): void
     {
         $p = Db::uno('SELECT p.id, p.folio, p.fecha, p.metodo, p.referencia_pasarela AS referencia, p.estado, p.sucursal_id, s.nombre AS sucursal,
-                             p.responsable_id, CONCAT(pe.nombre, " ", pe.apellido_paterno) AS responsable, IF(p.metodo = "pasarela", "App · en línea", u.email) AS cobro
+                             p.responsable_id, CONCAT(pe.nombre, " ", pe.apellido_paterno) AS responsable, IF(p.metodo = "pasarela", IF((SELECT pl.canal FROM pagos_en_linea pl WHERE pl.pago_id = p.id) = "caja", CONCAT("QR en caja · ", u.email), "App · en línea"), u.email) AS cobro
                       FROM pagos p JOIN sucursales s ON s.id = p.sucursal_id LEFT JOIN responsables_pago r ON r.id = p.responsable_id
                       LEFT JOIN personas pe ON pe.id = r.persona_id LEFT JOIN usuarios u ON u.id = p.registrado_por WHERE p.id = ?', [$req->params['id']]);
         if (!$p) throw new ErrorApi('Pago no encontrado', 404);
@@ -114,7 +115,7 @@ final class CajaControlador
         $w = 'DATE(p.fecha) = ? AND p.estado IN ("aprobado", "reembolsado")'; $par = [$fecha];
         if ($s) { $w .= ' AND p.sucursal_id = ?'; $par[] = $s; }
         $pagos = Db::todos(
-            "SELECT p.id, p.folio, p.fecha, p.metodo, p.estado, s.nombre AS sucursal, IF(p.metodo = 'pasarela', 'App · en línea', u.email) AS cobro,
+            "SELECT p.id, p.folio, p.fecha, p.metodo, p.estado, s.nombre AS sucursal, IF(p.metodo = 'pasarela', IF((SELECT pl.canal FROM pagos_en_linea pl WHERE pl.pago_id = p.id) = 'caja', CONCAT('QR en caja · ', u.email), 'App · en línea'), u.email) AS cobro,
                     CONCAT(pe.nombre, ' ', pe.apellido_paterno) AS responsable,
                     SUM(d.monto_cobrado - d.descuento_aplicado) AS total,
                     (SELECT COALESCE(SUM(sf.monto), 0) FROM saldos_favor sf WHERE sf.aplicado_en_pago_id = p.id) AS saldo_usado
@@ -148,6 +149,45 @@ final class CajaControlador
             Bitacora::cambio($req, 'pagos', (int) $p['id'], ['estado' => 'aprobado'], ['estado' => "reembolsado ($motivo)"], (int) $p['sucursal_id']);
         });
         Respuesta::ok(['id' => (int) $p['id'], 'estado' => 'reembolsado']);
+    }
+
+    /**
+     * GET /api/caja/por-cobrar?sucursal_id=&dias=7 — quién debe, para recepción (sin buscar uno por uno):
+     *  vencido (ya pasó la tolerancia) · por_vencer (su mensualidad vence en los próximos N días) · pendiente (inscripción, examen, mes en curso)
+     */
+    public function porCobrar(Peticion $req): void
+    {
+        $suc = Permiso::sucursalDe($req) ?? (isset($req->query['sucursal_id']) && $req->query['sucursal_id'] !== '' ? (int) $req->query['sucursal_id'] : null);
+        $dias = max(1, min(31, (int) ($req->query['dias'] ?? 7)));
+        $hoy = new \DateTimeImmutable('today');
+        $resp = Db::todos('SELECT DISTINCT r.id FROM responsables_pago r JOIN alumno_responsable ar ON ar.responsable_id = r.id AND ar.vigente_hasta IS NULL
+                           JOIN alumnos a ON a.id = ar.alumno_id AND a.estado = "activo"' . ($suc ? ' AND a.sucursal_id = ' . (int) $suc : ''));
+        $filas = [];
+        foreach ($resp as $x) {
+            $edo = EstadoCuenta::de((int) $x['id'], $suc);
+            if (!$edo['adeudos']) continue;
+            $deuda = 0; $vencido = 0; $desde = null; $proxima = null; $enLinea = false; $alumnos = [];
+            foreach ($edo['adeudos'] as $l) {
+                $c = $l['precio'] ? Tarifas::aCentavos($l['precio']) : 0;
+                if (!empty($l['en_linea'])) $enLinea = true;
+                if ($l['estado'] === 'vencida') { $vencido += $c; $desde = $desde && $desde < $l['vence'] ? $desde : $l['vence']; }
+                $proximo = $l['estado'] !== 'vencida' && $l['vence'] && str_starts_with($l['clave'], 'mens:')
+                    && (int) $hoy->diff(new \DateTimeImmutable($l['vence']))->format('%r%a') <= $dias;
+                if ($proximo) $proxima = $proxima && $proxima < $l['vence'] ? $proxima : $l['vence'];
+                if ($l['estado'] !== 'por_vencer' || $proximo) { $deuda += $c; $alumnos[$l['alumno']] = true; }
+            }
+            if (!$deuda) continue;
+            $r = $this->responsable((int) $x['id']);
+            $filas[] = ['responsable_id' => $r['id'], 'nombre' => trim($r['nombre'] . ' ' . $r['apellido_paterno']), 'telefono' => $r['telefono'],
+                        'alumnos' => array_keys($alumnos), 'total' => Tarifas::aPesos($deuda), 'vencido' => Tarifas::aPesos($vencido),
+                        'estado' => $vencido ? 'vencido' : ($proxima ? 'por_vencer' : 'pendiente'),
+                        'vencido_desde' => $desde, 'vence' => $proxima, 'en_linea' => $enLinea];
+        }
+        $orden = ['vencido' => 0, 'por_vencer' => 1, 'pendiente' => 2];
+        usort($filas, fn($a, $b) => [$orden[$a['estado']], $a['vencido_desde'] ?? $a['vence'] ?? '9', $a['nombre']] <=> [$orden[$b['estado']], $b['vencido_desde'] ?? $b['vence'] ?? '9', $b['nombre']]);
+        $cuenta = array_count_values(array_column($filas, 'estado')) + ['vencido' => 0, 'por_vencer' => 0, 'pendiente' => 0];
+        Respuesta::ok(['dias' => $dias, 'cuentas' => $filas, 'conteo' => $cuenta,
+                       'total_vencido' => Tarifas::aPesos(array_sum(array_map(fn($f) => Tarifas::aCentavos($f['vencido']), $filas)))]);
     }
 
     /** Filtro de sucursal para el estado de cuenta: un rol "propio" ve todo lo suyo */

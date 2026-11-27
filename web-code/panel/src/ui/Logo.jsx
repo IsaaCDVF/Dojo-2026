@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useMarca } from '../marca/Marca';
 import { NombreMarca } from '../marca/NombreMarca';
+import { ImgLogo } from '../marca/logoLegible';
 // Isotipo Dojo OS (mismo trazo que Logo/dojo-os-isotipo.svg). El anillo usa currentColor
 // para verse en fondo oscuro o claro; el cinturón siempre va en oro.
 export function Isotipo({ className = 'size-9' }) {
@@ -26,7 +27,7 @@ export function Logo({ subtitulo, oscuro = false }) {
   if (img && cuadrado) {
     return (
       <div className="flex items-center gap-2.5 min-w-0">
-        <img src={img} alt="" className="size-9 object-contain shrink-0" />
+        <ImgLogo src={img} fondoOscuro={fondoOscuro} alt="" className="size-9 object-contain shrink-0" />
         <NombreMarca nombre={marca.nombre} fuente={marca.fuente_nombre} className="font-semibold tracking-tight text-[17px] truncate" />
       </div>
     );
@@ -34,7 +35,7 @@ export function Logo({ subtitulo, oscuro = false }) {
   if (img) {
     return (
       <div className="flex items-center gap-2.5 min-w-0">
-        <img src={img} alt={marca.nombre} className="h-9 max-w-[170px] object-contain object-left" onLoad={(e) => setCuadrado(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight < 1.8)} />
+        <ImgLogo src={img} fondoOscuro={fondoOscuro} alt={marca.nombre} className="h-9 max-w-[170px] object-contain object-left" onLoad={(e) => setCuadrado(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight < 1.8)} />
         {subtitulo && <div className="etiqueta !text-[9.5px] hidden xl:block">{subtitulo}</div>}
       </div>
     );
@@ -42,7 +43,7 @@ export function Logo({ subtitulo, oscuro = false }) {
   const deFabrica = marca.nombre === 'Dojo OS';
   return (
     <div className="flex items-center gap-2.5 min-w-0">
-      {im.icono ? <img src={im.icono} alt="" className="size-9 rounded-md object-contain shrink-0" /> : <Isotipo />}
+      {im.icono ? <ImgLogo src={im.icono} fondoOscuro={fondoOscuro} alt="" className="size-9 rounded-md object-contain shrink-0" /> : <Isotipo />}
       <div className="leading-tight min-w-0">
         <div className="font-semibold tracking-tight text-[17px] truncate">{deFabrica ? <>Dojo <span className="text-gold">OS</span></> : <NombreMarca nombre={marca.nombre} fuente={marca.fuente_nombre} />}</div>
         {(subtitulo || marca.lema) && <div className="etiqueta !text-[9.5px] truncate">{subtitulo || marca.lema}</div>}
@@ -56,11 +57,11 @@ export function MarcaImpresa({ fondo = 'claro', className = '' }) {
   const { marca } = useMarca();
   const im = marca.imagenes || {};
   const logo = fondo === 'oscuro' ? (im.logo_oscuro || null) : (im.logo || null);
-  if (logo) return <img src={logo} alt={marca.nombre} className={`h-8 max-w-[160px] object-contain object-left ${className}`} />;
+  if (logo) return <ImgLogo src={logo} fondoOscuro={fondo === 'oscuro'} alt={marca.nombre} className={`h-8 max-w-[160px] object-contain object-left ${className}`} />;
   const deFabrica = marca.nombre === 'Dojo OS';
   return (
     <span className={`inline-flex items-center gap-2 font-semibold ${className}`}>
-      {im.icono ? <img src={im.icono} alt="" className="size-7 rounded object-contain" /> : fondo === 'claro' && <Isotipo className="size-7 text-[#011c42]" />}
+      {im.icono ? <ImgLogo src={im.icono} fondoOscuro={fondo === 'oscuro'} alt="" className="size-7 rounded object-contain" /> : fondo === 'claro' && <Isotipo className="size-7 text-[#011c42]" />}
       {deFabrica ? <span>Dojo <span className="text-[#f2a900]">OS</span></span> : <NombreMarca nombre={marca.nombre} fuente={marca.fuente_nombre} />}
     </span>
   );

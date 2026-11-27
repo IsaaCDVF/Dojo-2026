@@ -78,7 +78,7 @@ final class AvisosControlador
     /** POST /api/avisos/revisar — busca avisos nuevos ya (sin esperar la hora) */
     public function revisar(Peticion $req): void
     {
-        Respuesta::ok(Avisos::revisar());
+        Respuesta::ok(Avisos::revisar(30));   // si la revisión automática está corriendo, espera a que termine
     }
 
     /** GET /api/avisos/plantillas — textos de cada aviso y su parámetro */

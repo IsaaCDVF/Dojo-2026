@@ -1,12 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Building2, ChevronDown, Check, LogOut, Menu as MenuIcon, X } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Building2, ChevronDown, Check, Keyboard, LogOut, Menu as MenuIcon, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useSesion } from '../auth/Sesion';
 import { useMarca } from '../marca/Marca';
-import { BotonIcono, BotonTema, Logo, useAvisos } from '../ui';
+import { BotonIcono, BotonTema, Logo, Modal, useAvisos, useTema } from '../ui';
 import { api } from '../api';
 import { MENU } from './menu';
+import { IR_A, ListaAtajos, SECCIONES } from '../paginas/Cuenta';
 
 const cx = (...c) => c.filter(Boolean).join(' ');
 
@@ -68,6 +69,95 @@ function SelectorRol() {
   );
 }
 
+/** Menú de la cuenta (arriba a la derecha): como en cualquier sistema actual, no un formulario de contraseña a la vista */
+function MenuCuenta({ nombre, onAtajos, onSalir }) {
+  const { usuario, rol, roles } = useSesion();
+  const { t } = useTranslation();
+  const [abierto, setAbierto] = useState(false);
+  const ref = useRef(null);
+  const { pathname } = useLocation();
+  useEffect(() => setAbierto(false), [pathname]);
+  useEffect(() => {
+    if (!abierto) return undefined;
+    const fuera = (e) => !ref.current?.contains(e.target) && setAbierto(false);
+    const esc = (e) => e.key === 'Escape' && setAbierto(false);
+    document.addEventListener('mousedown', fuera); document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('mousedown', fuera); document.removeEventListener('keydown', esc); };
+  }, [abierto]);
+  const actual = roles.find((r) => r.usuario_rol_id === rol?.usuario_rol_id);
+  const item = 'w-full flex items-center gap-3 rounded-md px-3 h-10 text-left text-[14px] hover:bg-inset cursor-pointer';
+  return (
+    <div ref={ref} className="relative">
+      <button onClick={() => setAbierto((a) => !a)} aria-haspopup="menu" aria-expanded={abierto} aria-label={t('cuenta.menu.abrir')}
+        className="flex items-center gap-2.5 rounded-full pl-1 sm:pl-3 pr-1 h-11 hover:bg-inset cursor-pointer">
+        <span className="hidden sm:block text-right leading-tight">
+          <span className="block text-sm font-semibold">{nombre}</span>
+          <span className="block text-[12px] text-muted">{rol?.nombre ? t(`roles.${rol.nombre}`) : ''}</span>
+        </span>
+        <Iniciales nombre={nombre} />
+      </button>
+      {abierto && (
+        <div role="menu" className="absolute right-0 top-12 z-40 w-72 rounded-[12px] bg-surface border border-line-strong shadow-2xl p-1.5 anim-entrar">
+          <div className="flex items-center gap-3 px-3 py-3">
+            <Iniciales nombre={nombre} />
+            <div className="min-w-0">
+              <div className="font-semibold truncate">{nombre}</div>
+              <div className="text-[12px] text-muted truncate">{usuario?.email}</div>
+              <div className="text-[12px] text-muted truncate">{rol?.nombre ? t(`roles.${rol.nombre}`) : ''} · {actual?.sucursal || t('comun.todasSucursales')}</div>
+            </div>
+          </div>
+          <div className="h-px bg-line my-1" />
+          {SECCIONES.filter((x) => x.id !== 'atajos').map((x) => (
+            <Link key={x.id} role="menuitem" to={x.id === 'perfil' ? '/cuenta' : `/cuenta/${x.id}`} className={item}>
+              <x.icono className="size-[18px] text-muted" />{t(`cuenta.menu.${x.id}`)}
+            </Link>
+          ))}
+          <button role="menuitem" onClick={() => { setAbierto(false); onAtajos(); }} className={item}>
+            <Keyboard className="size-[18px] text-muted" /><span className="flex-1">{t('cuenta.menu.atajos')}</span><kbd className="font-mono text-[11px] text-muted">?</kbd>
+          </button>
+          <div className="h-px bg-line my-1" />
+          <button role="menuitem" onClick={onSalir} className={cx(item, 'text-danger')}><LogOut className="size-[18px]" />{t('cuenta.menu.salir')}</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Atajos de teclado: ? (lista), / (buscador de la pantalla), T (claro/oscuro), G y una letra (ir a una pantalla).
+ * No hacen nada mientras escribes en un campo.
+ */
+function useAtajos({ onAtajos, tiene }) {
+  const navegar = useNavigate();
+  const [, alternarTema] = useTema();
+  useEffect(() => {
+    let g = 0;
+    const tecla = (e) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const el = e.target;
+      if (el.closest?.('input, textarea, select, [contenteditable="true"]')) return;
+      if (document.querySelector('[role="dialog"]') && e.key !== '?') return;
+      const k = e.key.toLowerCase();
+      if (g && Date.now() - g < 1200) {
+        g = 0;
+        const destino = IR_A.find(([l]) => l === k)?.[1];
+        const m = MENU.find((x) => x.a === destino);
+        if (destino && (destino === '/cuenta' || (m && (!m.permisos.length || tiene(...m.permisos))))) { e.preventDefault(); navegar(destino); }
+        return;
+      }
+      if (k === 'g') { g = Date.now(); return; }
+      if (e.key === '?') { e.preventDefault(); onAtajos(); return; }
+      if (k === 't') { alternarTema(); return; }
+      if (e.key === '/') {
+        const campo = document.querySelector('main input[type="search"], main input:not([type="hidden"]):not([disabled]):not([type="checkbox"]):not([type="radio"])');
+        if (campo) { e.preventDefault(); campo.focus(); }
+      }
+    };
+    document.addEventListener('keydown', tecla);
+    return () => document.removeEventListener('keydown', tecla);
+  }, [navegar, onAtajos, tiene, alternarTema]);
+}
+
 function EstadoApi() {
   const { t } = useTranslation();
   const [ok, setOk] = useState(null);
@@ -99,6 +189,9 @@ export default function Panel() {
   const opciones = MENU.filter((m) => !m.permisos.length || tiene(...m.permisos));
   const salir = async () => { await logout(); avisar(t('comun.sesionCerrada'), 'info'); navegar('/login'); };
   const nombre = usuario ? `${usuario.nombre} ${usuario.apellido_paterno}` : '';
+  const [atajos, setAtajos] = useState(false);
+  const abrirAtajos = useCallback(() => setAtajos(true), []);
+  useAtajos({ onAtajos: abrirAtajos, tiene });
 
   const lateral = (
     <aside className="flex flex-col h-full w-64 bg-sidebar text-white border-r border-white/5">
@@ -117,7 +210,7 @@ export default function Panel() {
         ))}
       </nav>
       <div className="px-5 py-4 border-t border-white/8 text-[12px] text-white/55 flex justify-between">
-        <span className="truncate" title={`v0.4 · ${marca.nombre}`}>v0.4{marca.nombre !== 'Dojo OS' ? ` · ${t('comun.hechoCon')}` : ' · Dojo OS'}</span><EstadoApi />
+        <span className="truncate" title={`v0.5 · ${marca.nombre}`}>v0.5{marca.nombre !== 'Dojo OS' ? ` · ${t('comun.hechoCon')}` : ' · Dojo OS'}</span><EstadoApi />
       </div>
     </aside>
   );
@@ -136,16 +229,14 @@ export default function Panel() {
           <SelectorRol />
           <div className="flex-1" />
           <BotonTema />
-          <div className="hidden sm:block text-right leading-tight ml-2">
-            <div className="text-sm font-semibold">{nombre}</div>
-            <div className="text-[12px] text-muted">{rol?.nombre ? t(`roles.${rol.nombre}`) : ''}</div>
-          </div>
-          <Iniciales nombre={nombre} />
-          <BotonIcono icono={LogOut} etiqueta={t('comun.cerrarSesion')} onClick={salir} />
+          <MenuCuenta nombre={nombre} onAtajos={abrirAtajos} onSalir={salir} />
         </header>
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-[1280px] mx-auto px-4 lg:px-8 py-7"><Outlet /></div>
         </main>
+        <Modal abierto={atajos} onCerrar={() => setAtajos(false)} titulo={t('cuenta.menu.atajos')} subtitulo={t('cuenta.atajos.sub')}>
+          <ListaAtajos />
+        </Modal>
       </div>
     </div>
   );

@@ -102,7 +102,15 @@ final class CuentaControlador
         $dom = Db::uno('SELECT calle, numero, colonia, cp, municipio, estado FROM domicilios WHERE persona_id = ? ORDER BY id DESC LIMIT 1', [$u['persona_id']]);
         // El correo que se muestra: el de contacto, o el de la cuenta si es real (no el interno app-N@dojoos.local)
         $email = $u['email'] ?? (str_ends_with((string) $u['usuario_email'], '@dojoos.local') ? null : $u['usuario_email']);
+        // Su dojo (para "Ayuda": a quién llamar). Del alumno, o del primer hijo si es responsable
+        $suc = Db::uno('SELECT s.nombre, s.telefono, d.calle, d.numero, d.colonia, d.municipio FROM alumnos a JOIN sucursales s ON s.id = a.sucursal_id
+                        LEFT JOIN domicilios d ON d.id = s.domicilio_id
+                        WHERE a.estado <> "baja" AND (a.persona_id = ? OR a.id IN (SELECT ar.alumno_id FROM alumno_responsable ar JOIN responsables_pago r ON r.id = ar.responsable_id
+                                                                                  WHERE r.persona_id = ? AND ar.vigente_hasta IS NULL))
+                        ORDER BY a.persona_id = ? DESC LIMIT 1', [$u['persona_id'], $u['persona_id'], $u['persona_id']]);
         return [
+            'sucursal' => $suc ? ['nombre' => $suc['nombre'], 'telefono' => $suc['telefono'],
+                                  'direccion' => $suc['calle'] ? trim($suc['calle'] . ' ' . ($suc['numero'] ?? '') . ($suc['colonia'] ? ', ' . $suc['colonia'] : '') . ($suc['municipio'] ? ', ' . $suc['municipio'] : '')) : null] : null,
             'persona_id' => (int) $u['persona_id'], 'nombre' => $u['nombre'], 'apellido_paterno' => $u['apellido_paterno'], 'apellido_materno' => $u['apellido_materno'],
             'fecha_nacimiento' => $u['fecha_nacimiento'], 'curp' => $u['curp'], 'telefono' => $u['telefono'], 'email' => $email,
             'domicilio' => $dom ?: null, 'matricula' => $u['matricula'], 'es_responsable' => (bool) $u['es_responsable'],

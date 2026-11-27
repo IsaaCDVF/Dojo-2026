@@ -9,7 +9,7 @@ export default {
     hechoCon: 'with Dojo OS',
   },
   menu: {
-    avisos: 'Reminders', inicio: 'Home', miPerfil: 'My profile', alumnos: 'Students', inscripcion: 'Enrollment', caja: 'Front desk', horarios: 'Schedule',
+    avisos: 'Reminders', inicio: 'Home', miPerfil: 'My account', alumnos: 'Students', inscripcion: 'Enrollment', caja: 'Front desk', horarios: 'Schedule',
     asistencia: 'Attendance', examenes: 'Belt testing', tarifas: 'Pricing & promotions', parametros: 'Settings', bitacora: 'Audit log',
     configuracion: 'Setup', personal: 'Staff & access', tabletas: 'Check-in tablets', pagosEnLinea: 'Online payments', apariencia: 'Branding & appearance',
   },
@@ -30,6 +30,42 @@ export default {
     queHace: {
       super_admin: 'Every location: setup, pricing and settings', admin_sucursal: 'Schedule, testing, exceptions and location reports',
       recepcion: 'Enroll, take payments and register testing requests', instructor: 'Take attendance, approve testing and record results',
+    },
+  },
+  cuenta: {
+    titulo: 'My account', sub: 'Your details, how you see the system and your account security',
+    menu: { perfil: 'Personal details', preferencias: 'Preferences', seguridad: 'Security', atajos: 'Keyboard shortcuts', ayuda: 'Help', salir: 'Sign out', abrir: 'Open your account menu' },
+    perfil: {
+      sub: 'How others see you and how they reach you', nombre: 'Name', nombreAyuda: 'Your name is corrected by whoever manages staff',
+      correo: 'Email', correoAyuda: 'You sign in with it', telefono: 'Phone (WhatsApp)', telefonoAyuda: '10 digits', password: 'Your password',
+      passwordAyuda: 'We ask for it to change your email', guardar: 'Save changes', guardado: 'Details saved', accesos: 'Your access',
+      accesosSub: 'What you can do and where. Granted by whoever manages staff.',
+    },
+    seguridad: {
+      sub: 'Your password and the devices where you are signed in', contrasena: 'Password', contrasenaSub: 'Use at least 8 characters, with letters and numbers',
+      cambiar: 'Change', cancelar: 'Cancel', lista: 'Password changed. Your other sessions were signed out.',
+      sesiones: 'Where you are signed in', sesionesSub: "If you don't recognize a device, sign it out and change your password",
+      esteEquipo: 'This device', ultima: 'Last active: {{f}}', cerrar: 'Sign out', cerrarOtras: 'Sign out of all other devices',
+      cerradas_one: '{{count}} session signed out', cerradas_other: '{{count}} sessions signed out', soloEsta: 'This is your only active session',
+    },
+    form: {
+      actual: 'Current password', nueva: 'New password', otra: 'Repeat the new one', reglaLargo: 'At least 8 characters', reglaLetras: 'Letters', reglaNumeros: 'Numbers',
+      escribela: 'Type it', revisa: 'Check the requirements', noCoincide: "Doesn't match the new one", ver: 'Show', ocultar: 'Hide', boton: 'Change password',
+    },
+    atajos: {
+      sub: "Work faster without the mouse. They work when you're not typing in a field.", abrir: 'See keyboard shortcuts',
+      buscar: "Jump to the page's search box", ir: 'Go to {{pantalla}}', luego: 'then', cerrar: 'Close a window', tema: 'Switch light / dark', cuenta: 'My account',
+    },
+    ayuda: {
+      sub: 'The basics of your work in the system', guia: 'What you do as {{rol}}', soporte: 'Something not working?',
+      soporteTexto: "Take a screenshot and send it to whoever manages your location. If you're the admin, check the Audit log: it shows who changed what.",
+      version: 'Version', guias: {
+        super_admin: ['Set up locations, disciplines, prices and settings.', 'Grant staff access in Staff & access.', 'Connect Mercado Pago in Online payments and change branding in Appearance.', 'Check the Audit log to see who changed what.'],
+        admin_sucursal: ['Build schedules and plan belt tests for your location.', 'Grant front desk and instructor access in Staff & access.', 'Check the daily close in Front desk.', 'You can work from anywhere: walk-in tasks are handled by the front desk.'],
+        recepcion: ['Enroll students and record attendance by hand when needed.', 'Front desk shows who owes; take cash, transfer or card (QR).', 'Send WhatsApp reminders with one tap in Reminders.', 'Record walk-in belt test requests.'],
+        instructor: ['Check your classes in Schedule and validate attendance.', 'Approve or reject your students\' test requests in Belt testing.', 'Enter the test result once it has been paid.'],
+        tableta: ['This account only records attendance with the student QR.'],
+      },
     },
   },
   perfil: {
@@ -55,7 +91,7 @@ export default {
     contraste: 'Contrast check', textoBotones: 'Button text', enlacesClaro: 'Links in light mode', enlacesOscuro: 'Links in dark mode',
     seLee: 'Easy to read', justo: 'Borderline', pocoLegible: 'Hard to read', contrasteAyuda: 'The system adjusts text and link colors automatically so they stay readable.',
     letra: 'Font', ejemploLetra: 'Ana Ramírez · Yellow belt · $65.00',
-    region: 'Region', idioma: 'Default language', idiomaAyuda: 'Each user can pick their own in My profile', moneda: 'Currency', zona: 'Time zone', pais: 'Country',
+    region: 'Region', idioma: 'Default language', idiomaAyuda: 'Each person can pick their own in My account → Preferences', moneda: 'Currency', zona: 'Time zone', pais: 'Country',
     vistaPrevia: 'Preview', claro: 'Light', oscuro: 'Dark', sinGuardar: 'You have unsaved changes', listo: 'Done: this is how the system looks now',
     asistente: {
       boton: 'Upload logo with the assistant', botonAyuda: 'Upload a single image, whatever you have: the system prepares the 3 versions and shows you how they look.',

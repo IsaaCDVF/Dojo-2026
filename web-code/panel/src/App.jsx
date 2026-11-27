@@ -16,7 +16,7 @@ import Horarios from './paginas/Horarios';
 import Alumnos from './paginas/Alumnos';
 import Ficha from './paginas/Ficha';
 import Inscripcion from './paginas/Inscripcion';
-import MiPerfil from './paginas/MiPerfil';
+import Cuenta from './paginas/Cuenta';
 import Caja from './paginas/Caja';
 import Examenes, { ExamenDetalle } from './paginas/Examenes';
 import Asistencia from './paginas/Asistencia';
@@ -65,7 +65,9 @@ export default function App() {
       <Route path="/tableta" element={<Protegida><Tableta /></Protegida>} />
       <Route element={<Protegida><Panel /></Protegida>}>
         <Route index element={<InicioSegunRol />} />
-        <Route path="mi-perfil" element={<MiPerfil />} />
+        <Route path="mi-perfil" element={<Navigate to="/cuenta" replace />} />
+        <Route path="cuenta" element={<Cuenta />} />
+        <Route path="cuenta/:seccion" element={<Cuenta />} />
         <Route path="alumnos" element={<Alumnos />} />
         <Route path="alumnos/importar" element={<Importar />} />
         <Route path="alumnos/:id" element={<Ficha />} />

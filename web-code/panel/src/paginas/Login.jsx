@@ -1,3 +1,4 @@
+import { ImgLogo } from '../marca/logoLegible';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, AtSign, Eye, EyeOff, Lock, ShieldCheck, Tablet } from 'lucide-react';
@@ -59,9 +60,9 @@ export default function Login() {
           <div className="px-8 pt-8 pb-7">
             <div className="flex flex-col items-center text-center">
               {logo
-                ? <img src={logo} alt={nombrePlano(marca.nombre)} className="h-16 max-w-[240px] object-contain"
+                ? <ImgLogo src={logo} fondoOscuro={modo === 'dark'} alt={nombrePlano(marca.nombre)} className="h-16 max-w-[240px] object-contain"
                     onLoad={(e) => setLogoAncho(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight >= 2.2)} />
-                : <span className="grid place-items-center size-16 rounded-full bg-inset text-text">{im.icono ? <img src={im.icono} alt="" className="size-12 rounded-md object-contain" /> : <Isotipo className="size-12" />}</span>}
+                : <span className="grid place-items-center size-16 rounded-full bg-inset text-text">{im.icono ? <ImgLogo src={im.icono} fondoOscuro={modo === 'dark'} alt="" className="size-12 rounded-md object-contain" /> : <Isotipo className="size-12" />}</span>}
               {/* Un logo cuadrado (solo el símbolo) va con el nombre abajo; uno ancho ya trae el nombre escrito */}
               {(!logo || !logoAncho) && <h1 className="text-[28px] mt-3">{marca.nombre === 'Dojo OS' ? <>Dojo <span className="text-gold font-normal">OS</span></> : <NombreMarca nombre={marca.nombre} fuente={marca.fuente_nombre} />}</h1>}
               <p className={`text-muted text-sm ${logo && logoAncho ? 'mt-3' : ''}`}>{marca.lema || t('login.subtitulo')}</p>

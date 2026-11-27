@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, Eye, EyeOff, KeyRound, LogOut, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { api } from '../api';
 import { useSesion } from '../auth/Sesion';
 import { useMarca } from '../marca/Marca';
@@ -9,13 +10,14 @@ import { Boton, Campo, ErrorCaja, useAvisos } from '../ui';
 
 // Cambiar contraseña: obligatorio la primera vez (entró con una temporal) y disponible en Mi perfil.
 
-const reglas = (n) => [
-  ['Al menos 8 caracteres', n.length >= 8],
-  ['Letras', /[A-Za-zÁÉÍÓÚÑáéíóúñ]/.test(n)],
-  ['Números', /\d/.test(n)],
+const reglas = (n, t) => [
+  [t('cuenta.form.reglaLargo'), n.length >= 8],
+  [t('cuenta.form.reglaLetras'), /[A-Za-zÁÉÍÓÚÑáéíóúñ]/.test(n)],
+  [t('cuenta.form.reglaNumeros'), /\d/.test(n)],
 ];
 
-export function FormContrasena({ onListo, textoBoton = 'Cambiar contraseña', actualEtiqueta = 'Contraseña actual', enfocar = false }) {
+export function FormContrasena({ onListo, textoBoton, actualEtiqueta, enfocar = false }) {
+  const { t } = useTranslation();
   const [actual, setActual] = useState('');
   const [nueva, setNueva] = useState('');
   const [otra, setOtra] = useState('');
@@ -23,14 +25,14 @@ export function FormContrasena({ onListo, textoBoton = 'Cambiar contraseña', ac
   const [error, setError] = useState(null);
   const [err, setErr] = useState({});
   const [enviando, setEnviando] = useState(false);
-  const ok = reglas(nueva).every(([, v]) => v);
+  const ok = reglas(nueva, t).every(([, v]) => v);
 
   async function enviar(e) {
     e.preventDefault();
     const x = {};
-    if (!actual) x.actual = 'Escríbela';
-    if (!ok) x.nueva = 'Revisa los requisitos';
-    if (nueva !== otra) x.otra = 'No coincide con la nueva';
+    if (!actual) x.actual = t('cuenta.form.escribela');
+    if (!ok) x.nueva = t('cuenta.form.revisa');
+    if (nueva !== otra) x.otra = t('cuenta.form.noCoincide');
     setErr(x); setError(null);
     if (Object.keys(x).length) return;
     setEnviando(true);
@@ -38,18 +40,18 @@ export function FormContrasena({ onListo, textoBoton = 'Cambiar contraseña', ac
     catch (ex) { if (ex.detalle?.campo) setErr({ [ex.detalle.campo]: ex.message }); else setError(ex); }
     finally { setEnviando(false); }
   }
-  const ojo = <button type="button" onClick={() => setVer(!ver)} aria-label={ver ? 'Ocultar' : 'Mostrar'} className="text-muted hover:text-text cursor-pointer">{ver ? <EyeOff className="size-4" /> : <Eye className="size-4" />}</button>;
+  const ojo = <button type="button" onClick={() => setVer(!ver)} aria-label={ver ? t('cuenta.form.ocultar') : t('cuenta.form.ver')} className="text-muted hover:text-text cursor-pointer">{ver ? <EyeOff className="size-4" /> : <Eye className="size-4" />}</button>;
 
   return (
     <form onSubmit={enviar} noValidate className="space-y-4">
-      <Campo etiqueta={actualEtiqueta} type={ver ? 'text' : 'password'} value={actual} onChange={(e) => setActual(e.target.value)} error={err.actual} autoComplete="current-password" autoFocus={enfocar} derecha={ojo} />
-      <Campo etiqueta="Contraseña nueva" type={ver ? 'text' : 'password'} value={nueva} onChange={(e) => setNueva(e.target.value)} error={err.nueva} autoComplete="new-password" />
+      <Campo etiqueta={actualEtiqueta || t('cuenta.form.actual')} type={ver ? 'text' : 'password'} value={actual} onChange={(e) => setActual(e.target.value)} error={err.actual} autoComplete="current-password" autoFocus={enfocar} derecha={ojo} />
+      <Campo etiqueta={t('cuenta.form.nueva')} type={ver ? 'text' : 'password'} value={nueva} onChange={(e) => setNueva(e.target.value)} error={err.nueva} autoComplete="new-password" />
       <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] -mt-2">
-        {reglas(nueva).map(([t, v]) => <li key={t} className={`flex items-center gap-1 ${v ? 'text-ok' : 'text-muted'}`}>{v ? <Check className="size-3.5" /> : <X className="size-3.5" />}{t}</li>)}
+        {reglas(nueva, t).map(([r, v]) => <li key={r} className={`flex items-center gap-1 ${v ? 'text-ok' : 'text-muted'}`}>{v ? <Check className="size-3.5" /> : <X className="size-3.5" />}{r}</li>)}
       </ul>
-      <Campo etiqueta="Repite la nueva" type={ver ? 'text' : 'password'} value={otra} onChange={(e) => setOtra(e.target.value)} error={err.otra} autoComplete="new-password" />
+      <Campo etiqueta={t('cuenta.form.otra')} type={ver ? 'text' : 'password'} value={otra} onChange={(e) => setOtra(e.target.value)} error={err.otra} autoComplete="new-password" />
       <ErrorCaja error={error} />
-      <Boton type="submit" icono={KeyRound} cargando={enviando} className="w-full">{textoBoton}</Boton>
+      <Boton type="submit" icono={KeyRound} cargando={enviando} className="w-full">{textoBoton || t('cuenta.form.boton')}</Boton>
     </form>
   );
 }

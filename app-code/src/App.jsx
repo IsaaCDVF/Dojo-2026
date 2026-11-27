@@ -49,6 +49,7 @@ export default function App() {
         <Route path="familia" element={<Familia />} />
         <Route path="pagos" element={<Pagos />} />
         <Route path="cuenta" element={<MiCuenta />} />
+        <Route path="cuenta/:seccion" element={<MiCuenta />} />
         <Route path="pagar" element={<Pagar />} />
         <Route path="pago/:id" element={<PagoEstado />} />
         <Route path="avisos" element={<Avisos />} />

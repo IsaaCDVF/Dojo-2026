@@ -1,3 +1,4 @@
+import { ImgLogo } from './logoLegible';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { api, token } from './api';
 import { NombreMarca, nombrePlano } from './NombreMarca';
@@ -107,12 +108,13 @@ export function Nombre({ className = '' }) {
  */
 export function MarcaPortada({ Isotipo }) {
   const m = useMarca(); const im = m.imagenes || {};
-  const img = im.icono || im.logo_oscuro;
+  const oscuro = m.modo !== 'claro';
+  const img = im.icono || (oscuro ? im.logo_oscuro || im.logo : im.logo || im.logo_oscuro);
   const [ancho, setAncho] = useState(false);
   return (
     <div className="text-center anim-entrar">
       {img
-        ? <img src={img} alt="" onLoad={(e) => setAncho(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight >= 1.8)}
+        ? <ImgLogo src={img} fondoOscuro={oscuro} alt="" onLoad={(e) => setAncho(e.currentTarget.naturalWidth / e.currentTarget.naturalHeight >= 1.8)}
             className={ancho ? 'h-20 max-w-[85%] mx-auto object-contain' : 'size-28 mx-auto object-contain rounded-[26px]'} />
         : <Isotipo className="size-24 mx-auto text-text" />}
       {(!img || !ancho) && <Nombre className="block text-[32px] font-black leading-tight mt-4" />}
@@ -121,6 +123,6 @@ export function MarcaPortada({ Isotipo }) {
   );
 }
 export function MarcaIcono({ Isotipo, className = 'size-9' }) {
-  const im = useMarca().imagenes || {};
-  return im.icono ? <img src={im.icono} alt="" className={`${className} rounded-lg object-contain`} /> : <Isotipo className={`${className} text-text`} />;
+  const m = useMarca(); const im = m.imagenes || {};
+  return im.icono ? <ImgLogo src={im.icono} fondoOscuro={m.modo !== 'claro'} alt="" className={`${className} rounded-lg object-contain`} /> : <Isotipo className={`${className} text-text`} />;
 }

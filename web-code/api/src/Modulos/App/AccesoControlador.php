@@ -116,7 +116,8 @@ final class AccesoControlador
             Db::ejecutar('UPDATE sesiones SET revocada = NOW() WHERE usuario_id = ? AND revocada IS NULL', [$uid]);   // nueva contraseña: cierra otras sesiones
         });
         $token = bin2hex(random_bytes(32));
-        Db::insertar('INSERT INTO sesiones (usuario_id, usuario_rol_id, token_hash, ip) VALUES (?, NULL, ?, ?)', [$uid, hash('sha256', $token), $req->ip]);
+        $sid = Db::insertar('INSERT INTO sesiones (usuario_id, usuario_rol_id, token_hash, ip) VALUES (?, NULL, ?, ?)', [$uid, hash('sha256', $token), $req->ip]);
+        \Dojo\Modulos\Auth\AuthControlador::anotarDispositivo((int) $sid);
         Respuesta::ok(['token' => $token]);
     }
 
